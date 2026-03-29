@@ -1,8 +1,67 @@
 # Configuration & Secrets Guide
 
-> Complete reference for all environment variables, secrets, and configuration across the PDF Q&A Application.
+> Complete reference for all environment variables, secrets, and configuration across KanelBulleKapital projects.
 
+## FikaForecast Secrets
 
+### Required Secrets
+
+| Secret | Description | Where Used |
+| --- | --- | --- |
+| `AzureAIFoundry:Endpoint` | Azure AI Foundry project endpoint | Infrastructure — agent execution |
+| `AzureAIFoundry:ApiKey` | Azure AI Foundry API key | Infrastructure — agent authentication |
+| `AzureAIFoundry:BingConnectionName` | Bing Grounding connection name | Infrastructure — web search tool |
+
+### Model Deployment Names
+
+These are configured in `appsettings.json` (not secrets — they're not sensitive):
+
+```json
+{
+  "FikaForecast": {
+    "Models": [
+      { "ModelId": "gpt-5.1-mini", "DeploymentName": "gpt-51-mini", "DisplayName": "GPT-5.1 Mini" },
+      { "ModelId": "gpt-5", "DeploymentName": "gpt-5", "DisplayName": "GPT-5" },
+      { "ModelId": "phi-4", "DeploymentName": "phi-4", "DisplayName": "Phi-4" },
+      { "ModelId": "deepseek", "DeploymentName": "deepseek", "DisplayName": "DeepSeek" }
+    ]
+  }
+}
+```
+
+### Local Development — User Secrets
+
+Use `dotnet user-secrets` for local development. Never commit API keys to source control.
+
+```bash
+# Initialize user secrets for the WPF project
+cd FikaForecast/FikaForecast.Wpf
+dotnet user-secrets init
+
+# Set Azure AI Foundry secrets
+dotnet user-secrets set "AzureAIFoundry:Endpoint" "https://your-project.swedencentral.inference.ai.azure.com"
+dotnet user-secrets set "AzureAIFoundry:ApiKey" "your-api-key-here"
+dotnet user-secrets set "AzureAIFoundry:BingConnectionName" "your-bing-connection"
+```
+
+Verify secrets are set:
+
+```bash
+dotnet user-secrets list
+```
+
+### Production — Azure Key Vault
+
+For production or shared environments, store secrets in Azure Key Vault:
+
+```bash
+# Add secrets to Key Vault
+az keyvault secret set --vault-name kv-fikaforecast --name "AzureAIFoundry--Endpoint" --value "https://..."
+az keyvault secret set --vault-name kv-fikaforecast --name "AzureAIFoundry--ApiKey" --value "..."
+az keyvault secret set --vault-name kv-fikaforecast --name "AzureAIFoundry--BingConnectionName" --value "..."
+```
+
+> Note: Key Vault uses `--` as separator instead of `:` for nested configuration keys.
 
 ## Security Best Practices
 

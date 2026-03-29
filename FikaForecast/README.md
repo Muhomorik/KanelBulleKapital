@@ -1,3 +1,71 @@
 # FikaForecast
 
-We will fill it later.
+A WPF desktop application that runs AI agents to analyze financial markets. Built with **Microsoft Agent Framework** and **Azure AI Foundry** to demonstrate agent orchestration, model comparison, and a multi-step analysis pipeline.
+
+## Pipeline
+
+```mermaid
+flowchart LR
+    S1[Step 1\nNews Brief] --> S2[Step 2\nMacro Regime]
+    S2 --> S3[Step 3\nCategory Impact]
+    S1 --> S3
+    S3 --> S4[Step 4\nSubstitution Chain]
+    S4 --> S5[Step 5\nPortfolio Implications]
+    S5 --> S6[Step 6\nOpportunity Scan]
+    S6 --> OUT[Final\nMarkdown Report]
+
+    style S1 fill:#4a9eff,color:#fff
+    style OUT fill:#2d8659,color:#fff
+```
+
+| Step | Agent | What it does |
+| --- | --- | --- |
+| 1 | News Brief | Scans 14 days of news via Bing Grounding, produces categorized market brief |
+| 2 | Macro Regime | Classifies current regime (stagflation, risk-off, reflationary, etc.) |
+| 3 | Category Impact | Maps direction + causal chains for every fund category |
+| 4 | Substitution Chain | Follows disruption chains to find rotation beneficiaries |
+| 5 | Portfolio Implications | Evaluates current positions against new signals |
+| 6 | Opportunity Scan | Flags up to 3 uninvested categories worth watching |
+
+## Model Comparison
+
+All models run through **Azure AI Foundry**. Same agent, same prompt, different brain -- compare side-by-side.
+
+| Model | Role |
+| --- | --- |
+| GPT-5.1-mini | Fast, cheap baseline |
+| GPT-5 | Flagship quality benchmark |
+| Phi-4 | Budget option, Microsoft showcase |
+| DeepSeek | Open-source heavyweight |
+
+## Tech Stack
+
+| Layer | Technology |
+| --- | --- |
+| Desktop UI | WPF, MahApps.Metro, WebView2 |
+| MVVM | DevExpress MVVM |
+| DI | Autofac |
+| Reactive | Rx.NET |
+| Persistence | EF Core + SQLite |
+| AI Platform | Azure AI Foundry (model catalog + Bing Grounding) |
+| Agent Framework | Microsoft Agent Framework |
+| Logging | NLog |
+
+## Solution Structure
+
+```text
+FikaForecast/
+  FikaForecast.sln
+  FikaForecast.Wpf/            -- WPF startup project
+  FikaForecast.Domain/         -- Core domain (no external dependencies)
+  FikaForecast.Application/    -- Use cases and orchestration
+  FikaForecast.Infrastructure/ -- AI agents, persistence, external services
+```
+
+Architecture follows **Domain-Driven Design** -- dependencies point inward.
+
+## Documentation
+
+- [News Brief Agent Architecture](docs/news-brief-agent-architecture.md) -- Detailed Step 1 design, Mermaid diagrams, domain model, persistence schema
+- [Azure Deployment Guide](../docs/AZURE-DEPLOYMENT.md) -- Resource groups, AI Foundry setup, cost tracking
+- [Secrets Management](../docs/SECRETS-MANAGEMENT.md) -- API keys, user secrets, Key Vault
