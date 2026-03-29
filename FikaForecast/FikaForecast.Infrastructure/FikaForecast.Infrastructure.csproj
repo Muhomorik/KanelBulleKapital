@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Platforms>AnyCPU;x64</Platforms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FikaForecast.Application\FikaForecast.Application.csproj" />
+    <ProjectReference Include="..\FikaForecast.Domain\FikaForecast.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Statistical computations (mean, std, skewness) for fund analytics -->
+    <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
+
+    <!-- Reactive Extensions for IObservable -->
+    <PackageReference Include="System.Reactive" Version="6.0.0" />
+
+    <!-- HTTP client for web scraping -->
+    <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.0" />
+
+    <!-- Logging -->
+    <PackageReference Include="NLog" Version="5.3.4" />
+
+    <!-- Entity Framework Core for SQLite persistence -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+</Project>

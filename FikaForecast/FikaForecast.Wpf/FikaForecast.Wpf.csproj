@@ -1,0 +1,57 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows10.0.26100.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <PlatformTarget>x64</PlatformTarget>
+    <Platforms>AnyCPU;x64</Platforms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Dependency Injection -->
+    <PackageReference Include="Autofac" Version="9.0.0" />
+
+    <!-- DevExpress MVVM (free version) -->
+    <PackageReference Include="DevExpressMvvm" Version="24.1.6" />
+
+    <!-- Configuration -->
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="9.0.0" />
+
+    <!-- Reactive Extensions for IObservable -->
+    <PackageReference Include="System.Reactive" Version="6.1.0" />
+
+    <!-- MahApps.Metro for modern UI -->
+    <PackageReference Include="MahApps.Metro" Version="2.4.11" />
+
+    <!-- WebView2 for embedded Chromium browser -->
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
+
+    <!-- CLI argument parsing -->
+    <PackageReference Include="CommandLineParser" Version="2.9.1" />
+
+    <!-- Logging -->
+    <PackageReference Include="NLog" Version="6.0.7" />
+    <PackageReference Include="NLog.Extensions.Logging" Version="6.1.0" />
+
+    <!-- ImageMagick for streaming mode effects -->
+    <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="14.10.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FikaForecast.Application\FikaForecast.Application.csproj" />
+    <ProjectReference Include="..\FikaForecast.Infrastructure\FikaForecast.Infrastructure.csproj" />
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <None Update="NLog.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>
