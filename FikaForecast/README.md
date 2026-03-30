@@ -2,6 +2,8 @@
 
 A WPF desktop application that runs AI agents to analyze financial markets. Built with **Microsoft Agent Framework** and **Azure AI Foundry** to demonstrate agent orchestration, model comparison, and a multi-step analysis pipeline.
 
+![FikaForecast Overview](docs/IMG_OVERVIEW.png)
+
 ## Pipeline
 
 ```mermaid
@@ -31,12 +33,13 @@ flowchart LR
 
 All models run through **Azure AI Foundry**. Same agent, same prompt, different brain -- compare side-by-side.
 
-| Model | Role |
-| --- | --- |
-| GPT-5.1-mini | Fast, cheap baseline |
-| GPT-5 | Flagship quality benchmark |
-| Phi-4 | Budget option, Microsoft showcase |
-| DeepSeek | Open-source heavyweight |
+| Model | Role | Status |
+| --- | --- | --- |
+| gpt-4.1 | Flagship baseline | Deployed |
+| gpt-5.4-mini | Next-gen baseline (needs SDK migration to Azure.AI.Projects for Bing Grounding) | TODO |
+| gpt-5.4 | Flagship quality benchmark | TODO |
+| gpt-5.4-nano | Ultra-budget option | TODO |
+| DeepSeek | Open-source heavyweight | TODO |
 
 ## Tech Stack
 
@@ -63,6 +66,13 @@ FikaForecast/
 ```
 
 Architecture follows **Domain-Driven Design** -- dependencies point inward.
+
+## Roadmap
+
+- [ ] **Migrate SDK from `Azure.AI.Agents.Persistent` to `Azure.AI.Projects`** — the classic Agents API doesn't support Bing Grounding with gpt-5.x models. The new Foundry Agent Service API does. This unlocks gpt-5.4-mini/nano/pro + Bing Grounding.
+- [ ] Add gpt-5.4-mini, gpt-5.4, gpt-5.4-nano model configs
+- [ ] Add DeepSeek model config
+- [ ] Implement pipeline steps 2–6
 
 ## Documentation
 

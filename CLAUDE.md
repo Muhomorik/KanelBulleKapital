@@ -43,6 +43,7 @@ The Microsoft Agent Framework and Azure AI Foundry are newly released and evolvi
 | Technology | Purpose |
 | ------------ | --------- |
 | Azure Functions | Serverless compute (individual task handlers) |
+| Azure Tables | NoSQL key-value storage |
 | Microsoft Agent Framework | AI agent orchestration |
 | Azure AI Foundry | AI model hosting & management |
 
@@ -81,6 +82,12 @@ This project shares a backend with [SemanticKernel-FundDocsQnA-dotnet-nextjs](ht
 
 ## Documentation
 
+| Document | Description |
+| ---------- | ------------- |
+| [Azure Deployment](docs/AZURE-DEPLOYMENT.md) | AI Foundry setup, Bing Grounding, model deployments, cost tracking |
+| [Secrets Management](docs/SECRETS-MANAGEMENT.md) | User secrets, Key Vault, API keys |
+| [FikaForecast README](FikaForecast/README.md) | App overview, pipeline, model comparison, roadmap |
+
 ## Build & Run Commands
 
 ## Architecture
@@ -94,6 +101,14 @@ This project shares a backend with [SemanticKernel-FundDocsQnA-dotnet-nextjs](ht
 ### Configuration
 
 ## Important Notes
+
+### Documentation Security
+
+When editing files in `docs/`, AI assistants MUST verify before saving:
+
+- [ ] No real Azure resource names — use `<your-...>` placeholders
+- [ ] No real endpoint URLs — use `<your-...>` placeholders
+- [ ] No API keys, tokens, or secrets in plain text
 
 ## Testing Guidelines
 

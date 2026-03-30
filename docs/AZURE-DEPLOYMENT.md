@@ -1,103 +1,132 @@
 # Azure Deployment Guide
 
-Complete guide for deploying the full-stack application (Backend API + Frontend) to Azure with zero-cost hosting.
+Complete guide for deploying FikaForecast resources to Azure.
+
+## Instructions for AI Agents
+
+**CRITICAL:** When editing this document, AI assistants MUST verify before saving:
+
+- [ ] No real Azure resource names — use `<your-...>` placeholders
+- [ ] No real endpoint URLs — use `<your-...>` placeholders
+- [ ] No API keys, tokens, or secrets in plain text
 
 ## Resource Group and Cost Management
 
-All FikaForecast resources live in a dedicated resource group for cost isolation and tracking.
+All resources live in a dedicated resource group: `<your-resource-group>`
 
 ### Budget Alert
 
 - **Threshold:** $40/month
+- **Alerts:** Email at 50% ($20) and 80% ($32)
 - **Alert recipients:** Resource group owner
-- **Action:** Email notification at 80% and 100% of budget
 
-### Setup
+### Estimated Monthly Costs
 
-```bash
-# Create resource group
-az group create --name rg-fikaforecast --location swedencentral
+| Resource | Pricing | Estimated Cost (light use) | Estimated Cost (daily use) |
+| --- | --- | --- | --- |
+| **AI Foundry resource** | Free (no idle cost) | $0 | $0 |
+| **gpt-5.4-mini** (Global Standard) | Pay per token | ~$0.01/brief | ~$0.30/month |
+| **gpt-5.4** (Global Standard) | Pay per token | ~$0.05-0.10/brief | ~$1.50-3.00/month |
+| **gpt-5.4-nano** (Global Standard) | Pay per token | ~$0.005/brief | ~$0.15/month |
+| **Bing Grounding** (S tier) | $14 per 1,000 transactions | ~$1.40-2.80/month | ~$4.20-8.40/month |
+| **Storage account** | Minimal | ~$0.01/month | ~$0.01/month |
+| **Total** | | **~$2-4/month** | **~$6-12/month** |
 
-# Create budget with alert
-az consumption budget create \
-  --budget-name fikaforecast-monthly \
-  --resource-group rg-fikaforecast \
-  --amount 40 \
-  --time-grain Monthly \
-  --category Cost \
-  --start-date 2026-04-01 \
-  --end-date 2027-04-01
+> Each brief run triggers ~5-10 Bing search transactions. Heavy comparison testing (all models daily) could reach ~$15-20/month for Bing alone.
 
-# Add alert at 80%
-az consumption budget create \
-  --budget-name fikaforecast-monthly \
-  --resource-group rg-fikaforecast \
-  --amount 40 \
-  --time-grain Monthly \
-  --category Cost \
-  --notifications "{\"80_percent\":{\"enabled\":true,\"operator\":\"GreaterThanOrEqualTo\",\"threshold\":80,\"contactEmails\":[\"your-email@example.com\"]}}"
-```
+### Budget Setup (Portal)
 
-### Cost Tagging
+1. Open `<your-resource-group>` in Azure Portal
+2. Left menu → **Cost Management** → **Budgets** → **+ Add**
+3. Name: `<your-budget-name>`, Amount: `40`, Reset: `Monthly`
+4. Add alert at 50% and 80%, enter your email
 
-Tag all resources for cost attribution:
+## Microsoft Foundry (Azure AI Foundry)
 
-```bash
-az tag create --resource-id <resource-id> --tags project=FikaForecast environment=production
-```
+> In the Azure Portal, search for **"Microsoft Foundry"** (rebranded from Azure AI Foundry).
 
-## Azure AI Foundry
+### Resource Setup (Portal)
 
-### Project Setup
+1. Search **"Microsoft Foundry"** in Azure Portal
+2. Click **Create a resource**
+3. Fill in:
+   - **Resource group**: `<your-resource-group>`
+   - **Name**: `<your-ai-resource>`
+   - **Region**: `Sweden Central`
+4. Leave Storage, Network, Identity, Encryption as defaults
+5. **Review + create** → **Create**
+6. Click **Go to resource** → **Go to Foundry portal**
 
-1. Go to [Azure AI Foundry](https://ai.azure.com)
-2. Create a new project in the `rg-fikaforecast` resource group
-3. Select **Sweden Central** region (closest, supports all needed models)
+### Project
+
+A default project is created automatically: `<your-project>`
 
 ### Model Deployments
 
-Deploy these models from the Foundry catalog:
+In the Foundry portal → **Model catalog** → search and deploy:
 
-| Model | Deployment Name | Purpose | Estimated Cost per Brief |
+| Model | Deployment Name | Deployment Type | Status |
 | --- | --- | --- | --- |
-| GPT-5.1-mini | gpt-51-mini | Fast, cheap baseline | ~$0.01 |
-| GPT-5 | gpt-5 | Flagship quality benchmark | ~$0.05-0.10 |
-| Phi-4 | phi-4 | Budget option, Microsoft showcase | ~$0.001 |
-| DeepSeek | deepseek | Open-source heavyweight | ~$0.01 |
+| gpt-4.1 | gpt-4.1 | Global Standard | Deployed |
+| gpt-5.4-mini | gpt-5.4-mini | Global Standard | TODO (needs SDK migration to Azure.AI.Projects for Bing Grounding) |
+| gpt-5.4 | gpt-5.4 | Global Standard | TODO |
+| gpt-5.4-nano | gpt-5.4-nano | Global Standard | TODO |
+| DeepSeek | deepseek | Serverless | TODO |
 
-> Cost estimates are approximate and depend on news volume and search depth per run. Track actual costs via the per-run token tracking in the app + Azure Cost Analysis.
+> **Global Standard** = pay per token, no idle cost. Safe to leave deployed.
 
-### Deploy a Model
+### Bing Grounding
+
+The News Brief Agent uses Bing Grounding to search for real-time news. LLMs have a knowledge cutoff — without Bing, the model cannot access current events.
+
+**Step 1 — Create Bing Search resource (Azure Portal):**
+
+1. Search **"Grounding with Bing Search"** in Azure Portal
+2. Click **Create**
+3. Fill in:
+   - **Resource group**: `<your-resource-group>`
+   - **Name**: `<your-bing-resource>`
+   - **Pricing tier**: S ($14 per 1,000 transactions)
+4. Check the terms checkbox → **Review + create** → **Create**
+
+**Step 2 — Connect to Foundry (Foundry Portal):**
+
+1. Go to the Foundry portal → **Management center** (bottom-left)
+2. Go to **Connected resources** → **+ New connection**
+3. Select **Grounding with Bing Search**
+4. Pick the Bing resource you created
+5. Note the **connection name**
+
+**Step 3 — Save connection name:**
 
 ```bash
-# Example: deploy GPT-5.1-mini
-az ai model deployment create \
-  --resource-group rg-fikaforecast \
-  --workspace-name fikaforecast-ai \
-  --name gpt-51-mini \
-  --model-id azureai://openai/gpt-5.1-mini \
-  --sku-name Standard
+cd FikaForecast/FikaForecast.Wpf
+dotnet user-secrets set "AzureAIFoundry:BingConnectionName" "<connection-name>"
 ```
 
-### Bing Grounding Connection
+### Authentication and Endpoints
 
-The News Brief Agent uses Bing Grounding to search for real-time news (LLMs have a knowledge cutoff and cannot access current events without a search tool).
-
-1. In Azure AI Foundry portal, go to **Connected resources**
-2. Add a **Bing Search** connection
-3. Create a Bing Search resource in the `rg-fikaforecast` resource group if needed
-4. Note the connection name for use in agent configuration
-
-## Application Insights
-
-For monitoring agent runs, token usage, and latency:
+FikaForecast uses **DefaultAzureCredential** — no API keys needed. The recommended local setup is Azure CLI:
 
 ```bash
-az monitor app-insights component create \
-  --app fikaforecast-insights \
-  --location swedencentral \
-  --resource-group rg-fikaforecast \
-  --kind web
+# Install Azure CLI (one-time)
+winget install Microsoft.AzureCLI
+
+# Log in with your Azure account (same account as Azure Portal)
+az login
+```
+
+After setup, save the project endpoint as a user secret (see [SECRETS-MANAGEMENT.md](SECRETS-MANAGEMENT.md)):
+
+| Value | Where to find it |
+| --- | --- |
+| Project endpoint | Foundry portal → project overview → "Microsoft Foundry project endpoint": `https://<your-ai-resource>.services.ai.azure.com/api/projects/<your-project>` |
+| Bing connection | Management center → Connected resources → connection name |
+
+```bash
+cd FikaForecast/FikaForecast.Wpf
+dotnet user-secrets set "AzureAIFoundry:ProjectEndpoint" "https://<your-ai-resource>.services.ai.azure.com/api/projects/<your-project>"
+dotnet user-secrets set "AzureAIFoundry:BingConnectionName" "<your-bing-connection>"
 ```
 
 ## Existing Services (Shared Backend)
@@ -111,9 +140,7 @@ These services are already deployed and shared with [SemanticKernel-FundDocsQnA]
 
 ## Additional Resources
 
-- [Azure AI Foundry Documentation](https://learn.microsoft.com/azure/ai-studio/)
+- [Microsoft Foundry Documentation](https://learn.microsoft.com/azure/ai-studio/)
 - [Azure App Service Documentation](https://docs.microsoft.com/azure/app-service/)
-- [Azure Static Web Apps Documentation](https://docs.microsoft.com/azure/static-web-apps/)
 - [Application Insights Overview](https://docs.microsoft.com/azure/azure-monitor/app/app-insights-overview)
 - [Azure Key Vault Quickstart](https://docs.microsoft.com/azure/key-vault/general/quick-create-cli)
-- [GitHub Actions for Azure](https://docs.microsoft.com/azure/developer/github/github-actions)

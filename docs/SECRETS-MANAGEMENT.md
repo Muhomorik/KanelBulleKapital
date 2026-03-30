@@ -2,15 +2,61 @@
 
 > Complete reference for all environment variables, secrets, and configuration across KanelBulleKapital projects.
 
-## FikaForecast Secrets
+## Instructions for AI Agents
 
-### Required Secrets
+**CRITICAL:** When editing this document, AI assistants MUST verify before saving:
 
-| Secret | Description | Where Used |
+- [ ] No real Azure resource names — use `<your-...>` placeholders
+- [ ] No real endpoint URLs — use `<your-...>` placeholders
+- [ ] No API keys, tokens, or secrets in plain text
+
+## FikaForecast Configuration
+
+### Required
+
+| Secret | Description | Example |
 | --- | --- | --- |
-| `AzureAIFoundry:Endpoint` | Azure AI Foundry project endpoint | Infrastructure — agent execution |
-| `AzureAIFoundry:ApiKey` | Azure AI Foundry API key | Infrastructure — agent authentication |
-| `AzureAIFoundry:BingConnectionName` | Bing Grounding connection name | Infrastructure — web search tool |
+| `AzureAIFoundry:ProjectEndpoint` | Foundry project endpoint | `https://<your-ai-resource>.services.ai.azure.com/api/projects/<your-project>` |
+
+### Optional
+
+| Secret | Description | Example |
+| --- | --- | --- |
+| `AzureAIFoundry:BingConnectionName` | Bing Grounding connection name | `<your-bing-connection>` |
+
+### Authenticationn
+
+FikaForecast uses **DefaultAzureCredential** — no API key needed.
+
+The recommended approach for local development is **Azure CLI**:
+
+```bash
+# Install Azure CLI (one-time)
+winget install Microsoft.AzureCLI
+
+# Log in with your Azure account
+az login
+```
+
+After `az login`, DefaultAzureCredential picks up your credentials automatically.
+
+> **Troubleshooting:** If you get `CredentialUnavailableException`, it means no valid credential was found.
+> The most common fixes:
+>
+> 1. **Install Azure CLI** and run `az login` — this is the most reliable method
+> 2. **Re-authenticate in Visual Studio** — Tools → Options → Azure Services Authentication → re-authenticate
+> 3. **Check your account** — the Azure account must have access to the Foundry resource
+>
+> DefaultAzureCredential tries these sources in order: Environment variables → Workload Identity →
+> Managed Identity → Visual Studio → VS Code → Azure CLI → Azure PowerShell → Azure Developer CLI.
+> For a desktop app, Azure CLI is the simplest.
+
+### Where to Find the Project Endpoint
+
+1. Go to [ai.azure.com](https://ai.azure.com) (Foundry portal)
+2. Open your project
+3. Overview page → Endpoints and keys → **"Microsoft Foundry project endpoint"**
+4. Copy the full URL: `https://<your-ai-resource>.services.ai.azure.com/api/projects/<your-project>`
 
 ### Model Deployment Names
 
@@ -20,10 +66,7 @@ These are configured in `appsettings.json` (not secrets — they're not sensitiv
 {
   "FikaForecast": {
     "Models": [
-      { "ModelId": "gpt-5.1-mini", "DeploymentName": "gpt-51-mini", "DisplayName": "GPT-5.1 Mini" },
-      { "ModelId": "gpt-5", "DeploymentName": "gpt-5", "DisplayName": "GPT-5" },
-      { "ModelId": "phi-4", "DeploymentName": "phi-4", "DisplayName": "Phi-4" },
-      { "ModelId": "deepseek", "DeploymentName": "deepseek", "DisplayName": "DeepSeek" }
+      { "ModelId": "gpt-5.4-mini", "DeploymentName": "gpt-5.4-mini", "DisplayName": "GPT-5.4 Mini" }
     ]
   }
 }
@@ -31,17 +74,16 @@ These are configured in `appsettings.json` (not secrets — they're not sensitiv
 
 ### Local Development — User Secrets
 
-Use `dotnet user-secrets` for local development. Never commit API keys to source control.
-
 ```bash
 # Initialize user secrets for the WPF project
 cd FikaForecast/FikaForecast.Wpf
 dotnet user-secrets init
 
-# Set Azure AI Foundry secrets
-dotnet user-secrets set "AzureAIFoundry:Endpoint" "https://your-project.swedencentral.inference.ai.azure.com"
-dotnet user-secrets set "AzureAIFoundry:ApiKey" "your-api-key-here"
-dotnet user-secrets set "AzureAIFoundry:BingConnectionName" "your-bing-connection"
+# Set Foundry project endpoint
+dotnet user-secrets set "AzureAIFoundry:ProjectEndpoint" "https://<your-ai-resource>.services.ai.azure.com/api/projects/<your-project>"
+
+# Optional: Bing Grounding connection
+dotnet user-secrets set "AzureAIFoundry:BingConnectionName" "<your-bing-connection>"
 ```
 
 Verify secrets are set:
@@ -50,44 +92,29 @@ Verify secrets are set:
 dotnet user-secrets list
 ```
 
-### Production — Azure Key Vault
-
-For production or shared environments, store secrets in Azure Key Vault:
-
-```bash
-# Add secrets to Key Vault
-az keyvault secret set --vault-name kv-fikaforecast --name "AzureAIFoundry--Endpoint" --value "https://..."
-az keyvault secret set --vault-name kv-fikaforecast --name "AzureAIFoundry--ApiKey" --value "..."
-az keyvault secret set --vault-name kv-fikaforecast --name "AzureAIFoundry--BingConnectionName" --value "..."
-```
-
-> Note: Key Vault uses `--` as separator instead of `:` for nested configuration keys.
-
 ## Security Best Practices
 
 ### Do
 
-- Use User Secrets for local development (never commit API keys)
+- Use Azure CLI (`az login`) for local development authentication
+- Use User Secrets for non-sensitive config like endpoints (never commit to Git)
 - Use Azure Key Vault for production (secure, centralized)
-- Rotate API keys regularly (every 90 days recommended)
-- Use Managed Identity (no credentials in code)
-- Grant least privilege access to secrets
+- Use DefaultAzureCredential (no API keys in code)
+- Grant least privilege access
 
 ### Don't
 
 - Commit secrets to Git (check `.gitignore`)
-- Hardcode API keys in source code
+- Hardcode endpoints or API keys in source code
 - Share User Secrets files between developers
-- Use production secrets in local development
-- Log secret values (ensure logging doesn't expose sensitive data)
-- Put secrets in `NEXT_PUBLIC_` environment variables
+- Log secret values
 
 ---
 
 ## Additional Resources
 
 - [.NET User Secrets Documentation](https://docs.microsoft.com/aspnet/core/security/app-secrets)
+- [DefaultAzureCredential Documentation](https://learn.microsoft.com/dotnet/api/azure.identity.defaultazurecredential)
+- [DefaultAzureCredential Troubleshooting](https://aka.ms/azsdk/net/identity/defaultazurecredential/troubleshoot)
+- [Azure CLI Installation](https://learn.microsoft.com/cli/azure/install-azure-cli)
 - [Azure Key Vault Overview](https://docs.microsoft.com/azure/key-vault/general/overview)
-- [Managed Identity Best Practices](https://docs.microsoft.com/azure/active-directory/managed-identities-azure-resources/best-practice-recommendations)
-- [GitHub Secrets Documentation](https://docs.github.com/actions/security-guides/encrypted-secrets)
-- [Next.js Environment Variables](https://nextjs.org/docs/basic-features/environment-variables)
