@@ -8,11 +8,13 @@
     <UseWPF>true</UseWPF>
     <PlatformTarget>x64</PlatformTarget>
     <Platforms>AnyCPU;x64</Platforms>
+    <UserSecretsId>0d07ad62-50c1-45a8-ab12-c8972a50bcd4</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
     <!-- Dependency Injection -->
     <PackageReference Include="Autofac" Version="9.0.0" />
+    <PackageReference Include="Azure.Identity" Version="1.19.0" />
 
     <!-- DevExpress MVVM (free version) -->
     <PackageReference Include="DevExpressMvvm" Version="24.1.6" />

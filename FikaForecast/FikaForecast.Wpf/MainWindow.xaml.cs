@@ -1,20 +1,18 @@
-﻿using System.Text;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
+using FikaForecast.Wpf.ViewModels;
+using MahApps.Metro.Controls;
 
 namespace FikaForecast.Wpf;
 
 /// <summary>
-/// Interaction logic for MainWindow.xaml
+/// Main application window. Receives ViewModels via constructor injection.
 /// </summary>
-public partial class MainWindow : Window
+public partial class MainWindow : MetroWindow
 {
-    public MainWindow() => InitializeComponent();
+    public MainWindow(ComparisonViewModel comparisonVm, HistoryViewModel historyVm)
+    {
+        InitializeComponent();
+
+        ComparisonView.DataContext = comparisonVm;
+        HistoryView.DataContext = historyVm;
+    }
 }
