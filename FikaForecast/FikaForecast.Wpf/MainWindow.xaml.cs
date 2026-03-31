@@ -1,4 +1,6 @@
+using System.Windows;
 using FikaForecast.Wpf.ViewModels;
+using FikaForecast.Wpf.Views;
 using MahApps.Metro.Controls;
 
 namespace FikaForecast.Wpf;
@@ -8,9 +10,19 @@ namespace FikaForecast.Wpf;
 /// </summary>
 public partial class MainWindow : MetroWindow
 {
-    public MainWindow(MainWindowViewModel viewModel)
+    private readonly Func<SettingsWindow> _settingsFactory;
+
+    public MainWindow(MainWindowViewModel viewModel, Func<SettingsWindow> settingsFactory)
     {
         InitializeComponent();
         DataContext = viewModel;
+        _settingsFactory = settingsFactory;
+    }
+
+    private void OnSettingsClick(object sender, RoutedEventArgs e)
+    {
+        var settings = _settingsFactory();
+        settings.Owner = this;
+        settings.ShowDialog();
     }
 }

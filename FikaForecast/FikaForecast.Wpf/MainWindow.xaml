@@ -10,6 +10,13 @@
         d:DataContext="{d:DesignInstance viewModels:MainWindowViewModel, IsDesignTimeCreatable=True}"
         Title="FikaForecast" Height="768" Width="1280"
         WindowStartupLocation="CenterScreen">
+
+    <mah:MetroWindow.RightWindowCommands>
+        <mah:WindowCommands>
+            <Button Content="&#x2699; Settings" Click="OnSettingsClick"/>
+        </mah:WindowCommands>
+    </mah:MetroWindow.RightWindowCommands>
+
     <mah:MetroTabControl mah:TabControlHelper.Underlined="SelectedTabItem">
 
         <TabItem Header="&#x2194;  Comparison" Padding="16,8">

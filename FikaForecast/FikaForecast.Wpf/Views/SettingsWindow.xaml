@@ -1,0 +1,45 @@
+<mah:MetroWindow x:Class="FikaForecast.Wpf.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
+        xmlns:dxmvvm="http://schemas.devexpress.com/winfx/2008/xaml/mvvm"
+        xmlns:viewModels="clr-namespace:FikaForecast.Wpf.ViewModels"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance viewModels:SettingsViewModel, IsDesignTimeCreatable=True}"
+        Title="Settings" Height="480" Width="640"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False">
+    <dxmvvm:Interaction.Behaviors>
+        <dxmvvm:CurrentWindowService/>
+    </dxmvvm:Interaction.Behaviors>
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <TextBlock Grid.Row="0"
+                   Text="Settings"
+                   FontSize="24" FontWeight="Light"
+                   Margin="0,0,0,24"/>
+
+        <!-- Placeholder content -->
+        <TextBlock Grid.Row="1"
+                   Text="Settings will appear here."
+                   Foreground="Gray"
+                   VerticalAlignment="Top"/>
+
+        <!-- Footer -->
+        <Button Grid.Row="2"
+                Content="Close"
+                Command="{Binding CloseCommand}"
+                IsCancel="True"
+                HorizontalAlignment="Right"
+                Padding="24,6"/>
+    </Grid>
+</mah:MetroWindow>
