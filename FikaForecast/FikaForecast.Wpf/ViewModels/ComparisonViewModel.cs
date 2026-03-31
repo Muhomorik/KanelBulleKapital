@@ -6,6 +6,7 @@ using DevExpress.Mvvm;
 using FikaForecast.Application.Services;
 using FikaForecast.Domain.Entities;
 using FikaForecast.Domain.ValueObjects;
+using FikaForecast.Wpf.Services;
 
 using FluentResults;
 
@@ -31,6 +32,12 @@ public class ComparisonViewModel : ViewModelBase
     public ObservableCollection<ModelConfig> AvailableModels { get; } = [];
     public ObservableCollection<ModelConfig> SelectedModels { get; } = [];
     public ObservableCollection<NewsBriefRun> Results { get; } = [];
+
+    public ModelConfig? SelectedModel
+    {
+        get => GetValue<ModelConfig?>();
+        set => SetValue(value);
+    }
 
     public bool IsRunning
     {
@@ -64,15 +71,28 @@ public class ComparisonViewModel : ViewModelBase
         IConfiguration configuration,
         BriefComparisonService comparisonService,
         NewsBriefOrchestrator orchestrator,
-        IEnumerable<ModelConfig> models)
+        IEnumerable<ModelConfig> models,
+        IUserSettingsService settingsService)
     {
         _logger = logger;
         _comparisonService = comparisonService;
         _orchestrator = orchestrator;
 
+        var settings = settingsService.Load();
+        var hasSettings = settings.EnabledModelIds.Count > 0;
+
         foreach (var model in models)
         {
-            AvailableModels.Add(model);
+            if (!hasSettings || settings.EnabledModelIds.Contains(model.ModelId))
+            {
+                AvailableModels.Add(model);
+            }
+        }
+
+        // Pre-select default model.
+        if (settings.DefaultModelId is not null)
+        {
+            SelectedModel = AvailableModels.FirstOrDefault(m => m.ModelId == settings.DefaultModelId);
         }
 
         // Check configuration

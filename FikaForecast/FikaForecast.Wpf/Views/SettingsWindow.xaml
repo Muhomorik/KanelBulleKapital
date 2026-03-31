@@ -18,28 +18,87 @@
     <Grid Margin="24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <TextBlock Grid.Row="0"
-                   Text="Settings"
-                   FontSize="24" FontWeight="Light"
-                   Margin="0,0,0,24"/>
+        <!-- Restart warning -->
+        <Border Grid.Row="1"
+                Background="{StaticResource ff.WarningBackgroundBrush}"
+                BorderBrush="{StaticResource ff.WarningBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="4" Padding="12"
+                Margin="{StaticResource ff.SubsectionSpacing}">
+            <TextBlock Text="&#x26A0;  Changes take effect after restarting the application."
+                       Foreground="{StaticResource ff.WarningForegroundBrush}"
+                       Style="{StaticResource ff.CaptionStyle}"/>
+        </Border>
 
-        <!-- Placeholder content -->
-        <TextBlock Grid.Row="1"
-                   Text="Settings will appear here."
-                   Foreground="Gray"
-                   VerticalAlignment="Top"/>
+        <!-- Models group -->
+        <GroupBox Grid.Row="2" Header="Models"
+                  Margin="{StaticResource ff.SubsectionSpacing}">
+            <Grid Margin="8">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-        <!-- Footer -->
-        <Button Grid.Row="2"
-                Content="Close"
-                Command="{Binding CloseCommand}"
-                IsCancel="True"
-                HorizontalAlignment="Right"
-                Padding="24,6"/>
+                <TextBlock Grid.Row="0"
+                           Text="Select which models appear in the Comparison view:"
+                           Style="{StaticResource ff.CaptionStyle}"
+                           Margin="{StaticResource ff.LabelSpacing}"/>
+
+                <!-- Model checkboxes -->
+                <ItemsControl Grid.Row="1" ItemsSource="{Binding ModelItems}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type viewModels:ModelSettingItem}">
+                            <CheckBox IsChecked="{Binding IsEnabled}"
+                                      Margin="{StaticResource ff.CompactSpacing}">
+                                <TextBlock>
+                                    <Run Text="{Binding Model.DisplayName, Mode=OneWay}"/>
+                                    <Run Text=" (" Foreground="{StaticResource MahApps.Brushes.Gray3}"/><Run Text="{Binding Model.ModelId, Mode=OneWay}" Foreground="{StaticResource MahApps.Brushes.Gray3}"/><Run Text=")" Foreground="{StaticResource MahApps.Brushes.Gray3}"/>
+                                </TextBlock>
+                            </CheckBox>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Default model selector -->
+                <StackPanel Grid.Row="2" Margin="0,12,0,0">
+                    <TextBlock Text="Default model (pre-selected at startup):"
+                               Style="{StaticResource ff.CaptionStyle}"
+                               Margin="{StaticResource ff.CompactSpacing}"/>
+                    <ComboBox ItemsSource="{Binding ModelItems}"
+                              SelectedValue="{Binding DefaultModel}"
+                              SelectedValuePath="Model"
+                              DisplayMemberPath="Model.DisplayName"
+                              Width="300" HorizontalAlignment="Left"
+                              mah:TextBoxHelper.Watermark="None"/>
+                </StackPanel>
+            </Grid>
+        </GroupBox>
+
+        <!-- Settings file path -->
+        <TextBlock Grid.Row="3"
+                   Style="{StaticResource ff.SmallStyle}"
+                   Margin="{StaticResource ff.SubsectionSpacing}">
+            <Run Text="Settings file: "/>
+            <Run Text="{Binding SettingsFilePath, Mode=OneWay}"/>
+        </TextBlock>
+
+        <!-- Footer buttons -->
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Save"
+                    Command="{Binding SaveCommand}"
+                    Style="{StaticResource ff.ButtonAccentStyle}"
+                    Margin="0,0,8,0"/>
+            <Button Content="Close"
+                    Command="{Binding CloseCommand}"
+                    Style="{StaticResource ff.ButtonStyle}"
+                    IsCancel="True"/>
+        </StackPanel>
     </Grid>
 </mah:MetroWindow>

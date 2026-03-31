@@ -1,6 +1,7 @@
 using System.Reflection;
 using Autofac;
 using FikaForecast.Domain.ValueObjects;
+using FikaForecast.Wpf.Services;
 using Microsoft.Extensions.Configuration;
 
 namespace FikaForecast.Wpf.Modules;
@@ -20,9 +21,17 @@ public class PresentationModule : Autofac.Module
 
     protected override void Load(ContainerBuilder builder)
     {
+        RegisterServices(builder);
         RegisterModels(builder);
         RegisterViewModels(builder);
         RegisterViews(builder);
+    }
+
+    private static void RegisterServices(ContainerBuilder builder)
+    {
+        builder.RegisterType<UserSettingsService>()
+            .As<IUserSettingsService>()
+            .SingleInstance();
     }
 
     /// <summary>

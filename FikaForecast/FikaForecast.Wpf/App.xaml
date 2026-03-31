@@ -11,6 +11,9 @@
 
                 <!-- MahApps.Metro theme (Light Blue — XAML designer fallback) -->
                 <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Themes/Light.Blue.xaml" />
+
+                <!-- FikaForecast design tokens (must load after MahApps theme) -->
+                <ResourceDictionary Source="Themes/FikaForecastTheme.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>
