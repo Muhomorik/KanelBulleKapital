@@ -27,6 +27,30 @@ public partial class App : System.Windows.Application
         LogManager.Setup().LoadConfigurationFromFile("NLog.config");
         Logger.Info("Application starting...");
 
+        // Global exception handlers — safety net to prevent crashes
+        DispatcherUnhandledException += (_, args) =>
+        {
+            Logger.Error(args.Exception, "Unhandled UI exception");
+            MessageBox.Show(
+                $"An unexpected error occurred:\n\n{args.Exception.Message}",
+                "FikaForecast Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            args.Handled = true;
+        };
+
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+        {
+            if (args.ExceptionObject is Exception ex)
+                Logger.Fatal(ex, "Unhandled domain exception");
+        };
+
+        TaskScheduler.UnobservedTaskException += (_, args) =>
+        {
+            Logger.Error(args.Exception, "Unobserved task exception");
+            args.SetObserved();
+        };
+
         // Build configuration from appsettings.json and User Secrets
         var configuration = BuildConfiguration();
 

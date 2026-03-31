@@ -5,16 +5,18 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
         xmlns:views="clr-namespace:FikaForecast.Wpf.Views"
+        xmlns:viewModels="clr-namespace:FikaForecast.Wpf.ViewModels"
         mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance viewModels:MainWindowViewModel, IsDesignTimeCreatable=True}"
         Title="FikaForecast" Height="768" Width="1280"
         WindowStartupLocation="CenterScreen">
     <mah:MetroTabControl mah:TabControlHelper.Underlined="SelectedTabItem">
 
         <TabItem Header="&#x2194;  Comparison" Padding="16,8">
-            <views:ComparisonView x:Name="ComparisonView" />
+            <views:ComparisonView DataContext="{Binding ComparisonVm}" />
         </TabItem>
         <TabItem Header="&#x1F552;  History" Padding="16,8">
-            <views:HistoryView x:Name="HistoryView" />
+            <views:HistoryView DataContext="{Binding HistoryVm}" />
         </TabItem>
     </mah:MetroTabControl>
 </mah:MetroWindow>

@@ -45,6 +45,7 @@ public class PresentationModule : Autofac.Module
             models =
             [
                 new ModelConfig("gpt-4.1", "gpt-4.1", "GPT-4.1"),
+                new ModelConfig("gpt-5.4-mini", "gpt-5.4-mini", "GPT-5.4 Mini"),
             ];
         }
 

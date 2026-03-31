@@ -5,7 +5,9 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
              xmlns:dxmvvm="http://schemas.devexpress.com/winfx/2008/xaml/mvvm"
+             xmlns:viewModels="clr-namespace:FikaForecast.Wpf.ViewModels"
              mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance viewModels:ComparisonViewModel, IsDesignTimeCreatable=False}"
              d:DesignHeight="600" d:DesignWidth="1200">
     <Grid Margin="16">
         <Grid.RowDefinitions>
@@ -58,8 +60,20 @@
         <!-- Status -->
         <TextBlock Grid.Row="3"
                    Text="{Binding StatusMessage}"
-                   Foreground="Gray"
-                   Margin="0,0,0,12"/>
+                   TextWrapping="Wrap"
+                   Margin="0,0,0,12">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                    <Setter Property="Foreground" Value="Gray"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsStatusError}" Value="True">
+                            <Setter Property="Foreground" Value="#D32F2F"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
 
         <!-- Results side-by-side -->
         <ItemsControl Grid.Row="4" ItemsSource="{Binding Results}">

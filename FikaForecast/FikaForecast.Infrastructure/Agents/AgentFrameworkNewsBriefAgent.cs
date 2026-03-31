@@ -1,37 +1,44 @@
+using System.ClientModel;
 using System.Diagnostics;
-using Azure.AI.Agents.Persistent;
+using Azure.AI.Extensions.OpenAI;
+using Azure.AI.Projects;
+using Azure.AI.Projects.Agents;
 using FikaForecast.Application.DTOs;
 using FikaForecast.Application.Interfaces;
 using FikaForecast.Domain.ValueObjects;
+using FluentResults;
 using NLog;
+using OpenAI.Responses;
+
+#pragma warning disable OPENAI001 // ResponseStatus is marked experimental
 
 namespace FikaForecast.Infrastructure.Agents;
 
 /// <summary>
-/// Implements <see cref="INewsBriefAgent"/> using Microsoft Foundry Agent Service with Bing Grounding.
-/// Creates a stateful agent with Bing search tool, runs it, collects the response, then cleans up.
+/// Implements <see cref="INewsBriefAgent"/> using Microsoft Foundry Agent Service (v2) with Bing Grounding.
+/// Creates an ephemeral agent version, calls it via the Responses API, then cleans up.
 /// </summary>
 public class AgentFrameworkNewsBriefAgent : INewsBriefAgent
 {
     private readonly ILogger _logger;
-    private readonly PersistentAgentsClient _agentClient;
-    private readonly string? _bingConnectionId;
+    private readonly AIProjectClient _projectClient;
+    private readonly string? _bingConnectionName;
 
     public AgentFrameworkNewsBriefAgent(
         ILogger logger,
-        PersistentAgentsClient agentClient,
-        string? bingConnectionId = null)
+        AIProjectClient projectClient,
+        string? bingConnectionName = null)
     {
         _logger = logger;
-        _agentClient = agentClient;
-        _bingConnectionId = bingConnectionId;
+        _projectClient = projectClient;
+        _bingConnectionName = bingConnectionName;
     }
 
     /// <summary>
-    /// Creates a Foundry agent with Bing Grounding, sends the prompt, waits for completion,
-    /// and returns the response with token usage. Cleans up the agent and thread afterward.
+    /// Creates a Foundry agent version with Bing Grounding, sends the prompt via the Responses API,
+    /// and returns the response with token usage. Cleans up the agent version afterward.
     /// </summary>
-    public async Task<AgentResult> RunAsync(
+    public async Task<Result<AgentResult>> RunAsync(
         ModelConfig model,
         AgentPrompt prompt,
         CancellationToken cancellationToken = default)
@@ -45,152 +52,96 @@ public class AgentFrameworkNewsBriefAgent : INewsBriefAgent
             "{current_date}",
             DateTime.UtcNow.ToString("yyyy-MM-dd"));
 
-        // Configure tools
-        var tools = new List<ToolDefinition>();
-        if (!string.IsNullOrEmpty(_bingConnectionId))
+        // Configure Bing Grounding tool
+        var agentDefinition = new PromptAgentDefinition(model: model.DeploymentName)
         {
-            var bingTool = new BingGroundingToolDefinition(
-                new BingGroundingSearchToolParameters(
-                    [new BingGroundingSearchConfiguration(_bingConnectionId)]));
-            tools.Add(bingTool);
-            _logger.Info("Bing Grounding tool enabled");
+            Instructions = systemPrompt
+        };
+
+        if (!string.IsNullOrEmpty(_bingConnectionName))
+        {
+            try
+            {
+                var bingConnection = _projectClient.Connections.GetConnection(connectionName: _bingConnectionName);
+                var bingTool = new BingGroundingTool(
+                    new BingGroundingSearchToolOptions(
+                        searchConfigurations: [new BingGroundingSearchConfiguration(projectConnectionId: bingConnection.Id)]));
+                agentDefinition.Tools.Add(bingTool);
+                _logger.Info("Bing Grounding tool enabled");
+            }
+            catch (ClientResultException ex)
+            {
+                _logger.Warn(ex, "Failed to resolve Bing connection '{0}' — continuing without Bing Grounding", _bingConnectionName);
+            }
         }
         else
         {
             _logger.Warn("Bing Grounding not configured — agent will use training data only");
         }
 
-        // Create agent
-        var agentResponse = await _agentClient.Administration.CreateAgentAsync(
-            model: model.DeploymentName,
-            name: "fikaforecast-news-brief",
-            instructions: systemPrompt,
-            tools: tools,
-            cancellationToken: cancellationToken);
-        var agent = agentResponse.Value;
-
-        _logger.Info("Created agent {0}", agent.Id);
-
+        // Create ephemeral agent version
+        AgentVersion? agentVersion = null;
         try
         {
-            // Create thread and send message
-            var threadResponse = await _agentClient.Threads.CreateThreadAsync(cancellationToken: cancellationToken);
-            var thread = threadResponse.Value;
+            agentVersion = await _projectClient.Agents.CreateAgentVersionAsync(
+                agentName: "fikaforecast-news-brief",
+                options: new(agentDefinition),
+                cancellationToken: cancellationToken);
+
+            _logger.Info("Created agent {0} v{1}", agentVersion.Name, agentVersion.Version);
+
+            // Call via Responses API
+            var responsesClient = _projectClient.OpenAI.GetProjectResponsesClientForAgent(agentVersion.Name);
             var userMessage = $"Generate the market-moving news brief for today, {DateTime.UtcNow:MMMM dd, yyyy}.";
 
-            await _agentClient.Messages.CreateMessageAsync(
-                thread.Id,
-                MessageRole.User,
-                userMessage,
-                cancellationToken: cancellationToken);
-
-            // Create run and poll until complete
-            var runResponse = await _agentClient.Runs.CreateRunAsync(
-                thread.Id,
-                agent.Id,
-                cancellationToken: cancellationToken);
-            var run = runResponse.Value;
-
-            while (run.Status == RunStatus.Queued || run.Status == RunStatus.InProgress)
-            {
-                await Task.Delay(500, cancellationToken);
-                run = (await _agentClient.Runs.GetRunAsync(thread.Id, run.Id, cancellationToken: cancellationToken)).Value;
-            }
+            var clientResult = await responsesClient.CreateResponseAsync(userMessage, cancellationToken: cancellationToken);
+            var response = clientResult.Value;
 
             stopwatch.Stop();
 
-            if (run.Status != RunStatus.Completed)
+            if (response.Status != ResponseStatus.Completed)
             {
-                var errorCode = run.LastError?.Code ?? "no_code";
-                var errorMsg = run.LastError?.Message ?? "Unknown error";
-                _logger.Error("Agent run failed — status: {0}, code: {1}, message: {2}", run.Status, errorCode, errorMsg);
-                _logger.Error("  Run ID: {0}, Thread ID: {1}, Agent ID: {2}", run.Id, thread.Id, agent.Id);
-                _logger.Error("  Model: {0}, Tools: {1}", model.DeploymentName, string.Join(", ", tools.Select(t => t.GetType().Name)));
-                _logger.Error("  Bing connection configured: {0}", !string.IsNullOrEmpty(_bingConnectionId));
-                _logger.Error("  Elapsed: {0}ms", stopwatch.ElapsedMilliseconds);
-
-                // Log run steps for debugging
-                try
-                {
-                    var failedSteps = _agentClient.Runs.GetRunSteps(run);
-                    var stepCount = 0;
-                    foreach (var step in failedSteps)
-                    {
-                        stepCount++;
-                        _logger.Error("  Step {0}: id={1}, status={2}, type={3}",
-                            stepCount, step.Id, step.Status, step.Type);
-                        if (step.LastError != null)
-                            _logger.Error("    Step error: {0} — {1}", step.LastError.Code, step.LastError.Message);
-                        if (step.StepDetails is RunStepToolCallDetails toolCallDetails)
-                        {
-                            foreach (var toolCall in toolCallDetails.ToolCalls)
-                                _logger.Error("    Tool call: {0} ({1})", toolCall.GetType().Name, toolCall.Id);
-                        }
-                    }
-                    if (stepCount == 0)
-                        _logger.Error("  No run steps found — agent failed before executing any steps");
-                }
-                catch (Exception ex)
-                {
-                    _logger.Error("  Failed to retrieve run steps: {0}", ex.Message);
-                }
-
-                throw new InvalidOperationException($"Agent run failed: {errorCode} — {errorMsg}");
+                _logger.Error("Agent response failed — status: {0}", response.Status);
+                return Result.Fail<AgentResult>($"Agent response failed with status: {response.Status}");
             }
 
-            // Collect response
-            var messages = _agentClient.Messages.GetMessages(thread.Id);
-            var output = string.Empty;
-
-            foreach (var msg in messages)
-            {
-                if (msg.Role == MessageRole.Agent)
-                {
-                    foreach (var content in msg.ContentItems)
-                    {
-                        if (content is MessageTextContent textContent)
-                        {
-                            output = textContent.Text;
-                        }
-                    }
-
-                    break;
-                }
-            }
-
-            // Get token usage from run steps
-            long totalInputTokens = 0;
-            long totalOutputTokens = 0;
-            var runSteps = _agentClient.Runs.GetRunSteps(run);
-            foreach (var step in runSteps)
-            {
-                if (step.Usage != null)
-                {
-                    totalInputTokens += step.Usage.PromptTokens;
-                    totalOutputTokens += step.Usage.CompletionTokens;
-                }
-            }
+            var output = response.GetOutputText();
+            var inputTokens = (int)(response.Usage?.InputTokenCount ?? 0);
+            var outputTokens = (int)(response.Usage?.OutputTokenCount ?? 0);
 
             _logger.Info(
                 "News Brief Agent completed in {0}ms — input: {1}, output: {2} tokens",
                 stopwatch.ElapsedMilliseconds,
-                totalInputTokens,
-                totalOutputTokens);
+                inputTokens,
+                outputTokens);
 
-            // Cleanup thread
-            await _agentClient.Threads.DeleteThreadAsync(thread.Id, cancellationToken: cancellationToken);
-
-            return new AgentResult(
+            return Result.Ok(new AgentResult(
                 RawMarkdownOutput: output,
-                InputTokens: (int)totalInputTokens,
-                OutputTokens: (int)totalOutputTokens,
-                Duration: stopwatch.Elapsed);
+                InputTokens: inputTokens,
+                OutputTokens: outputTokens,
+                Duration: stopwatch.Elapsed));
+        }
+        catch (ClientResultException ex)
+        {
+            stopwatch.Stop();
+            _logger.Error(ex, "Agent SDK error — status: {0}", ex.Status);
+            return Result.Fail<AgentResult>($"Azure AI Foundry error ({ex.Status}): {ex.Message}");
         }
         finally
         {
-            // Always cleanup agent
-            await _agentClient.Administration.DeleteAgentAsync(agent.Id, cancellationToken: cancellationToken);
-            _logger.Info("Cleaned up agent {0}", agent.Id);
+            if (agentVersion != null)
+            {
+                try
+                {
+                    await _projectClient.Agents.DeleteAgentVersionAsync(
+                        agentVersion.Name, agentVersion.Version, cancellationToken);
+                    _logger.Info("Cleaned up agent {0} v{1}", agentVersion.Name, agentVersion.Version);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Warn(ex, "Failed to clean up agent {0} v{1}", agentVersion.Name, agentVersion.Version);
+                }
+            }
         }
     }
 }

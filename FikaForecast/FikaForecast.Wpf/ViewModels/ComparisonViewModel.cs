@@ -7,6 +7,8 @@ using FikaForecast.Application.Services;
 using FikaForecast.Domain.Entities;
 using FikaForecast.Domain.ValueObjects;
 
+using FluentResults;
+
 using Microsoft.Extensions.Configuration;
 
 using NLog;
@@ -39,6 +41,12 @@ public class ComparisonViewModel : ViewModelBase
     public string? StatusMessage
     {
         get => GetValue<string?>();
+        set => SetValue(value);
+    }
+
+    public bool IsStatusError
+    {
+        get => GetValue<bool>();
         set => SetValue(value);
     }
 
@@ -142,30 +150,58 @@ public class ComparisonViewModel : ViewModelBase
             """);
     }
 
+    private void SetStatus(string message, bool isError = false)
+    {
+        StatusMessage = message;
+        IsStatusError = isError;
+    }
+
     /// <summary>Runs all selected models in parallel and adds results to the collection.</summary>
     private async Task RunComparisonAsync()
     {
         IsRunning = true;
-        StatusMessage = $"Running comparison across {SelectedModels.Count} models...";
+        SetStatus($"Running comparison across {SelectedModels.Count} models...");
         Results.Clear();
 
         try
         {
-            var runs = await _comparisonService.CompareAsync(
+            var results = await _comparisonService.CompareAsync(
                 SelectedModels.ToList(),
                 GetDefaultNewsBriefPrompt());
 
-            foreach (var run in runs)
+            var successes = 0;
+            var failures = new List<string>();
+
+            foreach (var result in results)
             {
-                Results.Add(run);
+                if (result.IsSuccess)
+                {
+                    Results.Add(result.Value);
+                    successes++;
+                }
+                else
+                {
+                    failures.Add(result.Errors.First().Message);
+                }
             }
 
-            StatusMessage = $"Comparison complete. {runs.Count} results.";
+            if (failures.Count == 0)
+            {
+                SetStatus($"Comparison complete. {successes} results.");
+            }
+            else if (successes > 0)
+            {
+                SetStatus($"{successes} succeeded, {failures.Count} failed: {string.Join("; ", failures)}", isError: true);
+            }
+            else
+            {
+                SetStatus($"All models failed: {string.Join("; ", failures)}", isError: true);
+            }
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Comparison failed");
-            StatusMessage = $"Error: {ex.Message}";
+            _logger.Error(ex, "Comparison failed unexpectedly");
+            SetStatus($"Unexpected error: {ex.Message}", isError: true);
         }
         finally
         {
@@ -182,18 +218,27 @@ public class ComparisonViewModel : ViewModelBase
         }
 
         IsRunning = true;
-        StatusMessage = $"Running {model.DisplayName}...";
+        SetStatus($"Running {model.DisplayName}...");
 
         try
         {
-            var run = await _orchestrator.RunBriefAsync(model, GetDefaultNewsBriefPrompt());
-            Results.Add(run);
-            StatusMessage = $"{model.DisplayName} complete — {run.TotalTokens} tokens, {run.Duration.TotalSeconds:F1}s";
+            var result = await _orchestrator.RunBriefAsync(model, GetDefaultNewsBriefPrompt());
+
+            if (result.IsSuccess)
+            {
+                var run = result.Value;
+                Results.Add(run);
+                SetStatus($"{model.DisplayName} complete — {run.TotalTokens} tokens, {run.Duration.TotalSeconds:F1}s");
+            }
+            else
+            {
+                SetStatus($"{model.DisplayName} failed: {result.Errors.First().Message}", isError: true);
+            }
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Single run failed for {0}", model.DisplayName);
-            StatusMessage = $"Error: {ex.Message}";
+            _logger.Error(ex, "Single run failed unexpectedly for {0}", model.DisplayName);
+            SetStatus($"Unexpected error: {ex.Message}", isError: true);
         }
         finally
         {

@@ -1,6 +1,6 @@
 using System.IO;
 using Autofac;
-using Azure.AI.Agents.Persistent;
+using Azure.AI.Projects;
 using Azure.Identity;
 using FikaForecast.Application.Interfaces;
 using FikaForecast.Infrastructure.Agents;
@@ -52,7 +52,7 @@ public class InfrastructureModule : Autofac.Module
     }
 
     /// <summary>
-    /// Creates <see cref="PersistentAgentsClient"/> using the Foundry project endpoint
+    /// Creates <see cref="AIProjectClient"/> using the Foundry project endpoint
     /// and <see cref="DefaultAzureCredential"/> (picks up VS / Windows / az CLI login).
     /// </summary>
     private void RegisterAgentClient(ContainerBuilder builder)
@@ -61,20 +61,22 @@ public class InfrastructureModule : Autofac.Module
 
         if (!string.IsNullOrEmpty(endpoint))
         {
-            var client = new PersistentAgentsClient(endpoint, new DefaultAzureCredential());
+            var client = new AIProjectClient(
+                endpoint: new Uri(endpoint),
+                tokenProvider: new DefaultAzureCredential());
             builder.RegisterInstance(client).SingleInstance();
         }
     }
 
     /// <summary>
-    /// Registers the agent implementation with optional Bing Grounding connection ID.
+    /// Registers the agent implementation with optional Bing Grounding connection name.
     /// </summary>
     private void RegisterAgent(ContainerBuilder builder)
     {
-        var bingConnectionId = _configuration["AzureAIFoundry:BingConnectionName"];
+        var bingConnectionName = _configuration["AzureAIFoundry:BingConnectionName"];
 
         builder.RegisterType<AgentFrameworkNewsBriefAgent>()
-            .WithParameter("bingConnectionId", bingConnectionId)
+            .WithParameter("bingConnectionName", bingConnectionName)
             .As<INewsBriefAgent>()
             .SingleInstance();
     }

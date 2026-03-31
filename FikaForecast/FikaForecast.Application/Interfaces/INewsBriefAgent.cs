@@ -1,5 +1,6 @@
 using FikaForecast.Application.DTOs;
 using FikaForecast.Domain.ValueObjects;
+using FluentResults;
 
 namespace FikaForecast.Application.Interfaces;
 
@@ -18,6 +19,6 @@ public interface INewsBriefAgent
     /// <param name="model">Azure AI Foundry model deployment to use.</param>
     /// <param name="prompt">System prompt for the agent.</param>
     /// <param name="cancellationToken">Cancellation token. Honored at HTTP boundaries.</param>
-    /// <returns>Raw markdown output with token counts and duration.</returns>
-    Task<AgentResult> RunAsync(ModelConfig model, AgentPrompt prompt, CancellationToken cancellationToken = default);
+    /// <returns>Result containing raw markdown output with token counts and duration, or error details.</returns>
+    Task<Result<AgentResult>> RunAsync(ModelConfig model, AgentPrompt prompt, CancellationToken cancellationToken = default);
 }

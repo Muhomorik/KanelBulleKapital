@@ -4,15 +4,13 @@ using MahApps.Metro.Controls;
 namespace FikaForecast.Wpf;
 
 /// <summary>
-/// Main application window. Receives ViewModels via constructor injection.
+/// Main application window. DataContext is set to <see cref="MainWindowViewModel"/> via DI.
 /// </summary>
 public partial class MainWindow : MetroWindow
 {
-    public MainWindow(ComparisonViewModel comparisonVm, HistoryViewModel historyVm)
+    public MainWindow(MainWindowViewModel viewModel)
     {
         InitializeComponent();
-
-        ComparisonView.DataContext = comparisonVm;
-        HistoryView.DataContext = historyVm;
+        DataContext = viewModel;
     }
 }

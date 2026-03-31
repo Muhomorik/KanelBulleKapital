@@ -2,6 +2,7 @@ using FikaForecast.Application.DTOs;
 using FikaForecast.Application.Interfaces;
 using FikaForecast.Domain.Entities;
 using FikaForecast.Domain.ValueObjects;
+using FluentResults;
 using NLog;
 
 namespace FikaForecast.Application.Services;
@@ -24,37 +25,34 @@ public class NewsBriefOrchestrator
 
     /// <summary>
     /// Executes the agent, records token usage, and saves the run to the repository.
+    /// Returns a failed Result with error details if the agent fails.
     /// </summary>
-    /// <param name="model">Model deployment to use.</param>
-    /// <param name="prompt">System prompt for the agent.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>The persisted <see cref="NewsBriefRun"/> with status and output.</returns>
-    public async Task<NewsBriefRun> RunBriefAsync(
+    public async Task<Result<NewsBriefRun>> RunBriefAsync(
         ModelConfig model,
         AgentPrompt prompt,
         CancellationToken cancellationToken = default)
     {
         var run = NewsBriefRun.Start(model, prompt);
 
-        try
-        {
-            var result = await _agent.RunAsync(model, prompt, cancellationToken);
+        var agentResult = await _agent.RunAsync(model, prompt, cancellationToken);
 
-            run.Complete(
-                result.RawMarkdownOutput,
-                result.Duration,
-                result.InputTokens,
-                result.OutputTokens);
-
-            // TODO: Parse markdown into NewsItems and MarketMood
-        }
-        catch (Exception ex)
+        if (agentResult.IsFailed)
         {
-            _logger.Error(ex, "Agent execution failed for model {0}", model.DisplayName);
+            _logger.Error("Agent execution failed for model {0}: {1}",
+                model.DisplayName, agentResult.Errors.First().Message);
             run.Fail(TimeSpan.Zero);
+            await _repository.SaveAsync(run, cancellationToken);
+            return Result.Fail<NewsBriefRun>(agentResult.Errors);
         }
+
+        var result = agentResult.Value;
+        run.Complete(
+            result.RawMarkdownOutput,
+            result.Duration,
+            result.InputTokens,
+            result.OutputTokens);
 
         await _repository.SaveAsync(run, cancellationToken);
-        return run;
+        return Result.Ok(run);
     }
 }

@@ -1,5 +1,6 @@
 using FikaForecast.Domain.Entities;
 using FikaForecast.Domain.ValueObjects;
+using FluentResults;
 
 namespace FikaForecast.Application.Services;
 
@@ -16,13 +17,9 @@ public class BriefComparisonService
     }
 
     /// <summary>
-    /// Executes the brief for each model concurrently and returns all results.
+    /// Executes the brief for each model concurrently. Each model can independently succeed or fail.
     /// </summary>
-    /// <param name="models">Models to compare (2+).</param>
-    /// <param name="prompt">System prompt — identical for all models.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>One <see cref="NewsBriefRun"/> per model, all persisted.</returns>
-    public async Task<IReadOnlyList<NewsBriefRun>> CompareAsync(
+    public async Task<IReadOnlyList<Result<NewsBriefRun>>> CompareAsync(
         IReadOnlyList<ModelConfig> models,
         AgentPrompt prompt,
         CancellationToken cancellationToken = default)
