@@ -46,6 +46,9 @@ public class HistoryViewModel : ViewModelBase
             FilterModelId = null;
             ((AsyncCommand)LoadRunsCommand).Execute(null);
         });
+
+        // Load initial runs when view opens
+        ((AsyncCommand)LoadRunsCommand).Execute(null);
     }
 
     /// <summary>Loads runs from the repository, optionally filtered by <see cref="FilterModelId"/>.</summary>
@@ -60,6 +63,9 @@ public class HistoryViewModel : ViewModelBase
             Runs.Clear();
             foreach (var run in runs)
                 Runs.Add(run);
+
+            // Auto-select the first run
+            SelectedRun = Runs.Count > 0 ? Runs[0] : null;
         }
         catch (Exception ex)
         {
