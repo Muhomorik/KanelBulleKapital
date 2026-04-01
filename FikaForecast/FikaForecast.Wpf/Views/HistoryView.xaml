@@ -65,41 +65,101 @@
                 </ListBox>
             </DockPanel>
 
-            <!-- Selected run detail -->
-            <Border Grid.Column="1" BorderBrush="Gray" BorderThickness="1"
-                    CornerRadius="4" Padding="12">
-                <Grid DataContext="{Binding SelectedRun}">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
+            <!-- Right panel: detail view or placeholder -->
+            <Grid Grid.Column="1">
+                <!-- Placeholder when no history records exist -->
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Runs.Count}" Value="0">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <TextBlock Text="No history records" FontSize="16" FontWeight="SemiBold"
+                               Foreground="Gray" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                    <TextBlock Text="Click Refresh to load run history" FontSize="13"
+                               Foreground="Gray" HorizontalAlignment="Center"/>
+                </StackPanel>
 
-                    <TextBlock Grid.Row="0" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,4">
-                        <Run Text="{Binding DeploymentName, Mode=OneWay}"/>
-                        <Run Text=" — "/>
-                        <Run Text="{Binding PromptName, Mode=OneWay}"/>
-                    </TextBlock>
+                <!-- Selected run detail or empty selection placeholder -->
+                <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="4" Padding="12">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Runs.Count}" Value="0">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
 
-                    <TextBlock Grid.Row="1" Foreground="Gray" Margin="0,0,0,12">
-                        <Run Text="{Binding Timestamp, Mode=OneWay, StringFormat='yyyy-MM-dd HH:mm:ss'}"/>
-                        <Run Text=" | Input: "/>
-                        <Run Text="{Binding InputTokens, Mode=OneWay}"/>
-                        <Run Text=" | Output: "/>
-                        <Run Text="{Binding OutputTokens, Mode=OneWay}"/>
-                        <Run Text=" | Total: "/>
-                        <Run Text="{Binding TotalTokens, Mode=OneWay}"/>
-                        <Run Text=" | "/>
-                        <Run Text="{Binding Duration.TotalSeconds, Mode=OneWay, StringFormat='{}{0:F1}s'}"/>
-                    </TextBlock>
+                    <Grid>
+                        <!-- Placeholder when no run is selected -->
+                        <TextBlock VerticalAlignment="Center" HorizontalAlignment="Center"
+                                   Foreground="Gray" FontSize="14"
+                                   Text="Select a run to view details">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding SelectedRun}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
 
-                    <wv2:WebView2 Grid.Row="2">
-                        <i:Interaction.Behaviors>
-                            <behaviors:WebView2HtmlBehavior Markdown="{Binding RawMarkdownOutput, Mode=OneWay}"/>
-                        </i:Interaction.Behaviors>
-                    </wv2:WebView2>
-                </Grid>
-            </Border>
+                        <!-- Selected run details -->
+                        <Grid DataContext="{Binding SelectedRun}">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Grid.Style>
+                                <Style TargetType="Grid">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Grid.Style>
+
+                            <TextBlock Grid.Row="0" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,4">
+                                <Run Text="{Binding DeploymentName, Mode=OneWay}"/>
+                                <Run Text=" — "/>
+                                <Run Text="{Binding PromptName, Mode=OneWay}"/>
+                            </TextBlock>
+
+                            <TextBlock Grid.Row="1" Foreground="Gray" Margin="0,0,0,12">
+                                <Run Text="{Binding Timestamp, Mode=OneWay, StringFormat='yyyy-MM-dd HH:mm:ss'}"/>
+                                <Run Text=" | Input: "/>
+                                <Run Text="{Binding InputTokens, Mode=OneWay}"/>
+                                <Run Text=" | Output: "/>
+                                <Run Text="{Binding OutputTokens, Mode=OneWay}"/>
+                                <Run Text=" | Total: "/>
+                                <Run Text="{Binding TotalTokens, Mode=OneWay}"/>
+                                <Run Text=" | "/>
+                                <Run Text="{Binding Duration.TotalSeconds, Mode=OneWay, StringFormat='{}{0:F1}s'}"/>
+                            </TextBlock>
+
+                            <wv2:WebView2 Grid.Row="2">
+                                <i:Interaction.Behaviors>
+                                    <behaviors:WebView2HtmlBehavior Markdown="{Binding RawMarkdownOutput, Mode=OneWay}"/>
+                                </i:Interaction.Behaviors>
+                            </wv2:WebView2>
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Grid>
         </Grid>
     </Grid>
 </UserControl>
