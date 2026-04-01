@@ -30,7 +30,7 @@ public class ComparisonViewModel : ViewModelBase
     private readonly NewsBriefOrchestrator _orchestrator;
 
     public ObservableCollection<ModelConfig> AvailableModels { get; } = [];
-    public ObservableCollection<ModelConfig> SelectedModels { get; } = [];
+
     public ObservableCollection<NewsBriefRun> Results { get; } = [];
 
     public ModelConfig? SelectedModel
@@ -105,7 +105,7 @@ public class ComparisonViewModel : ViewModelBase
             _logger.Warn("Azure AI Foundry not configured: {0}", message);
         }
 
-        RunComparisonCommand = new AsyncCommand(RunComparisonAsync, () => !IsRunning && SelectedModels.Count >= 2);
+        RunComparisonCommand = new AsyncCommand(RunComparisonAsync, () => !IsRunning && AvailableModels.Count >= 2);
         RunSingleCommand = new AsyncCommand<ModelConfig>(RunSingleAsync, _ => !IsRunning);
     }
 
@@ -180,13 +180,13 @@ public class ComparisonViewModel : ViewModelBase
     private async Task RunComparisonAsync()
     {
         IsRunning = true;
-        SetStatus($"Running comparison across {SelectedModels.Count} models...");
+        SetStatus($"Running comparison across {AvailableModels.Count} models...");
         Results.Clear();
 
         try
         {
             var results = await _comparisonService.CompareAsync(
-                SelectedModels.ToList(),
+                AvailableModels.ToList(),
                 GetDefaultNewsBriefPrompt());
 
             var successes = 0;

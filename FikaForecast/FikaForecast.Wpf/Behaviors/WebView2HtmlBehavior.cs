@@ -1,3 +1,4 @@
+using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
 using System.Windows;
 using System.Windows.Interactivity;
@@ -9,6 +10,9 @@ namespace FikaForecast.Wpf.Behaviors;
 /// </summary>
 public class WebView2HtmlBehavior : Behavior<WebView2>
 {
+    private static CoreWebView2Environment? _sharedEnvironment;
+    private static readonly SemaphoreSlim _envLock = new(1, 1);
+
     private string? _pendingMarkdown;
     private bool _isInitialized;
 
@@ -29,6 +33,15 @@ public class WebView2HtmlBehavior : Behavior<WebView2>
     {
         base.OnAttached();
         AssociatedObject.NavigationCompleted += WebView_NavigationCompleted;
+
+        // In a DataTemplate, the binding may resolve before OnAttached fires,
+        // so OnMarkdownChanged silently drops the value (AssociatedObject was null).
+        // Capture it here so it renders after initialization.
+        if (Markdown is not null)
+        {
+            _pendingMarkdown = Markdown;
+        }
+
         _ = InitializeWebViewAsync();
     }
 
@@ -38,11 +51,29 @@ public class WebView2HtmlBehavior : Behavior<WebView2>
         base.OnDetaching();
     }
 
+    private static async Task<CoreWebView2Environment> GetSharedEnvironmentAsync()
+    {
+        if (_sharedEnvironment != null)
+            return _sharedEnvironment;
+
+        await _envLock.WaitAsync();
+        try
+        {
+            _sharedEnvironment ??= await CoreWebView2Environment.CreateAsync();
+            return _sharedEnvironment;
+        }
+        finally
+        {
+            _envLock.Release();
+        }
+    }
+
     private async Task InitializeWebViewAsync()
     {
         try
         {
-            await AssociatedObject.EnsureCoreWebView2Async(null);
+            var env = await GetSharedEnvironmentAsync();
+            await AssociatedObject.EnsureCoreWebView2Async(env);
             _isInitialized = true;
 
             // Render any pending markdown that arrived before initialization
@@ -66,7 +97,7 @@ public class WebView2HtmlBehavior : Behavior<WebView2>
         }
     }
 
-    private void WebView_NavigationCompleted(object? sender, Microsoft.Web.WebView2.Core.CoreWebView2NavigationCompletedEventArgs e)
+    private void WebView_NavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
     {
         // Navigation completed, content is ready
     }
