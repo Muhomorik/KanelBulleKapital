@@ -55,6 +55,11 @@
                     Padding="16,6"/>
             <Button Content="Compare All"
                     Command="{Binding RunComparisonCommand}"
+                    Margin="0,0,8,0"
+                    Padding="16,6"/>
+            <Button Content="Clear"
+                    Command="{Binding ClearResultsCommand}"
+                    Style="{StaticResource ff.ButtonFlatStyle}"
                     Padding="16,6"/>
             <mah:ProgressRing IsActive="{Binding IsRunning}"
                               Width="24" Height="24"

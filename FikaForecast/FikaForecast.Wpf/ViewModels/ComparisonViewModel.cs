@@ -65,6 +65,7 @@ public class ComparisonViewModel : ViewModelBase
 
     public ICommand RunComparisonCommand { get; }
     public ICommand RunSingleCommand { get; }
+    public ICommand ClearResultsCommand { get; }
 
     public ComparisonViewModel(
         ILogger logger,
@@ -107,6 +108,7 @@ public class ComparisonViewModel : ViewModelBase
 
         RunComparisonCommand = new AsyncCommand(RunComparisonAsync, () => !IsRunning && AvailableModels.Count >= 2);
         RunSingleCommand = new AsyncCommand<ModelConfig>(RunSingleAsync, _ => !IsRunning);
+        ClearResultsCommand = new DelegateCommand(() => { Results.Clear(); SetStatus(null); }, () => Results.Count > 0);
     }
 
     private static (bool IsConfigured, string? Message) CheckConfiguration(IConfiguration configuration)

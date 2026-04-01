@@ -122,7 +122,7 @@ and inflation dominate.
 The agent returns structured markdown with these sections:
 
 | Section | Required | Description |
-|---------|----------|-------------|
+| --------- | ---------- | ------------- |
 | Title with date | Yes | `MARKET-MOVING NEWS BRIEF — {date}` |
 | Category blocks | Yes | One or more of: Geopolitics/Energy, Central Banks, Macro/Inflation, Equities, Tech/AI, Corporate/Other |
 | Impact flag per item | Yes | 🔴 Risk-off / 🟢 Risk-on / 🟡 Mixed |
