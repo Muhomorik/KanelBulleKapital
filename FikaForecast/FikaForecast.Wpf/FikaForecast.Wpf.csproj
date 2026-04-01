@@ -33,6 +33,12 @@
     <!-- WebView2 for embedded Chromium browser -->
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
 
+    <!-- Markdown processing -->
+    <PackageReference Include="Markdig" Version="0.37.0" />
+
+    <!-- Expression Blend SDK for behaviors -->
+    <PackageReference Include="System.Windows.Interactivity.WPF" Version="2.0.20525" />
+
     <!-- CLI argument parsing -->
     <PackageReference Include="CommandLineParser" Version="2.9.1" />
 

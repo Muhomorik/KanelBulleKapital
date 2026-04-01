@@ -4,6 +4,9 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
+             xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+             xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
+             xmlns:behaviors="clr-namespace:FikaForecast.Wpf.Behaviors"
              xmlns:viewModels="clr-namespace:FikaForecast.Wpf.ViewModels"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance viewModels:HistoryViewModel, IsDesignTimeCreatable=False}"
@@ -90,11 +93,11 @@
                         <Run Text="{Binding Duration.TotalSeconds, Mode=OneWay, StringFormat='{}{0:F1}s'}"/>
                     </TextBlock>
 
-                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
-                        <TextBlock Text="{Binding RawMarkdownOutput, Mode=OneWay}"
-                                   TextWrapping="Wrap"
-                                   FontFamily="Cascadia Code, Consolas"/>
-                    </ScrollViewer>
+                    <wv2:WebView2 Grid.Row="2">
+                        <i:Interaction.Behaviors>
+                            <behaviors:WebView2HtmlBehavior Markdown="{Binding RawMarkdownOutput, Mode=OneWay}"/>
+                        </i:Interaction.Behaviors>
+                    </wv2:WebView2>
                 </Grid>
             </Border>
         </Grid>
