@@ -14,7 +14,7 @@ public static class MarkdownToHtmlConverter
     public static string Convert(string? markdown)
     {
         if (string.IsNullOrWhiteSpace(markdown))
-            return string.Empty;
+            return WrapWithStyling("<p><em>No content available</em></p>");
 
         var html = Markdown.ToHtml(markdown, Pipeline);
         return WrapWithStyling(html);
