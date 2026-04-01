@@ -62,10 +62,10 @@ public class AgentFrameworkNewsBriefAgent : INewsBriefAgent
         {
             try
             {
-                var bingConnection = _projectClient.Connections.GetConnection(connectionName: _bingConnectionName);
+                var bingConnectionResult = await _projectClient.Connections.GetConnectionAsync(connectionName: _bingConnectionName, cancellationToken: cancellationToken);
                 var bingTool = new BingGroundingTool(
                     new BingGroundingSearchToolOptions(
-                        searchConfigurations: [new BingGroundingSearchConfiguration(projectConnectionId: bingConnection.Id)]));
+                        searchConfigurations: [new BingGroundingSearchConfiguration(projectConnectionId: bingConnectionResult.Value.Id)]));
                 agentDefinition.Tools.Add(bingTool);
                 _logger.Info("Bing Grounding tool enabled");
             }
