@@ -45,4 +45,20 @@ public class NewsBriefRunRepository : INewsBriefRunRepository
             .OrderByDescending(r => r.Timestamp)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task DeleteAsync(Guid runId, CancellationToken cancellationToken = default)
+    {
+        var run = await _db.NewsBriefRuns.FindAsync(new object[] { runId }, cancellationToken);
+        if (run != null)
+        {
+            _db.NewsBriefRuns.Remove(run);
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+    }
+
+    public async Task DeleteAllAsync(CancellationToken cancellationToken = default)
+    {
+        _db.NewsBriefRuns.RemoveRange(_db.NewsBriefRuns);
+        await _db.SaveChangesAsync(cancellationToken);
+    }
 }

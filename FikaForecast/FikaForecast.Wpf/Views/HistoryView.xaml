@@ -39,27 +39,48 @@
                             Margin="0,0,8,0"/>
                     <Button Content="Clear Filter"
                             Command="{Binding ClearFilterCommand}"
-                            Padding="12,6"/>
+                            Padding="12,6"
+                            Margin="0,0,8,0"/>
+                    <Button Content="Delete All"
+                            Command="{Binding DeleteAllRunsCommand}"
+                            Padding="12,6"
+                            Foreground="Red"/>
                 </StackPanel>
 
                 <ListBox ItemsSource="{Binding Runs}"
                          SelectedItem="{Binding SelectedRun}">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <StackPanel Margin="4">
-                                <TextBlock FontWeight="SemiBold">
-                                    <Run Text="{Binding DeploymentName, Mode=OneWay}"/>
-                                    <Run Text=" — "/>
-                                    <Run Text="{Binding Status, Mode=OneWay}"/>
-                                </TextBlock>
-                                <TextBlock Foreground="Gray" FontSize="11">
-                                    <Run Text="{Binding Timestamp, Mode=OneWay, StringFormat='yyyy-MM-dd HH:mm'}"/>
-                                    <Run Text=" | "/>
-                                    <Run Text="{Binding TotalTokens, Mode=OneWay, StringFormat='{}{0} tokens'}"/>
-                                    <Run Text=" | "/>
-                                    <Run Text="{Binding Duration.TotalSeconds, Mode=OneWay, StringFormat='{}{0:F1}s'}"/>
-                                </TextBlock>
-                            </StackPanel>
+                            <Grid Margin="4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock FontWeight="SemiBold">
+                                        <Run Text="{Binding DeploymentName, Mode=OneWay}"/>
+                                        <Run Text=" — "/>
+                                        <Run Text="{Binding Status, Mode=OneWay}"/>
+                                    </TextBlock>
+                                    <TextBlock Foreground="Gray" FontSize="11">
+                                        <Run Text="{Binding Timestamp, Mode=OneWay, StringFormat='yyyy-MM-dd HH:mm'}"/>
+                                        <Run Text=" | "/>
+                                        <Run Text="{Binding TotalTokens, Mode=OneWay, StringFormat='{}{0} tokens'}"/>
+                                        <Run Text=" | "/>
+                                        <Run Text="{Binding Duration.TotalSeconds, Mode=OneWay, StringFormat='{}{0:F1}s'}"/>
+                                    </TextBlock>
+                                </StackPanel>
+
+                                <Button Grid.Column="1"
+                                        Style="{StaticResource ff.ButtonDeleteIconStyle}"
+                                        Command="{Binding RelativeSource={RelativeSource AncestorType=UserControl}, Path=DataContext.DeleteRunCommand}"
+                                        CommandParameter="{Binding}"
+                                        Margin="8,0,0,0"
+                                        ToolTip="Delete this run">
+                                    <TextBlock FontFamily="Segoe Fluent Icons" FontSize="12" Text="&#xE711;"/>
+                                </Button>
+                            </Grid>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>

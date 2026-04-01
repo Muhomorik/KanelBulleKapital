@@ -21,4 +21,10 @@ public interface INewsBriefRunRepository
 
     /// <summary>Returns runs filtered by model, ordered by most recent first.</summary>
     Task<IReadOnlyList<NewsBriefRun>> GetByModelAsync(string modelId, CancellationToken cancellationToken = default);
+
+    /// <summary>Deletes a run by ID.</summary>
+    Task DeleteAsync(Guid runId, CancellationToken cancellationToken = default);
+
+    /// <summary>Deletes all runs.</summary>
+    Task DeleteAllAsync(CancellationToken cancellationToken = default);
 }

@@ -88,6 +88,40 @@
         <Setter Property="Padding" Value="24,8"/>
     </Style>
 
+    <!-- ── Icon Button Styles ────────────────────────────────────── -->
+
+    <!-- Destructive icon button: muted at rest, red on hover (Fluent "reveal on intent") -->
+    <Style x:Key="ff.ButtonDeleteIconStyle" TargetType="Button">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="4"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Foreground" Value="{StaticResource MahApps.Brushes.Gray3}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border Background="{TemplateBinding Background}"
+                            Padding="{TemplateBinding Padding}"
+                            CornerRadius="4">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <!-- White on selected row (accent background) for contrast -->
+            <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                <Setter Property="Foreground" Value="{DynamicResource MahApps.Brushes.Selected.Foreground}"/>
+            </DataTrigger>
+            <!-- Red on hover — last trigger wins, so this overrides selected state too -->
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Foreground" Value="{DynamicResource ff.ErrorBrush}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
     <!-- ── Panel Styles ───────────────────────────────────────────── -->
     <Style x:Key="ff.PanelStyle" TargetType="Border">
         <Setter Property="CornerRadius" Value="8"/>

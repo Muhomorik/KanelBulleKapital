@@ -3,6 +3,7 @@ using System.Windows.Input;
 using DevExpress.Mvvm;
 using FikaForecast.Application.Interfaces;
 using FikaForecast.Domain.Entities;
+using FikaForecast.Wpf.Views;
 using NLog;
 
 namespace FikaForecast.Wpf.ViewModels;
@@ -34,6 +35,8 @@ public class HistoryViewModel : ViewModelBase
 
     public ICommand LoadRunsCommand { get; }
     public ICommand ClearFilterCommand { get; }
+    public ICommand DeleteRunCommand { get; }
+    public ICommand DeleteAllRunsCommand { get; }
 
     public HistoryViewModel(ILogger logger, INewsBriefRunRepository repository)
     {
@@ -46,6 +49,8 @@ public class HistoryViewModel : ViewModelBase
             FilterModelId = null;
             ((AsyncCommand)LoadRunsCommand).Execute(null);
         });
+        DeleteRunCommand = new AsyncCommand<NewsBriefRun>(DeleteRunAsync);
+        DeleteAllRunsCommand = new AsyncCommand(DeleteAllRunsAsync);
 
         // Load initial runs when view opens
         ((AsyncCommand)LoadRunsCommand).Execute(null);
@@ -70,6 +75,53 @@ public class HistoryViewModel : ViewModelBase
         catch (Exception ex)
         {
             _logger.Error(ex, "Failed to load history");
+        }
+    }
+
+    /// <summary>Deletes a single run after confirmation.</summary>
+    private async Task DeleteRunAsync(NewsBriefRun? run)
+    {
+        if (run == null)
+            return;
+
+        var dialog = new ConfirmationDialog(
+            $"Delete run from {run.Timestamp:yyyy-MM-dd HH:mm}? This cannot be undone.");
+        var confirmed = dialog.ShowDialog() ?? false;
+
+        if (!confirmed)
+            return;
+
+        try
+        {
+            await _repository.DeleteAsync(run.RunId);
+            Runs.Remove(run);
+            if (SelectedRun == run)
+                SelectedRun = Runs.Count > 0 ? Runs[0] : null;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Failed to delete run");
+        }
+    }
+
+    /// <summary>Deletes all runs after confirmation.</summary>
+    private async Task DeleteAllRunsAsync()
+    {
+        var dialog = new ConfirmationDialog("Delete all runs? This cannot be undone.");
+        var confirmed = dialog.ShowDialog() ?? false;
+
+        if (!confirmed)
+            return;
+
+        try
+        {
+            await _repository.DeleteAllAsync();
+            Runs.Clear();
+            SelectedRun = null;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Failed to delete all runs");
         }
     }
 }
