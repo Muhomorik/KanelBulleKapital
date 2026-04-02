@@ -1,10 +1,11 @@
 using Autofac;
+using FikaForecast.Application.Interfaces;
 using FikaForecast.Application.Services;
 
 namespace FikaForecast.Wpf.Modules;
 
 /// <summary>
-/// Registers Application layer services: orchestrator and comparison service.
+/// Registers Application layer services: orchestrator, comparison service, and prompt provider.
 /// </summary>
 public class ApplicationModule : Module
 {
@@ -17,5 +18,9 @@ public class ApplicationModule : Module
         builder.RegisterType<BriefComparisonService>()
             .AsSelf()
             .InstancePerLifetimeScope();
+
+        builder.RegisterType<PromptProvider>()
+            .As<IPromptProvider>()
+            .SingleInstance();
     }
 }

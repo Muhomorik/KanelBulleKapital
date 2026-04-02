@@ -32,6 +32,10 @@ Rules:
 - No fluff. No background context. No history lessons.
 - If something has no clear market implication, skip it.
 - Prioritize surprises and changes over expected events.
+- Only include events based on official data releases, central bank statements, confirmed corporate actions, or wire reports.
+- Ignore opinion pieces, forecasts, and "analyst expects" framing.
+- If an item is based solely on unnamed sources or speculation, skip it entirely.
+- Do not use citation markers like 【source】 or inline source references.
 - Today's date is {current_date}.
 ```
 

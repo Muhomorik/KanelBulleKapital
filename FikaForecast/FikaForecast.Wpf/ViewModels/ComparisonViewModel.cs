@@ -3,6 +3,7 @@ using System.Windows.Input;
 
 using DevExpress.Mvvm;
 
+using FikaForecast.Application.Interfaces;
 using FikaForecast.Application.Services;
 using FikaForecast.Domain.Entities;
 using FikaForecast.Domain.ValueObjects;
@@ -28,6 +29,7 @@ public class ComparisonViewModel : ViewModelBase
     private readonly ILogger _logger;
     private readonly BriefComparisonService _comparisonService;
     private readonly NewsBriefOrchestrator _orchestrator;
+    private readonly IPromptProvider _promptProvider;
 
     public ObservableCollection<ModelConfig> AvailableModels { get; } = [];
 
@@ -73,11 +75,13 @@ public class ComparisonViewModel : ViewModelBase
         BriefComparisonService comparisonService,
         NewsBriefOrchestrator orchestrator,
         IEnumerable<ModelConfig> models,
-        IUserSettingsService settingsService)
+        IUserSettingsService settingsService,
+        IPromptProvider promptProvider)
     {
         _logger = logger;
         _comparisonService = comparisonService;
         _orchestrator = orchestrator;
+        _promptProvider = promptProvider;
 
         var settings = settingsService.Load();
         var hasSettings = settings.EnabledModelIds.Count > 0;
@@ -136,42 +140,6 @@ public class ComparisonViewModel : ViewModelBase
         return (false, message);
     }
 
-    /// <summary>
-    /// Returns the default News Brief prompt.
-    /// Will be replaced with config-loaded prompts.
-    /// </summary>
-    private AgentPrompt GetDefaultNewsBriefPrompt()
-    {
-        return new AgentPrompt(
-            "News Brief - Default",
-            """
-            You are a sharp financial intelligence analyst. Your job is to scan the last 14 days of global news and extract only what matters for financial markets.
-
-            Every time you run, you will:
-
-            1. Search the web for major news from the past 2 weeks across these categories:
-               - Macroeconomics (inflation, GDP, employment data)
-               - Central banks (Fed, ECB, BOJ, BOE decisions or signals)
-               - Geopolitics (wars, sanctions, trade disputes, elections)
-               - Energy & commodities (oil, gas, metals)
-               - Tech & AI (major earnings, regulations, breakthroughs)
-               - Corporate (major earnings surprises, bankruptcies, M&A)
-               - Financial system (credit events, banking stress, currency moves)
-
-            2. For each relevant item, write one sentence max: what happened + why it matters for markets.
-
-            3. Flag the market impact direction: Risk-off / Risk-on / Mixed or unclear
-
-            4. End with a 2-line overall market mood summary.
-
-            Rules:
-            - No fluff. No background context. No history lessons.
-            - If something has no clear market implication, skip it.
-            - Prioritize surprises and changes over expected events.
-            - Today's date is {current_date}.
-            """);
-    }
-
     private void SetStatus(string message, bool isError = false)
     {
         StatusMessage = message;
@@ -189,7 +157,7 @@ public class ComparisonViewModel : ViewModelBase
         {
             var results = await _comparisonService.CompareAsync(
                 AvailableModels.ToList(),
-                GetDefaultNewsBriefPrompt());
+                _promptProvider.GetNewsBriefPrompt());
 
             var successes = 0;
             var failures = new List<string>();
@@ -244,7 +212,7 @@ public class ComparisonViewModel : ViewModelBase
 
         try
         {
-            var result = await _orchestrator.RunBriefAsync(model, GetDefaultNewsBriefPrompt());
+            var result = await _orchestrator.RunBriefAsync(model, _promptProvider.GetNewsBriefPrompt());
 
             if (result.IsSuccess)
             {

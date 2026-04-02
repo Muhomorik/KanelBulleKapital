@@ -25,5 +25,8 @@
         <TabItem Header="&#x1F552;  History" Padding="16,8">
             <views:HistoryView DataContext="{Binding HistoryVm}" />
         </TabItem>
+        <TabItem Header="&#x1F50D;  Evaluation" Padding="16,8">
+            <views:EvaluationView DataContext="{Binding EvaluationVm}" />
+        </TabItem>
     </mah:MetroTabControl>
 </mah:MetroWindow>

@@ -11,15 +11,18 @@ public class MainWindowViewModel : ViewModelBase
 {
     public ComparisonViewModel ComparisonVm { get; }
     public HistoryViewModel HistoryVm { get; }
+    public EvaluationViewModel EvaluationVm { get; }
 
     /// <summary>Runtime constructor (DI).</summary>
     public MainWindowViewModel(
         ILogger logger,
         ComparisonViewModel comparisonVm,
-        HistoryViewModel historyVm)
+        HistoryViewModel historyVm,
+        EvaluationViewModel evaluationVm)
     {
         ComparisonVm = comparisonVm ?? throw new ArgumentNullException(nameof(comparisonVm));
         HistoryVm = historyVm ?? throw new ArgumentNullException(nameof(historyVm));
+        EvaluationVm = evaluationVm ?? throw new ArgumentNullException(nameof(evaluationVm));
     }
 
     /// <summary>Design-time constructor.</summary>
@@ -27,5 +30,6 @@ public class MainWindowViewModel : ViewModelBase
     {
         ComparisonVm = null!;
         HistoryVm = null!;
+        EvaluationVm = null!;
     }
 }

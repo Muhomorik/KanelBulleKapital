@@ -28,6 +28,7 @@ public class InfrastructureModule : Autofac.Module
         RegisterDatabase(builder);
         RegisterAgentClient(builder);
         RegisterAgent(builder);
+        RegisterEvaluationAgent(builder);
     }
 
     private static void RegisterDatabase(ContainerBuilder builder)
@@ -78,6 +79,16 @@ public class InfrastructureModule : Autofac.Module
         builder.RegisterType<AgentFrameworkNewsBriefAgent>()
             .WithParameter("bingConnectionName", bingConnectionName)
             .As<INewsBriefAgent>()
+            .SingleInstance();
+    }
+
+    /// <summary>
+    /// Registers the evaluation agent (no Bing Grounding — evaluates existing content only).
+    /// </summary>
+    private static void RegisterEvaluationAgent(ContainerBuilder builder)
+    {
+        builder.RegisterType<AgentFrameworkEvaluationAgent>()
+            .As<IEvaluationAgent>()
             .SingleInstance();
     }
 }
