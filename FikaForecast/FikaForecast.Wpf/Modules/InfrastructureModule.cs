@@ -5,6 +5,7 @@ using Azure.Identity;
 using FikaForecast.Application.Interfaces;
 using FikaForecast.Infrastructure.Agents;
 using FikaForecast.Infrastructure.Persistence;
+using FikaForecast.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 
@@ -26,6 +27,7 @@ public class InfrastructureModule : Autofac.Module
     protected override void Load(ContainerBuilder builder)
     {
         RegisterDatabase(builder);
+        RegisterPromptFileService(builder);
         RegisterAgentClient(builder);
         RegisterAgent(builder);
         RegisterEvaluationAgent(builder);
@@ -50,6 +52,13 @@ public class InfrastructureModule : Autofac.Module
         builder.RegisterType<NewsBriefRunRepository>()
             .As<INewsBriefRunRepository>()
             .InstancePerLifetimeScope();
+    }
+
+    private static void RegisterPromptFileService(ContainerBuilder builder)
+    {
+        builder.RegisterType<PromptFileService>()
+            .As<IPromptFileService>()
+            .SingleInstance();
     }
 
     /// <summary>

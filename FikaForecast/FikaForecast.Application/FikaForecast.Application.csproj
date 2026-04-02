@@ -12,6 +12,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Prompts\*.prompt.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Reactive Extensions for IObservable -->
     <PackageReference Include="FluentResults" Version="4.0.0" />
     <PackageReference Include="System.Reactive" Version="6.0.0" />
