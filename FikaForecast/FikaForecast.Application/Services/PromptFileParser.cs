@@ -3,7 +3,7 @@ namespace FikaForecast.Application.Services;
 /// <summary>
 /// Parses prompt files with a simple frontmatter format (Name metadata + body).
 /// </summary>
-internal static class PromptFileParser
+public static class PromptFileParser
 {
     private const string FrontmatterDelimiter = "---";
     private const string NamePrefix = "Name:";
