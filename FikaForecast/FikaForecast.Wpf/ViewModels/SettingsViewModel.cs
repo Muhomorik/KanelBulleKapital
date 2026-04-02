@@ -40,16 +40,6 @@ public class SettingsViewModel : ViewModelBase
     public int SelectedTabIndex
     {
         get => GetValue<int>();
-        set
-        {
-            SetValue(value);
-            IsRestartWarningVisible = value == 0;
-        }
-    }
-
-    public bool IsRestartWarningVisible
-    {
-        get => GetValue<bool>();
         set => SetValue(value);
     }
 
@@ -77,8 +67,6 @@ public class SettingsViewModel : ViewModelBase
         LoadModelSettings(settingsService.Load(), allModels);
         LoadPrompts();
 
-        IsRestartWarningVisible = true;
-
         SaveCommand = new DelegateCommand(Save);
         CloseCommand = new DelegateCommand(() => CurrentWindowService?.Close());
         ResetPromptCommand = new DelegateCommand(ResetPrompt, () => SelectedPrompt is not null);
@@ -95,8 +83,6 @@ public class SettingsViewModel : ViewModelBase
 
         PromptItems.Add(new PromptSettingItem("newsbrief", "News Brief - Default", "Sample prompt body..."));
         SelectedPrompt = PromptItems.FirstOrDefault();
-        IsRestartWarningVisible = true;
-
         SaveCommand = new DelegateCommand(() => { });
         CloseCommand = new DelegateCommand(() => { });
         ResetPromptCommand = new DelegateCommand(() => { });
