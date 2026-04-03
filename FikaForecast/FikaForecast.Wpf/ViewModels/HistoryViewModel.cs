@@ -21,6 +21,16 @@ public class HistoryViewModel : ViewModelBase
 
     public ObservableCollection<NewsBriefRun> Runs { get; } = [];
 
+    /// <summary>
+    /// Bound TwoWay to the History tab's <c>IsSelected</c>.
+    /// Reloads runs from the database each time the tab becomes active.
+    /// </summary>
+    public bool IsActive
+    {
+        get => GetValue<bool>();
+        set => SetValue(value, changedCallback: OnIsActiveChanged);
+    }
+
     public NewsBriefRun? SelectedRun
     {
         get => GetValue<NewsBriefRun?>();
@@ -101,6 +111,14 @@ public class HistoryViewModel : ViewModelBase
         catch (Exception ex)
         {
             _logger.Error(ex, "Failed to delete run");
+        }
+    }
+
+    private void OnIsActiveChanged()
+    {
+        if (IsActive)
+        {
+            ((AsyncCommand)LoadRunsCommand).Execute(null);
         }
     }
 

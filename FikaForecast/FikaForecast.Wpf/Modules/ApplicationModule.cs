@@ -16,7 +16,7 @@ public class ApplicationModule : Module
             .InstancePerLifetimeScope();
 
         builder.RegisterType<BriefComparisonService>()
-            .AsSelf()
+            .As<IBriefComparisonService>()
             .InstancePerLifetimeScope();
 
         builder.RegisterType<PromptProvider>()

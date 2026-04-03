@@ -27,7 +27,7 @@ namespace FikaForecast.Wpf.ViewModels;
 public class ComparisonViewModel : ViewModelBase
 {
     private readonly ILogger _logger;
-    private readonly BriefComparisonService _comparisonService;
+    private readonly IBriefComparisonService _comparisonService;
     private readonly NewsBriefOrchestrator _orchestrator;
     private readonly IPromptProvider _promptProvider;
 
@@ -72,7 +72,7 @@ public class ComparisonViewModel : ViewModelBase
     public ComparisonViewModel(
         ILogger logger,
         IConfiguration configuration,
-        BriefComparisonService comparisonService,
+        IBriefComparisonService comparisonService,
         NewsBriefOrchestrator orchestrator,
         IEnumerable<ModelConfig> models,
         IUserSettingsService settingsService,

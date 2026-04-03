@@ -1,5 +1,6 @@
 using System.Windows;
 using Autofac;
+using CommandLine;
 using FikaForecast.Infrastructure.Persistence;
 using FikaForecast.Wpf.Modules;
 using Microsoft.Extensions.Configuration;
@@ -51,14 +52,23 @@ public partial class App : System.Windows.Application
             args.SetObserved();
         };
 
+        // Parse command-line arguments
+        var cliOptions = Parser.Default.ParseArguments<CliOptions>(e.Args).Value ?? new CliOptions();
+
+        if (cliOptions.AutoSchedule)
+        {
+            Logger.Info("Launched with --auto-schedule: batch scheduler will start automatically");
+        }
+
         // Build configuration from appsettings.json and User Secrets
         var configuration = BuildConfiguration();
 
         // Configure Autofac container
         var builder = new ContainerBuilder();
 
-        // Register configuration
+        // Register configuration and CLI options
         builder.RegisterInstance(configuration).As<IConfiguration>();
+        builder.RegisterInstance(cliOptions).SingleInstance();
 
         // Auto-inject NLog.ILogger into all components (must be registered before other modules)
         builder.RegisterModule<NLogModule>();
