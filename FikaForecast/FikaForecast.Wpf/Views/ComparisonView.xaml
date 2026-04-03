@@ -23,20 +23,22 @@
 
         <!-- Configuration warning banner -->
         <Border Grid.Row="0"
-                Background="#FFF3CD" BorderBrush="#FFECB5" BorderThickness="1"
+                Background="{StaticResource ff.WarningBackgroundBrush}"
+                BorderBrush="{StaticResource ff.WarningBorderBrush}"
+                BorderThickness="1"
                 CornerRadius="4" Padding="12" Margin="0,0,0,12"
                 Visibility="{Binding IsConfigured, Converter={dxmvvm:BooleanToVisibilityConverter Inverse=True}}">
             <TextBlock Text="{Binding ConfigurationMessage}"
                        TextWrapping="Wrap"
-                       FontFamily="Cascadia Code, Consolas"
+                       Foreground="{StaticResource ff.WarningForegroundBrush}"
                        FontSize="12"/>
         </Border>
 
         <!-- Description -->
         <StackPanel Grid.Row="1" Margin="0,0,0,8">
-            <TextBlock FontSize="13" FontWeight="SemiBold" Margin="0,0,0,4">How it works</TextBlock>
-            <TextBlock Foreground="Gray" FontSize="12">Prompt  &#x2192;  Azure AI Foundry  &#x2192;  Bing Grounding (live news search)  &#x2192;  Structured market brief</TextBlock>
-            <TextBlock Foreground="Gray" FontSize="12" Margin="0,4,0,0">Compare models to see which catches more events, follows instructions better, and costs less per run.</TextBlock>
+            <TextBlock Style="{StaticResource ff.BodyStrongStyle}" Margin="{StaticResource ff.CompactSpacing}">How it works</TextBlock>
+            <TextBlock Style="{StaticResource ff.CaptionStyle}">Prompt  &#x2192;  Azure AI Foundry  &#x2192;  Bing Grounding (live news search)  &#x2192;  Structured market brief</TextBlock>
+            <TextBlock Style="{StaticResource ff.CaptionStyle}" Margin="{StaticResource ff.CompactSpacing}">Compare models to see which catches more events, follows instructions better, and costs less per run.</TextBlock>
         </StackPanel>
 
         <!-- Controls -->
@@ -48,19 +50,18 @@
                       Width="200"
                       Margin="0,0,8,0"
                       mah:TextBoxHelper.Watermark="Select model..."/>
-            <Button Content="Run Single"
+            <Button Content="Run single"
                     Command="{Binding RunSingleCommand}"
                     CommandParameter="{Binding SelectedItem, ElementName=ModelSelector}"
-                    Margin="0,0,8,0"
-                    Padding="16,6"/>
-            <Button Content="Compare All"
+                    Style="{StaticResource ff.ButtonStyle}"
+                    Margin="0,0,8,0"/>
+            <Button Content="Compare all"
                     Command="{Binding RunComparisonCommand}"
-                    Margin="0,0,8,0"
-                    Padding="16,6"/>
+                    Style="{StaticResource ff.ButtonAccentStyle}"
+                    Margin="0,0,8,0"/>
             <Button Content="Clear"
                     Command="{Binding ClearResultsCommand}"
-                    Style="{StaticResource ff.ButtonFlatStyle}"
-                    Padding="16,6"/>
+                    Style="{StaticResource ff.ButtonFlatStyle}"/>
             <mah:ProgressRing IsActive="{Binding IsRunning}"
                               Width="24" Height="24"
                               Margin="12,0,0,0"/>
@@ -73,10 +74,10 @@
                    Margin="0,0,0,12">
             <TextBlock.Style>
                 <Style TargetType="TextBlock">
-                    <Setter Property="Foreground" Value="Gray"/>
+                    <Setter Property="Foreground" Value="{StaticResource MahApps.Brushes.Gray2}"/>
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding IsStatusError}" Value="True">
-                            <Setter Property="Foreground" Value="#D32F2F"/>
+                            <Setter Property="Foreground" Value="{DynamicResource ff.ErrorBrush}"/>
                             <Setter Property="FontWeight" Value="SemiBold"/>
                         </DataTrigger>
                     </Style.Triggers>
@@ -85,49 +86,80 @@
         </TextBlock>
 
         <!-- Results side-by-side -->
-        <ItemsControl Grid.Row="4" ItemsSource="{Binding Results}">
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <UniformGrid Columns="2"/>
-                </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                    <Border BorderBrush="Gray" BorderThickness="1"
-                            CornerRadius="4" Margin="4" Padding="12">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                            </Grid.RowDefinitions>
+        <Grid Grid.Row="4">
+            <!-- Empty state placeholder -->
+            <Border HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Border.Style>
+                    <Style TargetType="Border" BasedOn="{StaticResource ff.PanelStyle}">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Results.Count}" Value="0">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <StackPanel HorizontalAlignment="Center" Margin="48,24">
+                    <TextBlock FontFamily="Segoe Fluent Icons" FontSize="32"
+                               Foreground="{StaticResource MahApps.Brushes.Gray3}"
+                               HorizontalAlignment="Center" Margin="0,0,0,12"
+                               Text="&#xE895;"/>
+                    <TextBlock Style="{StaticResource ff.BodyStrongStyle}"
+                               Foreground="{StaticResource MahApps.Brushes.Gray2}"
+                               HorizontalAlignment="Center" Margin="0,0,0,4"
+                               Text="Results will appear here"/>
+                    <TextBlock Style="{StaticResource ff.CaptionStyle}"
+                               HorizontalAlignment="Center"
+                               Text="Select a model and run a comparison to begin"/>
+                </StackPanel>
+            </Border>
 
-                            <!-- Model header -->
-                            <TextBlock Grid.Row="0"
-                                       FontSize="16" FontWeight="SemiBold"
-                                       Margin="0,0,0,4">
-                                <Run Text="{Binding DeploymentName, Mode=OneWay}"/>
-                            </TextBlock>
+            <!-- Result cards -->
+            <ItemsControl ItemsSource="{Binding Results}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Columns="2"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource ff.PanelControlStyle}" Margin="4" Padding="12">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
 
-                            <!-- Stats -->
-                            <TextBlock Grid.Row="1" Foreground="Gray" Margin="0,0,0,8">
-                                <Run Text="{Binding TotalTokens, Mode=OneWay, StringFormat='{}Tokens: {0}'}"/>
-                                <Run Text=" | "/>
-                                <Run Text="{Binding Duration.TotalSeconds, Mode=OneWay, StringFormat='{}{0:F1}s'}"/>
-                                <Run Text=" | "/>
-                                <Run Text="{Binding Status, Mode=OneWay}"/>
-                            </TextBlock>
+                                <!-- Model header -->
+                                <TextBlock Grid.Row="0"
+                                           Style="{StaticResource ff.BodyStrongStyle}"
+                                           Margin="0,0,0,4">
+                                    <Run Text="{Binding DeploymentName, Mode=OneWay}"/>
+                                </TextBlock>
 
-                            <!-- Brief output -->
-                            <wv2:WebView2 Grid.Row="2">
-                                <i:Interaction.Behaviors>
-                                    <behaviors:WebView2HtmlBehavior Markdown="{Binding RawMarkdownOutput, Mode=OneWay}"/>
-                                </i:Interaction.Behaviors>
-                            </wv2:WebView2>
-                        </Grid>
-                    </Border>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
+                                <!-- Stats -->
+                                <TextBlock Grid.Row="1"
+                                           Style="{StaticResource ff.CaptionStyle}"
+                                           Margin="0,0,0,8">
+                                    <Run Text="{Binding TotalTokens, Mode=OneWay, StringFormat='{}Tokens: {0}'}"/>
+                                    <Run Text=" | "/>
+                                    <Run Text="{Binding Duration.TotalSeconds, Mode=OneWay, StringFormat='{}{0:F1}s'}"/>
+                                    <Run Text=" | "/>
+                                    <Run Text="{Binding Status, Mode=OneWay}"/>
+                                </TextBlock>
+
+                                <!-- Brief output -->
+                                <wv2:WebView2 Grid.Row="2">
+                                    <i:Interaction.Behaviors>
+                                        <behaviors:WebView2HtmlBehavior Markdown="{Binding RawMarkdownOutput, Mode=OneWay}"/>
+                                    </i:Interaction.Behaviors>
+                                </wv2:WebView2>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Grid>
     </Grid>
 </UserControl>
