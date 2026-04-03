@@ -18,10 +18,10 @@
         </Grid.RowDefinitions>
 
         <!-- Description -->
-        <StackPanel Grid.Row="0" Margin="0,0,0,8">
-            <TextBlock FontSize="13" FontWeight="SemiBold" Margin="0,0,0,4">Run history</TextBlock>
-            <TextBlock Foreground="Gray" FontSize="12">Every run is saved with token counts (input / output / total), duration, and the full brief.</TextBlock>
-            <TextBlock Foreground="Gray" FontSize="12" Margin="0,4,0,0">Track cost per model over time and check if a cheaper model produces comparable quality.</TextBlock>
+        <StackPanel Grid.Row="0" Margin="{StaticResource ff.LabelSpacing}">
+            <TextBlock Style="{StaticResource ff.BodyStrongStyle}" Margin="{StaticResource ff.CompactSpacing}">Run history</TextBlock>
+            <TextBlock Style="{StaticResource ff.CaptionStyle}">Every run is saved with token counts (input / output / total), duration, and the full brief.</TextBlock>
+            <TextBlock Style="{StaticResource ff.CaptionStyle}" Margin="{StaticResource ff.CompactSpacing}">Track cost per model over time and check if a cheaper model produces comparable quality.</TextBlock>
         </StackPanel>
 
         <Grid Grid.Row="1">
@@ -31,21 +31,29 @@
             </Grid.ColumnDefinitions>
 
             <!-- Run list -->
-            <DockPanel Grid.Column="0" Margin="0,0,12,0">
-                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
-                    <Button Content="Refresh"
-                            Command="{Binding LoadRunsCommand}"
-                            Padding="12,6"
-                            Margin="0,0,8,0"/>
-                    <Button Content="Clear Filter"
-                            Command="{Binding ClearFilterCommand}"
-                            Padding="12,6"
-                            Margin="0,0,8,0"/>
-                    <Button Content="Delete All"
+            <DockPanel Grid.Column="0" Margin="0,0,16,0">
+                <Grid DockPanel.Dock="Top" Margin="{StaticResource ff.LabelSpacing}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="8"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="8"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Button Grid.Column="0"
+                            Content="Refresh"
+                            Style="{StaticResource ff.ButtonAccentStyle}"
+                            Command="{Binding LoadRunsCommand}"/>
+                    <Button Grid.Column="2"
+                            Content="Clear filter"
+                            Style="{StaticResource ff.ButtonStyle}"
+                            Command="{Binding ClearFilterCommand}"/>
+                    <Button Grid.Column="4"
+                            Content="Delete all"
+                            Style="{StaticResource ff.ButtonStyle}"
                             Command="{Binding DeleteAllRunsCommand}"
-                            Padding="12,6"
-                            Foreground="Red"/>
-                </StackPanel>
+                            Foreground="{StaticResource ff.ErrorBrush}"/>
+                </Grid>
 
                 <ListBox ItemsSource="{Binding Runs}"
                          SelectedItem="{Binding SelectedRun}">
@@ -58,12 +66,12 @@
                                 </Grid.ColumnDefinitions>
 
                                 <StackPanel Grid.Column="0">
-                                    <TextBlock FontWeight="SemiBold">
+                                    <TextBlock x:Name="PrimaryText" Style="{StaticResource ff.BodyStrongStyle}">
                                         <Run Text="{Binding DeploymentName, Mode=OneWay}"/>
                                         <Run Text=" — "/>
                                         <Run Text="{Binding Status, Mode=OneWay}"/>
                                     </TextBlock>
-                                    <TextBlock Foreground="Gray" FontSize="11">
+                                    <TextBlock x:Name="SecondaryText" Style="{StaticResource ff.SmallStyle}">
                                         <Run Text="{Binding Timestamp, Mode=OneWay, StringFormat='yyyy-MM-dd HH:mm'}"/>
                                         <Run Text=" | "/>
                                         <Run Text="{Binding TotalTokens, Mode=OneWay, StringFormat='{}{0} tokens'}"/>
@@ -81,6 +89,14 @@
                                     <TextBlock FontFamily="Segoe Fluent Icons" FontSize="12" Text="&#xE711;"/>
                                 </Button>
                             </Grid>
+
+                            <!-- IsSelected: switch text to contrast color on accent background (MUST be last trigger) -->
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                    <Setter TargetName="PrimaryText" Property="Foreground" Value="{DynamicResource MahApps.Brushes.Selected.Foreground}"/>
+                                    <Setter TargetName="SecondaryText" Property="Foreground" Value="{DynamicResource MahApps.Brushes.Selected.Foreground}"/>
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
@@ -100,16 +116,20 @@
                             </Style.Triggers>
                         </Style>
                     </StackPanel.Style>
-                    <TextBlock Text="No history records" FontSize="16" FontWeight="SemiBold"
-                               Foreground="Gray" HorizontalAlignment="Center" Margin="0,0,0,8"/>
-                    <TextBlock Text="Click Refresh to load run history" FontSize="13"
-                               Foreground="Gray" HorizontalAlignment="Center"/>
+                    <TextBlock Text="No history records"
+                               Style="{StaticResource ff.BodyLargeStyle}"
+                               Foreground="{StaticResource MahApps.Brushes.Gray3}"
+                               HorizontalAlignment="Center"
+                               Margin="{StaticResource ff.ItemSpacing}"/>
+                    <TextBlock Text="Click Refresh to load run history"
+                               Style="{StaticResource ff.CaptionStyle}"
+                               HorizontalAlignment="Center"/>
                 </StackPanel>
 
                 <!-- Selected run detail or empty selection placeholder -->
-                <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="4" Padding="12">
+                <Border>
                     <Border.Style>
-                        <Style TargetType="Border">
+                        <Style TargetType="Border" BasedOn="{StaticResource ff.PanelControlStyle}">
                             <Setter Property="Visibility" Value="Visible"/>
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding Runs.Count}" Value="0">
@@ -122,10 +142,10 @@
                     <Grid>
                         <!-- Placeholder when no run is selected -->
                         <TextBlock VerticalAlignment="Center" HorizontalAlignment="Center"
-                                   Foreground="Gray" FontSize="14"
+                                   Foreground="{StaticResource MahApps.Brushes.Gray3}"
                                    Text="Select a run to view details">
                             <TextBlock.Style>
-                                <Style TargetType="TextBlock">
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource ff.BodyStyle}">
                                     <Setter Property="Visibility" Value="Collapsed"/>
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding SelectedRun}" Value="{x:Null}">
@@ -154,13 +174,13 @@
                                 </Style>
                             </Grid.Style>
 
-                            <TextBlock Grid.Row="0" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,4">
+                            <TextBlock Grid.Row="0" Style="{StaticResource ff.TitleStyle}" Margin="{StaticResource ff.CompactSpacing}">
                                 <Run Text="{Binding DeploymentName, Mode=OneWay}"/>
                                 <Run Text=" — "/>
                                 <Run Text="{Binding PromptName, Mode=OneWay}"/>
                             </TextBlock>
 
-                            <TextBlock Grid.Row="1" Foreground="Gray" Margin="0,0,0,12">
+                            <TextBlock Grid.Row="1" Style="{StaticResource ff.CaptionStyle}" Margin="{StaticResource ff.LabelSpacing}">
                                 <Run Text="{Binding Timestamp, Mode=OneWay, StringFormat='yyyy-MM-dd HH:mm:ss'}"/>
                                 <Run Text=" | Input: "/>
                                 <Run Text="{Binding InputTokens, Mode=OneWay}"/>
