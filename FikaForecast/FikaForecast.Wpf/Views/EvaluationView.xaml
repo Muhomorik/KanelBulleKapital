@@ -18,10 +18,10 @@
         </Grid.RowDefinitions>
 
         <!-- Description -->
-        <StackPanel Grid.Row="0" Margin="0,0,0,8">
-            <TextBlock FontSize="13" FontWeight="SemiBold" Margin="0,0,0,4">Prompt evaluation</TextBlock>
-            <TextBlock Foreground="Gray" FontSize="12">Select a past run and evaluate whether its output follows the prompt rules.</TextBlock>
-            <TextBlock Foreground="Gray" FontSize="12" Margin="0,4,0,0">
+        <StackPanel Grid.Row="0" Margin="{StaticResource ff.LabelSpacing}">
+            <TextBlock Style="{StaticResource ff.BodyStrongStyle}" Margin="{StaticResource ff.CompactSpacing}">Prompt evaluation</TextBlock>
+            <TextBlock Style="{StaticResource ff.CaptionStyle}">Select a past run and evaluate whether its output follows the prompt rules.</TextBlock>
+            <TextBlock Style="{StaticResource ff.CaptionStyle}" Margin="{StaticResource ff.CompactSpacing}">
                 <Run Text="LLM judge: "/>
                 <Run Text="{Binding EvaluationModelName, Mode=OneWay, FallbackValue='(no default model)'}"
                      FontWeight="SemiBold"/>
@@ -37,10 +37,10 @@
 
             <!-- Run list -->
             <DockPanel Grid.Column="0" Margin="0,0,12,0">
-                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="{StaticResource ff.LabelSpacing}">
                     <Button Content="Refresh"
                             Command="{Binding LoadRunsCommand}"
-                            Padding="12,6"/>
+                            Style="{StaticResource ff.ButtonStyle}"/>
                 </StackPanel>
 
                 <ListBox ItemsSource="{Binding Runs}"
@@ -59,12 +59,12 @@
                                           Margin="0,0,8,0"/>
 
                                 <StackPanel Grid.Column="1">
-                                    <TextBlock x:Name="TitleText" FontWeight="SemiBold">
+                                    <TextBlock x:Name="TitleText" Style="{StaticResource ff.BodyStrongStyle}">
                                         <Run Text="{Binding Run.DeploymentName, Mode=OneWay}"/>
                                         <Run Text=" — "/>
                                         <Run Text="{Binding Run.Status, Mode=OneWay}"/>
                                     </TextBlock>
-                                    <TextBlock x:Name="DetailText" Foreground="Gray" FontSize="11">
+                                    <TextBlock x:Name="DetailText" Style="{StaticResource ff.SmallStyle}">
                                         <Run Text="{Binding Run.Timestamp, Mode=OneWay, StringFormat='yyyy-MM-dd HH:mm'}"/>
                                         <Run Text=" | "/>
                                         <Run Text="{Binding Run.TotalTokens, Mode=OneWay, StringFormat='{}{0} tokens'}"/>
@@ -87,9 +87,9 @@
             <!-- Right panel: detail view or placeholder -->
             <Grid Grid.Column="1">
                 <!-- Placeholder when no runs exist -->
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                    <StackPanel.Style>
-                        <Style TargetType="StackPanel">
+                <Border HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Border.Style>
+                        <Style TargetType="Border" BasedOn="{StaticResource ff.PanelStyle}">
                             <Setter Property="Visibility" Value="Collapsed"/>
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding Runs.Count}" Value="0">
@@ -97,17 +97,26 @@
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
-                    </StackPanel.Style>
-                    <TextBlock Text="No runs found" FontSize="16" FontWeight="SemiBold"
-                               Foreground="Gray" HorizontalAlignment="Center" Margin="0,0,0,8"/>
-                    <TextBlock Text="No runs found in the database" FontSize="13"
-                               Foreground="Gray" HorizontalAlignment="Center"/>
-                </StackPanel>
+                    </Border.Style>
+                    <StackPanel HorizontalAlignment="Center" Margin="48,24">
+                        <TextBlock FontFamily="Segoe Fluent Icons" FontSize="32"
+                                   Foreground="{StaticResource MahApps.Brushes.Gray3}"
+                                   HorizontalAlignment="Center" Margin="0,0,0,12"
+                                   Text="&#xE823;"/>
+                        <TextBlock Style="{StaticResource ff.BodyStrongStyle}"
+                                   Foreground="{StaticResource MahApps.Brushes.Gray2}"
+                                   HorizontalAlignment="Center" Margin="0,0,0,4"
+                                   Text="No runs found"/>
+                        <TextBlock Style="{StaticResource ff.CaptionStyle}"
+                                   HorizontalAlignment="Center"
+                                   Text="No runs found in the database"/>
+                    </StackPanel>
+                </Border>
 
                 <!-- Content panel (when runs exist) -->
-                <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="4" Padding="12">
+                <Border>
                     <Border.Style>
-                        <Style TargetType="Border">
+                        <Style TargetType="Border" BasedOn="{StaticResource ff.PanelStyle}">
                             <Setter Property="Visibility" Value="Visible"/>
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding Runs.Count}" Value="0">
@@ -120,10 +129,10 @@
                     <Grid>
                         <!-- Placeholder when no run is selected -->
                         <TextBlock VerticalAlignment="Center" HorizontalAlignment="Center"
-                                   Foreground="Gray" FontSize="14"
-                                   Text="Check runs to evaluate, then click Evaluate Checked">
+                                   Text="Check runs to evaluate, then click Evaluate checked">
                             <TextBlock.Style>
-                                <Style TargetType="TextBlock">
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource ff.BodyStyle}">
+                                    <Setter Property="Foreground" Value="{StaticResource MahApps.Brushes.Gray3}"/>
                                     <Setter Property="Visibility" Value="Collapsed"/>
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding SelectedRun}" Value="{x:Null}">
@@ -155,14 +164,16 @@
                             </Grid.Style>
 
                             <!-- Run summary -->
-                            <TextBlock Grid.Row="0" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,4"
+                            <TextBlock Grid.Row="0" Style="{StaticResource ff.BodyLargeStyle}"
+                                       FontWeight="SemiBold" Margin="0,0,0,4"
                                        DataContext="{Binding SelectedRun.Run}">
                                 <Run Text="{Binding DeploymentName, Mode=OneWay}"/>
                                 <Run Text=" — "/>
                                 <Run Text="{Binding PromptName, Mode=OneWay}"/>
                             </TextBlock>
 
-                            <TextBlock Grid.Row="1" Foreground="Gray" Margin="0,0,0,12"
+                            <TextBlock Grid.Row="1" Style="{StaticResource ff.CaptionStyle}"
+                                       Margin="0,0,0,12"
                                        DataContext="{Binding SelectedRun.Run}">
                                 <Run Text="{Binding Timestamp, Mode=OneWay, StringFormat='yyyy-MM-dd HH:mm:ss'}"/>
                                 <Run Text=" | Input: "/>
@@ -176,25 +187,25 @@
                             </TextBlock>
 
                             <!-- Evaluate button + status -->
-                            <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,8">
-                                <Button Content="Evaluate Checked"
+                            <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="{StaticResource ff.LabelSpacing}">
+                                <Button Content="Evaluate checked"
                                         Command="{Binding EvaluateCommand}"
-                                        Padding="12,6"
+                                        Style="{StaticResource ff.ButtonAccentStyle}"
                                         Margin="0,0,12,0"/>
                                 <mah:ProgressRing IsActive="{Binding IsEvaluating}"
-                                                  Width="20" Height="20"
+                                                  Width="24" Height="24"
                                                   Margin="0,0,8,0"/>
                             </StackPanel>
 
                             <!-- Status message -->
-                            <TextBlock Grid.Row="3" FontSize="12" Margin="0,0,0,8"
+                            <TextBlock Grid.Row="3" Margin="{StaticResource ff.LabelSpacing}"
                                        Text="{Binding StatusMessage}">
                                 <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Foreground" Value="Gray"/>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource ff.CaptionStyle}">
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding IsStatusError}" Value="True">
                                                 <Setter Property="Foreground" Value="{DynamicResource ff.ErrorBrush}"/>
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>

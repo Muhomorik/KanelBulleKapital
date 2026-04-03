@@ -74,6 +74,11 @@
            BasedOn="{StaticResource MahApps.Styles.Button.Square.Accent}">
         <Setter Property="mah:ControlsHelper.CornerRadius" Value="4"/>
         <Setter Property="Padding" Value="24,8"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Style.Resources>
+            <SolidColorBrush x:Key="MahApps.Brushes.Button.ForegroundPointerOver" Color="White"/>
+            <SolidColorBrush x:Key="MahApps.Brushes.Button.ForegroundPressed" Color="White"/>
+        </Style.Resources>
     </Style>
 
     <Style x:Key="ff.ButtonStyle" TargetType="Button"
