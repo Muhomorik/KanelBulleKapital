@@ -9,7 +9,7 @@ namespace FikaForecast.Application.DTOs;
 [DebuggerDisplay("{DeploymentName} — {Status} ({TotalTokens} tokens)")]
 public sealed record NewsBriefRunDto(
     Guid RunId,
-    DateTime Timestamp,
+    DateTimeOffset Timestamp,
     string ModelId,
     string DeploymentName,
     string PromptName,

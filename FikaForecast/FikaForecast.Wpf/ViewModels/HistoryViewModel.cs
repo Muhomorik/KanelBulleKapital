@@ -95,7 +95,7 @@ public class HistoryViewModel : ViewModelBase
             return;
 
         var dialog = new ConfirmationDialog(
-            $"Delete run from {run.Timestamp:yyyy-MM-dd HH:mm}? This cannot be undone.");
+            $"Delete run from {run.Timestamp.LocalDateTime:yyyy-MM-dd HH:mm}? This cannot be undone.");
         var confirmed = dialog.ShowDialog() ?? false;
 
         if (!confirmed)

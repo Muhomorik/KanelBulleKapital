@@ -14,7 +14,7 @@ public class NewsBriefRun
     private readonly List<NewsItem> _items = [];
 
     public Guid RunId { get; private set; }
-    public DateTime Timestamp { get; private set; }
+    public DateTimeOffset Timestamp { get; private set; }
     public string ModelId { get; private set; }
     public string DeploymentName { get; private set; }
     public string PromptName { get; private set; }
@@ -46,7 +46,7 @@ public class NewsBriefRun
         return new NewsBriefRun
         {
             RunId = Guid.NewGuid(),
-            Timestamp = DateTime.UtcNow,
+            Timestamp = DateTimeOffset.UtcNow,
             ModelId = model.ModelId,
             DeploymentName = model.DeploymentName,
             PromptName = prompt.Name,

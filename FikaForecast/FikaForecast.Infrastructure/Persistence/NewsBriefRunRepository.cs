@@ -31,19 +31,21 @@ public class NewsBriefRunRepository : INewsBriefRunRepository
 
     public async Task<IReadOnlyList<NewsBriefRun>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        return await _db.NewsBriefRuns
+        var runs = await _db.NewsBriefRuns
             .Include(r => r.Items)
-            .OrderByDescending(r => r.Timestamp)
             .ToListAsync(cancellationToken);
+
+        return runs.OrderByDescending(r => r.Timestamp).ToList();
     }
 
     public async Task<IReadOnlyList<NewsBriefRun>> GetByModelAsync(string modelId, CancellationToken cancellationToken = default)
     {
-        return await _db.NewsBriefRuns
+        var runs = await _db.NewsBriefRuns
             .Include(r => r.Items)
             .Where(r => r.ModelId == modelId)
-            .OrderByDescending(r => r.Timestamp)
             .ToListAsync(cancellationToken);
+
+        return runs.OrderByDescending(r => r.Timestamp).ToList();
     }
 
     public async Task DeleteAsync(Guid runId, CancellationToken cancellationToken = default)
