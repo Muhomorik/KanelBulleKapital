@@ -16,8 +16,8 @@ namespace FikaForecast.Wpf.ViewModels;
 
 /// <summary>
 /// ViewModel for the Batch Scheduler tab.
-/// Runs all models sequentially at fixed daily time slots (every 4 hours) using Rx.NET.
-/// Missed slots are ignored. Resets at midnight and schedules the next day.
+/// Manages Rx.NET timers for daily time slots and delegates schedule building
+/// and batch execution to <see cref="IBatchSchedulingService"/>.
 /// Supports auto-start via CLI <c>--auto-schedule</c> and manual toggle from the UI.
 /// </summary>
 public class BatchViewModel : ViewModelBase, IDisposable
@@ -25,14 +25,13 @@ public class BatchViewModel : ViewModelBase, IDisposable
     private static readonly TimeSpan Interval = TimeSpan.FromHours(4);
 
     private readonly ILogger _logger;
-    private readonly IBriefComparisonService _comparisonService;
+    private readonly IBatchSchedulingService _schedulingService;
     private readonly IPromptProvider _promptProvider;
     private readonly IReadOnlyList<ModelConfig> _models;
     private readonly SynchronizationContextScheduler _uiScheduler;
 
     private readonly CompositeDisposable _disposables = new();
     private readonly SerialDisposable _slotTimer = new();
-    private readonly SerialDisposable _midnightTimer = new();
     private CancellationTokenSource? _batchCts;
 
     /// <summary>All planned time slots for today.</summary>
@@ -79,19 +78,18 @@ public class BatchViewModel : ViewModelBase, IDisposable
 
     public BatchViewModel(
         ILogger logger,
-        IBriefComparisonService comparisonService,
+        IBatchSchedulingService schedulingService,
         IPromptProvider promptProvider,
         IEnumerable<ModelConfig> models,
         CliOptions cliOptions)
     {
         _logger = logger;
-        _comparisonService = comparisonService;
+        _schedulingService = schedulingService;
         _promptProvider = promptProvider;
         _models = models.ToList();
         _uiScheduler = new SynchronizationContextScheduler(SynchronizationContext.Current!);
 
         _disposables.Add(_slotTimer);
-        _disposables.Add(_midnightTimer);
 
         IsAutoSchedule = cliOptions.AutoSchedule;
         TodayDate = DateTime.Today.ToString("yyyy-MM-dd");
@@ -99,7 +97,7 @@ public class BatchViewModel : ViewModelBase, IDisposable
         ToggleSchedulerCommand = new DelegateCommand(ToggleScheduler);
 
         // Build the visual schedule immediately so the user sees the day plan
-        BuildDaySlots();
+        RebuildDaySlots();
 
         if (IsAutoSchedule)
         {
@@ -123,12 +121,11 @@ public class BatchViewModel : ViewModelBase, IDisposable
         IsSchedulerActive = true;
 
         ScheduleNextSlot();
-        ScheduleMidnightReset();
 
         var nextWaiting = TodaySlots.FirstOrDefault(s => s.Status == SlotStatus.Waiting);
         SetStatus(nextWaiting is not null
             ? $"Scheduler started — next run at {nextWaiting.PlannedTime:HH:mm}"
-            : "Scheduler started — no more slots today, waiting for midnight reset");
+            : "Scheduler started — next run tomorrow at 00:00");
     }
 
     private void StopScheduler()
@@ -142,7 +139,6 @@ public class BatchViewModel : ViewModelBase, IDisposable
         _batchCts = null;
 
         _slotTimer.Disposable = null;
-        _midnightTimer.Disposable = null;
 
         // Reset any running slot back to waiting
         foreach (var slot in TodaySlots)
@@ -160,26 +156,25 @@ public class BatchViewModel : ViewModelBase, IDisposable
     }
 
     /// <summary>
-    /// Generates the 6 daily time slots (00:00, 04:00, 08:00, 12:00, 16:00, 20:00).
-    /// Past slots are immediately marked <see cref="SlotStatus.Missed"/>.
+    /// Delegates day-slot generation to the scheduling service and maps to UI view models.
     /// </summary>
-    private void BuildDaySlots()
+    private void RebuildDaySlots()
     {
         TodaySlots.Clear();
         TodayDate = DateTime.Today.ToString("yyyy-MM-dd");
 
-        var now = TimeOnly.FromDateTime(DateTime.Now);
+        var planned = _schedulingService.BuildDaySlots(Interval);
 
-        for (var hour = 0; hour < 24; hour += (int)Interval.TotalHours)
+        foreach (var slot in planned)
         {
-            var time = new TimeOnly(hour, 0);
-            var status = time < now ? SlotStatus.Missed : SlotStatus.Waiting;
-            TodaySlots.Add(new ScheduledSlot(time, status));
+            var status = slot.IsPast ? SlotStatus.Missed : SlotStatus.Waiting;
+            TodaySlots.Add(new ScheduledSlot(slot.PlannedTime, status));
         }
     }
 
     /// <summary>
     /// Finds the next <see cref="SlotStatus.Waiting"/> slot and sets an Rx timer to fire at its planned time.
+    /// When all today's slots are exhausted, schedules a day rollover to tomorrow's first slot.
     /// </summary>
     private void ScheduleNextSlot()
     {
@@ -188,8 +183,7 @@ public class BatchViewModel : ViewModelBase, IDisposable
 
         if (nextSlot is null)
         {
-            _logger.Debug("No more waiting slots today");
-            _slotTimer.Disposable = null;
+            ScheduleDayRollover();
             return;
         }
 
@@ -212,28 +206,26 @@ public class BatchViewModel : ViewModelBase, IDisposable
     }
 
     /// <summary>
-    /// Schedules a timer that fires just after midnight to reset the daily plan.
+    /// All today's slots are done. Schedules a single Rx timer to midnight,
+    /// rebuilds the day plan, and immediately fires the 00:00 slot.
     /// </summary>
-    private void ScheduleMidnightReset()
+    private void ScheduleDayRollover()
     {
-        var midnight = DateTime.Today.AddDays(1);
-        var delay = midnight - DateTime.Now + TimeSpan.FromSeconds(1); // tiny buffer past midnight
+        var delay = DateTime.Today.AddDays(1) - DateTime.Now;
 
-        _logger.Debug("Midnight reset scheduled in {0:F1}h", delay.TotalHours);
+        _logger.Debug("No more slots today — day rollover in {0:F1}h", delay.TotalHours);
 
-        _midnightTimer.Disposable = Observable
+        _slotTimer.Disposable = Observable
             .Timer(delay, _uiScheduler)
             .Subscribe(_ =>
             {
-                _logger.Info("Midnight reset — rebuilding daily schedule");
-                BuildDaySlots();
+                _logger.Info("Day rollover — rebuilding daily schedule");
+                RebuildDaySlots();
+                SetStatus("New day — schedule reset");
 
-                if (IsSchedulerActive)
-                {
-                    ScheduleNextSlot();
-                    ScheduleMidnightReset();
-                    SetStatus("New day — schedule reset");
-                }
+                var firstSlot = TodaySlots.FirstOrDefault(s => s.Status == SlotStatus.Waiting);
+                if (firstSlot is not null)
+                    OnSlotFired(firstSlot);
             });
     }
 
@@ -272,9 +264,7 @@ public class BatchViewModel : ViewModelBase, IDisposable
         slot.Status = SlotStatus.Running;
         slot.ProgressText = $"0/{_models.Count}";
 
-        var startTime = DateTime.Now;
         SetStatus($"Slot {slot.PlannedTime:HH:mm} started — {_models.Count} models queued");
-        _logger.Info("Batch slot {0} started — {1} models", slot.PlannedTime, _models.Count);
 
         _batchCts = new CancellationTokenSource();
 
@@ -289,40 +279,40 @@ public class BatchViewModel : ViewModelBase, IDisposable
 
         try
         {
-            var results = await _comparisonService.CompareSequentiallyAsync(
+            var result = await _schedulingService.ExecuteSlotAsync(
                 _models,
                 _promptProvider.GetNewsBriefPrompt(),
                 progress,
                 _batchCts.Token);
 
-            var successes = results.Count(r => r.IsSuccess);
-            var failures = results.Count(r => r.IsFailed);
-            var totalTokens = results.Where(r => r.IsSuccess).Sum(r => r.Value.TotalTokens);
-            var elapsed = DateTime.Now - startTime;
-
-            slot.SuccessCount = successes;
-            slot.FailureCount = failures;
-            slot.TotalTokens = totalTokens;
-            slot.Duration = elapsed;
-            slot.ProgressText = null;
-            slot.Status = failures == 0 ? SlotStatus.Completed : SlotStatus.Failed;
-
-            var nextWaiting = TodaySlots.FirstOrDefault(s => s.Status == SlotStatus.Waiting);
-            var nextInfo = nextWaiting is not null ? $" — next at {nextWaiting.PlannedTime:HH:mm}" : "";
-
-            SetStatus(failures == 0
-                ? $"Slot {slot.PlannedTime:HH:mm} complete — {successes} models, {totalTokens:N0} tokens, {elapsed.TotalMinutes:F1}min{nextInfo}"
-                : $"Slot {slot.PlannedTime:HH:mm} done — {successes} ok, {failures} failed, {elapsed.TotalMinutes:F1}min{nextInfo}",
-                isError: failures > 0);
-
-            _logger.Info("Batch slot {0} complete — {1}/{2} succeeded, {3} tokens",
-                slot.PlannedTime, successes, _models.Count, totalTokens);
+            ApplySlotResult(slot, result);
         }
         finally
         {
             _batchCts?.Dispose();
             _batchCts = null;
         }
+    }
+
+    /// <summary>
+    /// Maps a <see cref="BatchSlotResult"/> from the scheduling service onto the UI slot view model.
+    /// </summary>
+    private void ApplySlotResult(ScheduledSlot slot, BatchSlotResult result)
+    {
+        slot.SuccessCount = result.SuccessCount;
+        slot.FailureCount = result.FailureCount;
+        slot.TotalTokens = result.TotalTokens;
+        slot.Duration = result.Duration;
+        slot.ProgressText = null;
+        slot.Status = result.HasFailures ? SlotStatus.Failed : SlotStatus.Completed;
+
+        var nextWaiting = TodaySlots.FirstOrDefault(s => s.Status == SlotStatus.Waiting);
+        var nextInfo = nextWaiting is not null ? $" — next at {nextWaiting.PlannedTime:HH:mm}" : "";
+
+        SetStatus(result.HasFailures
+            ? $"Slot {slot.PlannedTime:HH:mm} done — {result.SuccessCount} ok, {result.FailureCount} failed, {result.Duration.TotalMinutes:F1}min{nextInfo}"
+            : $"Slot {slot.PlannedTime:HH:mm} complete — {result.SuccessCount} models, {result.TotalTokens:N0} tokens, {result.Duration.TotalMinutes:F1}min{nextInfo}",
+            isError: result.HasFailures);
     }
 
     private void SetStatus(string? message, bool isError = false)

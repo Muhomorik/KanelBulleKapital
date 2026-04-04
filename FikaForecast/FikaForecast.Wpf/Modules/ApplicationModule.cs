@@ -19,6 +19,10 @@ public class ApplicationModule : Module
             .As<IBriefComparisonService>()
             .InstancePerLifetimeScope();
 
+        builder.RegisterType<BatchSchedulingService>()
+            .As<IBatchSchedulingService>()
+            .InstancePerLifetimeScope();
+
         builder.RegisterType<PromptProvider>()
             .As<IPromptProvider>()
             .SingleInstance();
