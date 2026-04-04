@@ -90,15 +90,37 @@ flowchart LR
 
 ## Models
 
-All models run through **Azure AI Foundry**. Same agent, same prompt, different brain.
+All models run through **Azure AI Foundry Agent Service**. Same agent, same prompt, different brain.
 
-| Model | Role | Status |
-| --- | --- | --- |
-| gpt-4.1 | Flagship baseline | Deployed |
-| gpt-5.4-mini | Next-gen baseline | Deployed |
-| gpt-5.4 | Flagship quality benchmark | Planned |
-| gpt-5.4-nano | Ultra-budget option | Planned |
-| DeepSeek | Open-source heavyweight | Planned |
+### Agent Service compatible (Bing Grounding supported)
+
+These models work natively with the Agent Service and support Bing Grounding — no custom code needed.
+
+| Model | Role | $/MTok (in → out) | Status |
+| --- | --- | --- | --- |
+| gpt-4.1 | Flagship baseline | ~$2 → $8 | Deployed |
+| gpt-5.4-mini | Next-gen baseline | $0.75 → $4.50 | Deployed |
+| gpt-5.4 | Flagship quality benchmark | $2.50 → $15 | Planned |
+| gpt-5.4-nano | Ultra-budget option | $0.20 → $1.25 | Planned |
+| DeepSeek-V3.1 | Open-source, tool calling + Bing Grounding | $1.23 → $4.94 | Planned |
+| grok-3 | xAI reasoning, Bing Grounding | $3 → $15 | Planned |
+
+> **Bing Grounding is the bottleneck.** Many newer/cheaper models (DeepSeek-V3.2, Grok 4, Grok 3 Mini) are available in AI Foundry but do **not** support Bing Grounding in Agent Service yet. Since the News Brief agent relies on Bing for web search, only models listed above can be used without custom integration. Check the [tool support matrix](https://learn.microsoft.com/azure/foundry/agents/concepts/tool-best-practice#tool-support-by-region-and-model) for updates.
+
+### Requires custom integration (no Bing Grounding in Agent Service)
+
+These models are available in AI Foundry but don't support Bing Grounding through Agent Service. Using them for the news brief agent would require a custom web search integration (e.g., calling Bing Search API directly and injecting results into the prompt).
+
+Claude models have [built-in web search](https://www.anthropic.com/news/web-search-api) via the Messages API — see [Claude models in Foundry](https://learn.microsoft.com/azure/foundry/foundry-models/how-to/use-foundry-models-claude).
+
+| Model | Why it's interesting | $/MTok (in → out) | Blocker |
+| --- | --- | --- | --- |
+| Claude Sonnet 4.6 | Anthropic frontier, 1M context, built-in web search | $3 → $15 + $10/1K searches | Partner model (Preview), Messages API, needs `Microsoft.Agents.AI.Anthropic` NuGet |
+| Claude Haiku 4.5 | Fast + cheap Anthropic option, built-in web search | $1 → $5 + $10/1K searches | Same as above |
+| DeepSeek-R1-0528 | Reasoning beast — useful for evaluation/comparison agents | [Pricing](https://azure.microsoft.com/pricing/details/ai-foundry-models/deepseek/) | No tool calling, no Bing Grounding |
+| Llama-4-Maverick-17B-128E-Instruct-FP8 | Fast FP8 inference, cost-efficient | [Pricing](https://azure.microsoft.com/pricing/details/ai-foundry-models/) | No Bing Grounding |
+
+**Implementation note:** Multi-provider support uses a routing composite pattern — a `RoutingNewsBriefAgent` delegates to provider-specific implementations (Foundry Agent Service or Anthropic Messages API) based on `ModelConfig.Provider`. Keyed services via Autofac `IIndex<AgentProvider, INewsBriefAgent>` stay in Infrastructure; the Application layer remains provider-agnostic.
 
 ## Configuration
 
@@ -109,7 +131,7 @@ All models run through **Azure AI Foundry**. Same agent, same prompt, different 
 
 ## Roadmap
 
-- [ ] Add gpt-5.4, gpt-5.4-nano, DeepSeek model configs
+- [ ] Add gpt-5.4, gpt-5.4-nano, DeepSeek-V3.1, grok-3 model configs
 - [ ] Implement pipeline steps 2--6
 - [ ] Parse agent markdown output into structured domain entities (NewsItem, MarketMood)
 
