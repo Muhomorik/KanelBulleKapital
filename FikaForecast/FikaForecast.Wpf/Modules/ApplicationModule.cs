@@ -1,3 +1,4 @@
+using System.Reactive.Concurrency;
 using Autofac;
 using FikaForecast.Application.Interfaces;
 using FikaForecast.Application.Services;
@@ -18,6 +19,10 @@ public class ApplicationModule : Module
         builder.RegisterType<BriefComparisonService>()
             .As<IBriefComparisonService>()
             .InstancePerLifetimeScope();
+
+        builder.Register(_ => new SynchronizationContextScheduler(SynchronizationContext.Current!))
+            .As<IScheduler>()
+            .InstancePerDependency();
 
         builder.RegisterType<BatchSchedulingService>()
             .As<IBatchSchedulingService>()

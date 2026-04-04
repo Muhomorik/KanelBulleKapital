@@ -1,3 +1,5 @@
+using System.Reactive.Concurrency;
+using System.Reactive.Linq;
 using FikaForecast.Application.DTOs;
 using FikaForecast.Application.Interfaces;
 using FikaForecast.Domain.ValueObjects;
@@ -7,16 +9,22 @@ namespace FikaForecast.Application.Services;
 
 /// <summary>
 /// Builds daily batch schedules and executes batch slots by delegating to the comparison service.
+/// Owns the <see cref="IScheduler"/> so timer creation is testable with <c>TestScheduler</c>.
 /// </summary>
 public class BatchSchedulingService : IBatchSchedulingService
 {
     private readonly ILogger _logger;
     private readonly IBriefComparisonService _comparisonService;
+    private readonly IScheduler _scheduler;
 
-    public BatchSchedulingService(ILogger logger, IBriefComparisonService comparisonService)
+    public BatchSchedulingService(
+        ILogger logger,
+        IBriefComparisonService comparisonService,
+        IScheduler scheduler)
     {
         _logger = logger;
         _comparisonService = comparisonService;
+        _scheduler = scheduler;
     }
 
     /// <inheritdoc />
@@ -32,6 +40,12 @@ public class BatchSchedulingService : IBatchSchedulingService
         }
 
         return slots;
+    }
+
+    /// <inheritdoc />
+    public IObservable<long> CreateTimer(TimeSpan delay)
+    {
+        return Observable.Timer(delay, _scheduler);
     }
 
     /// <inheritdoc />

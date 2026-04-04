@@ -1,7 +1,5 @@
 using System.Collections.ObjectModel;
-using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
-using System.Reactive.Linq;
 using System.Windows.Input;
 
 using DevExpress.Mvvm;
@@ -28,7 +26,6 @@ public class BatchViewModel : ViewModelBase, IDisposable
     private readonly IBatchSchedulingService _schedulingService;
     private readonly IPromptProvider _promptProvider;
     private readonly IReadOnlyList<ModelConfig> _models;
-    private readonly SynchronizationContextScheduler _uiScheduler;
 
     private readonly CompositeDisposable _disposables = new();
     private readonly SerialDisposable _slotTimer = new();
@@ -87,7 +84,6 @@ public class BatchViewModel : ViewModelBase, IDisposable
         _schedulingService = schedulingService;
         _promptProvider = promptProvider;
         _models = models.ToList();
-        _uiScheduler = new SynchronizationContextScheduler(SynchronizationContext.Current!);
 
         _disposables.Add(_slotTimer);
 
@@ -200,8 +196,8 @@ public class BatchViewModel : ViewModelBase, IDisposable
 
         _logger.Debug("Next batch slot at {0} (in {1:F1} min)", nextSlot.PlannedTime, delay.TotalMinutes);
 
-        _slotTimer.Disposable = Observable
-            .Timer(delay, _uiScheduler)
+        _slotTimer.Disposable = _schedulingService
+            .CreateTimer(delay)
             .Subscribe(_ => OnSlotFired(nextSlot));
     }
 
@@ -215,8 +211,8 @@ public class BatchViewModel : ViewModelBase, IDisposable
 
         _logger.Debug("No more slots today — day rollover in {0:F1}h", delay.TotalHours);
 
-        _slotTimer.Disposable = Observable
-            .Timer(delay, _uiScheduler)
+        _slotTimer.Disposable = _schedulingService
+            .CreateTimer(delay)
             .Subscribe(_ =>
             {
                 _logger.Info("Day rollover — rebuilding daily schedule");
