@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="cup-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#D4894F"/>
+      <stop offset="100%" stop-color="#8B5E3C"/>
+    </linearGradient>
+    <linearGradient id="chart-grad" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#C67C4E"/>
+      <stop offset="100%" stop-color="#4A9EFF"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Bold chart bars rising from the cup like steam -->
+  <rect x="52" y="62" width="24" height="52" rx="4" fill="#C67C4E" opacity="0.7"/>
+  <rect x="84" y="38" width="24" height="76" rx="4" fill="#9A7A60"/>
+  <rect x="116" y="50" width="24" height="64" rx="4" fill="#7A8A90"/>
+  <rect x="148" y="22" width="24" height="92" rx="4" fill="#5A92CC"/>
+  <rect x="180" y="6" width="24" height="108" rx="4" fill="#4A9EFF"/>
+
+  <!-- Cup body - wide and chunky -->
+  <path d="M40,114 L40,208 Q40,236 72,236 L168,236 Q200,236 200,208 L200,114 Z"
+        fill="url(#cup-grad)" stroke="#6B3F1F" stroke-width="4"/>
+
+  <!-- Coffee surface -->
+  <ellipse cx="120" cy="116" rx="80" ry="14" fill="#6B3F1F"/>
+
+  <!-- Cup handle - thick -->
+  <path d="M200,140 Q240,140 240,174 Q240,208 200,208"
+        fill="none" stroke="#C67C4E" stroke-width="14" stroke-linecap="round"/>
+</svg>

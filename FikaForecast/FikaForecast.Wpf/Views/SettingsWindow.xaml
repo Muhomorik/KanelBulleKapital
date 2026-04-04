@@ -11,7 +11,8 @@
         Title="Settings" Height="480" Width="640"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
-        ShowInTaskbar="False">
+        ShowInTaskbar="False"
+        Icon="/fikaforecast.ico">
     <dxmvvm:Interaction.Behaviors>
         <dxmvvm:CurrentWindowService/>
     </dxmvvm:Interaction.Behaviors>

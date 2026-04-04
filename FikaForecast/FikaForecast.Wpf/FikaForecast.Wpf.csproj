@@ -7,6 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <PlatformTarget>x64</PlatformTarget>
+    <ApplicationIcon>fikaforecast.ico</ApplicationIcon>
     <Platforms>AnyCPU;x64</Platforms>
     <UserSecretsId>0d07ad62-50c1-45a8-ab12-c8972a50bcd4</UserSecretsId>
   </PropertyGroup>
@@ -60,6 +61,10 @@
     <None Update="NLog.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="fikaforecast.ico" />
   </ItemGroup>
 
 </Project>
