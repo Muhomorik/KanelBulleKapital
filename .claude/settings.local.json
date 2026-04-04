@@ -20,6 +20,7 @@
     ],
     "ask": []
   },
+  "autoMemoryEnabled": false,
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "microsoft-learn",
