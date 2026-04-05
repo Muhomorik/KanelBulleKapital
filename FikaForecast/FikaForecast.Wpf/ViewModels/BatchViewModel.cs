@@ -6,7 +6,10 @@ using DevExpress.Mvvm;
 
 using FikaForecast.Application.DTOs;
 using FikaForecast.Application.Interfaces;
+using FikaForecast.Application.Services;
+using FikaForecast.Domain.Enums;
 using FikaForecast.Domain.ValueObjects;
+using FikaForecast.Wpf.Services;
 
 using NLog;
 
@@ -21,15 +24,23 @@ namespace FikaForecast.Wpf.ViewModels;
 public class BatchViewModel : ViewModelBase, IDisposable
 {
     private static readonly TimeSpan Interval = TimeSpan.FromHours(4);
+    private static readonly DayOfWeek WeeklySummaryDay = DayOfWeek.Thursday;
+    private static readonly TimeOnly WeeklySummaryTime = new(22, 0);
 
     private readonly ILogger _logger;
     private readonly IBatchSchedulingService _schedulingService;
     private readonly IPromptProvider _promptProvider;
     private readonly IReadOnlyList<ModelConfig> _models;
+    private readonly WeeklySummaryOrchestrator _orchestrator;
+    private readonly INewsBriefRunRepository _newsBriefRepository;
+    private readonly IUserSettingsService _settingsService;
+    private readonly ModelConfig? _defaultModel;
 
     private readonly CompositeDisposable _disposables = new();
     private readonly SerialDisposable _slotTimer = new();
+    private readonly SerialDisposable _weeklyTimer = new();
     private CancellationTokenSource? _batchCts;
+    private CancellationTokenSource? _weeklyCts;
 
     /// <summary>All planned time slots for today.</summary>
     public ObservableCollection<ScheduledSlot> TodaySlots { get; } = [];
@@ -71,26 +82,49 @@ public class BatchViewModel : ViewModelBase, IDisposable
         private set => SetValue(value);
     }
 
+    /// <summary>Weekly summary schedule info displayed in a separate UI section.</summary>
+    public WeeklySummaryScheduleInfo WeeklySummaryInfo { get; }
+
     public ICommand ToggleSchedulerCommand { get; }
+    public ICommand RunWeeklySummaryCommand { get; }
 
     public BatchViewModel(
         ILogger logger,
         IBatchSchedulingService schedulingService,
         IPromptProvider promptProvider,
         IEnumerable<ModelConfig> models,
-        CliOptions cliOptions)
+        CliOptions cliOptions,
+        WeeklySummaryOrchestrator orchestrator,
+        INewsBriefRunRepository newsBriefRepository,
+        IUserSettingsService settingsService)
     {
         _logger = logger;
         _schedulingService = schedulingService;
         _promptProvider = promptProvider;
         _models = models.ToList();
+        _orchestrator = orchestrator;
+        _newsBriefRepository = newsBriefRepository;
+        _settingsService = settingsService;
+
+        var settings = settingsService.Load();
+        _defaultModel = settings.DefaultModelId is not null
+            ? _models.FirstOrDefault(m => m.ModelId == settings.DefaultModelId)
+            : _models.FirstOrDefault();
 
         _disposables.Add(_slotTimer);
+        _disposables.Add(_weeklyTimer);
 
         IsAutoSchedule = cliOptions.AutoSchedule;
         TodayDate = DateTime.Today.ToString("yyyy-MM-dd");
 
+        WeeklySummaryInfo = new WeeklySummaryScheduleInfo(
+            $"{WeeklySummaryDay} {WeeklySummaryTime:HH:mm} UTC",
+            _defaultModel?.DisplayName);
+        UpdateWeeklyNextRunDate();
+
         ToggleSchedulerCommand = new DelegateCommand(ToggleScheduler);
+        RunWeeklySummaryCommand = new AsyncCommand(RunWeeklySummaryManualAsync,
+            () => !IsBatchRunning && WeeklySummaryInfo.Status != SlotStatus.Running && _defaultModel is not null);
 
         // Build the visual schedule immediately so the user sees the day plan
         RebuildDaySlots();
@@ -117,11 +151,12 @@ public class BatchViewModel : ViewModelBase, IDisposable
         IsSchedulerActive = true;
 
         ScheduleNextSlot();
+        ScheduleWeeklySummary();
 
         var nextWaiting = TodaySlots.FirstOrDefault(s => s.Status == SlotStatus.Waiting);
         SetStatus(nextWaiting is not null
-            ? $"Scheduler started — next run at {nextWaiting.PlannedTime:HH:mm}"
-            : "Scheduler started — next run tomorrow at 00:00");
+            ? $"Scheduler started — next run at {nextWaiting.PlannedTime:HH:mm}, weekly summary {WeeklySummaryInfo.NextRunDate}"
+            : $"Scheduler started — next run tomorrow at 00:00, weekly summary {WeeklySummaryInfo.NextRunDate}");
     }
 
     private void StopScheduler()
@@ -134,7 +169,12 @@ public class BatchViewModel : ViewModelBase, IDisposable
         _batchCts?.Dispose();
         _batchCts = null;
 
+        _weeklyCts?.Cancel();
+        _weeklyCts?.Dispose();
+        _weeklyCts = null;
+
         _slotTimer.Disposable = null;
+        _weeklyTimer.Disposable = null;
 
         // Reset any running slot back to waiting
         foreach (var slot in TodaySlots)
@@ -144,6 +184,12 @@ public class BatchViewModel : ViewModelBase, IDisposable
                 slot.Status = SlotStatus.Waiting;
                 slot.ProgressText = null;
             }
+        }
+
+        if (WeeklySummaryInfo.Status == SlotStatus.Running)
+        {
+            WeeklySummaryInfo.Status = SlotStatus.Waiting;
+            WeeklySummaryInfo.ProgressText = null;
         }
 
         IsSchedulerActive = false;
@@ -311,6 +357,151 @@ public class BatchViewModel : ViewModelBase, IDisposable
             isError: result.HasFailures);
     }
 
+    #region Weekly Summary
+
+    /// <summary>
+    /// Schedules the weekly summary timer to fire at the next Thursday 22:00 UTC.
+    /// </summary>
+    private void ScheduleWeeklySummary()
+    {
+        if (_defaultModel is null)
+        {
+            _logger.Warn("No default model configured — weekly summary scheduling skipped");
+            return;
+        }
+
+        var delay = _schedulingService.CalculateWeeklyDelay(WeeklySummaryDay, WeeklySummaryTime, DateTime.UtcNow);
+        UpdateWeeklyNextRunDate();
+
+        _logger.Debug("Weekly summary scheduled — fires in {0:F1}h ({1})",
+            delay.TotalHours, WeeklySummaryInfo.NextRunDate);
+
+        _weeklyTimer.Disposable = _schedulingService
+            .CreateTimer(delay)
+            .Subscribe(_ => OnWeeklySummaryFired());
+    }
+
+    private async void OnWeeklySummaryFired()
+    {
+        if (!IsSchedulerActive) return;
+
+        try
+        {
+            await ExecuteWeeklySummaryAsync();
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.Debug("Weekly summary run cancelled");
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Weekly summary run failed unexpectedly");
+            WeeklySummaryInfo.Status = SlotStatus.Failed;
+            SetStatus($"Weekly summary failed: {ex.Message}", isError: true);
+        }
+        finally
+        {
+            if (IsSchedulerActive)
+                ScheduleWeeklySummary();
+        }
+    }
+
+    /// <summary>
+    /// Manual trigger for the weekly summary — runs independently of the scheduler toggle.
+    /// </summary>
+    private async Task RunWeeklySummaryManualAsync()
+    {
+        try
+        {
+            await ExecuteWeeklySummaryAsync();
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.Debug("Manual weekly summary run cancelled");
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Manual weekly summary run failed unexpectedly");
+            WeeklySummaryInfo.Status = SlotStatus.Failed;
+            SetStatus($"Weekly summary failed: {ex.Message}", isError: true);
+        }
+    }
+
+    private async Task ExecuteWeeklySummaryAsync()
+    {
+        if (_defaultModel is null)
+        {
+            SetStatus("No default model configured. Set one in Settings.", isError: true);
+            return;
+        }
+
+        WeeklySummaryInfo.Status = SlotStatus.Running;
+        WeeklySummaryInfo.ProgressText = "Loading daily briefs...";
+        SetStatus($"Weekly summary — loading daily briefs for {_defaultModel.DisplayName}...");
+
+        _weeklyCts = new CancellationTokenSource();
+
+        try
+        {
+            var settings = _settingsService.Load();
+            var defaultModelId = settings.DefaultModelId ?? _defaultModel.ModelId;
+
+            var allRuns = await _newsBriefRepository.GetByModelAsync(defaultModelId, _weeklyCts.Token);
+            var successfulRuns = allRuns
+                .Where(r => r.Status == RunStatus.Success && r.Item is not null)
+                .ToList();
+
+            if (successfulRuns.Count == 0)
+            {
+                WeeklySummaryInfo.Status = SlotStatus.Failed;
+                WeeklySummaryInfo.ProgressText = null;
+                SetStatus("Weekly summary — no successful daily briefs found for the default model", isError: true);
+                return;
+            }
+
+            WeeklySummaryInfo.ProgressText = $"Running agent with {successfulRuns.Count} briefs...";
+            SetStatus($"Weekly summary — running agent with {successfulRuns.Count} daily briefs...");
+
+            var result = await _orchestrator.RunSummaryAsync(
+                _defaultModel,
+                _promptProvider.GetWeeklySummaryPrompt(),
+                successfulRuns,
+                _weeklyCts.Token);
+
+            WeeklySummaryInfo.ProgressText = null;
+
+            if (result.IsSuccess)
+            {
+                var run = result.Value;
+                WeeklySummaryInfo.Status = SlotStatus.Completed;
+                WeeklySummaryInfo.ThemeCount = run.Themes.Count;
+                WeeklySummaryInfo.TotalTokens = run.TotalTokens;
+                WeeklySummaryInfo.Duration = run.Duration;
+                SetStatus($"Weekly summary complete — {run.Themes.Count} themes, {run.TotalTokens:N0} tokens, {run.Duration.TotalSeconds:F1}s");
+            }
+            else
+            {
+                WeeklySummaryInfo.Status = SlotStatus.Failed;
+                SetStatus($"Weekly summary failed: {result.Errors.First().Message}", isError: true);
+            }
+        }
+        finally
+        {
+            _weeklyCts?.Dispose();
+            _weeklyCts = null;
+        }
+    }
+
+    private void UpdateWeeklyNextRunDate()
+    {
+        var delay = _schedulingService.CalculateWeeklyDelay(WeeklySummaryDay, WeeklySummaryTime, DateTime.UtcNow);
+        var nextRun = DateTime.UtcNow + delay;
+        var daysUntil = (int)Math.Ceiling(delay.TotalDays);
+        WeeklySummaryInfo.NextRunDate = $"{nextRun:MMM dd, yyyy} ({daysUntil}d)";
+    }
+
+    #endregion
+
     private void SetStatus(string? message, bool isError = false)
     {
         StatusMessage = message;
@@ -321,6 +512,8 @@ public class BatchViewModel : ViewModelBase, IDisposable
     {
         _batchCts?.Cancel();
         _batchCts?.Dispose();
+        _weeklyCts?.Cancel();
+        _weeklyCts?.Dispose();
         _disposables.Dispose();
     }
 }

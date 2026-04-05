@@ -71,4 +71,19 @@ public class BatchSchedulingService : IBatchSchedulingService
 
         return new BatchSlotResult(successes, failures, totalTokens, elapsed);
     }
+
+    /// <inheritdoc />
+    public TimeSpan CalculateWeeklyDelay(DayOfWeek targetDay, TimeOnly targetTime, DateTime utcNow)
+    {
+        var todayDay = utcNow.DayOfWeek;
+        var daysUntil = ((int)targetDay - (int)todayDay + 7) % 7;
+
+        var targetDateTime = utcNow.Date.AddDays(daysUntil) + targetTime.ToTimeSpan();
+
+        // If it's the same day but the time has passed (or exactly now), skip to next week
+        if (targetDateTime <= utcNow)
+            targetDateTime = targetDateTime.AddDays(7);
+
+        return targetDateTime - utcNow;
+    }
 }

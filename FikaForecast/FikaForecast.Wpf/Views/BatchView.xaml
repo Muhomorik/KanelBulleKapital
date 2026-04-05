@@ -15,12 +15,13 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- Description -->
         <StackPanel Grid.Row="0" Margin="{StaticResource ff.ItemSpacing}">
             <TextBlock Style="{StaticResource ff.BodyStrongStyle}" Margin="{StaticResource ff.CompactSpacing}">Batch scheduler</TextBlock>
-            <TextBlock Style="{StaticResource ff.CaptionStyle}">Runs all models sequentially at fixed 4-hour intervals. Missed slots are skipped.</TextBlock>
+            <TextBlock Style="{StaticResource ff.CaptionStyle}">Runs all models sequentially at fixed 4-hour intervals. Missed slots are skipped. Weekly summary runs every Thursday at 22:00 UTC using the default model.</TextBlock>
             <TextBlock Style="{StaticResource ff.CaptionStyle}" Margin="{StaticResource ff.CompactSpacing}">Start from the toggle below or launch with <Run FontFamily="Cascadia Code, Consolas" FontSize="11">--auto-schedule</Run> to begin on startup.</TextBlock>
         </StackPanel>
 
@@ -263,5 +264,211 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
         </DockPanel>
+
+        <!-- Weekly Summary schedule -->
+        <StackPanel Grid.Row="4" Margin="0,16,0,0"
+                    DataContext="{Binding WeeklySummaryInfo}">
+
+            <!-- Header with Run now button -->
+            <DockPanel Margin="{StaticResource ff.LabelSpacing}">
+                <TextBlock DockPanel.Dock="Left"
+                           Style="{StaticResource ff.SubheaderStyle}"
+                           VerticalAlignment="Center">Weekly Summary</TextBlock>
+                <Button DockPanel.Dock="Right"
+                        Content="&#xE768;  Run now"
+                        FontFamily="Segoe Fluent Icons"
+                        Command="{Binding DataContext.RunWeeklySummaryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                        HorizontalAlignment="Right"
+                        Padding="12,4" Margin="0"/>
+            </DockPanel>
+
+            <!-- Single slot-style entry -->
+            <Border Margin="{StaticResource ff.CompactSpacing}" Padding="12,8" CornerRadius="4"
+                    BorderThickness="1">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Background" Value="{StaticResource MahApps.Brushes.Gray9}"/>
+                        <Setter Property="BorderBrush" Value="{StaticResource MahApps.Brushes.Gray7}"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Status}" Value="{x:Static viewModels:SlotStatus.Running}">
+                                <Setter Property="BorderBrush" Value="{DynamicResource MahApps.Brushes.Accent}"/>
+                                <Setter Property="BorderThickness" Value="2"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Status}" Value="{x:Static viewModels:SlotStatus.Completed}">
+                                <Setter Property="BorderBrush" Value="{DynamicResource ff.SuccessBrush}"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Status}" Value="{x:Static viewModels:SlotStatus.Failed}">
+                                <Setter Property="BorderBrush" Value="{DynamicResource ff.ErrorBrush}"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="30"/>
+                        <ColumnDefinition Width="100"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Planned day/time -->
+                    <TextBlock Grid.Column="0"
+                               Style="{StaticResource ff.BodyStrongStyle}"
+                               VerticalAlignment="Center"
+                               Text="{Binding PlannedDay}"/>
+
+                    <!-- Status icon -->
+                    <TextBlock Grid.Column="1"
+                               FontFamily="Segoe Fluent Icons" FontSize="12"
+                               VerticalAlignment="Center" Margin="8,0,0,0">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Text" Value="&#xE823;"/>
+                                <Setter Property="Foreground" Value="{StaticResource ff.MutedBrush}"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Status}" Value="{x:Static viewModels:SlotStatus.Running}">
+                                        <Setter Property="Text" Value="&#xE895;"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource MahApps.Brushes.Accent}"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Status}" Value="{x:Static viewModels:SlotStatus.Completed}">
+                                        <Setter Property="Text" Value="&#xE73E;"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource ff.SuccessBrush}"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Status}" Value="{x:Static viewModels:SlotStatus.Failed}">
+                                        <Setter Property="Text" Value="&#xE783;"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource ff.ErrorBrush}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
+                    <!-- Status label -->
+                    <TextBlock Grid.Column="2" VerticalAlignment="Center">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource ff.CaptionStyle}">
+                                <Setter Property="Text" Value="Waiting"/>
+                                <Setter Property="Foreground" Value="{StaticResource ff.MutedBrush}"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Status}" Value="{x:Static viewModels:SlotStatus.Running}">
+                                        <Setter Property="Text" Value="Running"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource MahApps.Brushes.Accent}"/>
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Status}" Value="{x:Static viewModels:SlotStatus.Completed}">
+                                        <Setter Property="Text" Value="Completed"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource ff.SuccessBrush}"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Status}" Value="{x:Static viewModels:SlotStatus.Failed}">
+                                        <Setter Property="Text" Value="Failed"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource ff.ErrorBrush}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
+                    <!-- Details: model name, progress, or result stats -->
+                    <TextBlock Grid.Column="3"
+                               Foreground="{StaticResource MahApps.Brushes.Gray2}"
+                               VerticalAlignment="Center">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource ff.CaptionStyle}"/>
+                        </TextBlock.Style>
+
+                        <!-- Waiting: show model name + next run -->
+                        <Run>
+                            <Run.Style>
+                                <Style TargetType="Run">
+                                    <Setter Property="Text" Value="{Binding ModelName, Mode=OneWay, StringFormat='{}{0}'}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Status}" Value="{x:Static viewModels:SlotStatus.Running}">
+                                            <Setter Property="Text" Value=""/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Status}" Value="{x:Static viewModels:SlotStatus.Completed}">
+                                            <Setter Property="Text" Value=""/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Status}" Value="{x:Static viewModels:SlotStatus.Failed}">
+                                            <Setter Property="Text" Value=""/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Run.Style>
+                        </Run>
+                        <Run>
+                            <Run.Style>
+                                <Style TargetType="Run">
+                                    <Setter Property="Text" Value="{Binding NextRunDate, Mode=OneWay, StringFormat=' &#x2014; next: {0}'}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Status}" Value="{x:Static viewModels:SlotStatus.Running}">
+                                            <Setter Property="Text" Value=""/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Status}" Value="{x:Static viewModels:SlotStatus.Completed}">
+                                            <Setter Property="Text" Value=""/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Status}" Value="{x:Static viewModels:SlotStatus.Failed}">
+                                            <Setter Property="Text" Value=""/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Run.Style>
+                        </Run>
+
+                        <!-- Running: progress text -->
+                        <Run>
+                            <Run.Style>
+                                <Style TargetType="Run">
+                                    <Setter Property="Text" Value=""/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Status}" Value="{x:Static viewModels:SlotStatus.Running}">
+                                            <Setter Property="Text" Value="{Binding ProgressText, Mode=OneWay}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Run.Style>
+                        </Run>
+
+                        <!-- Completed/Failed: result stats -->
+                        <Run>
+                            <Run.Style>
+                                <Style TargetType="Run">
+                                    <Setter Property="Text" Value=""/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Status}" Value="{x:Static viewModels:SlotStatus.Completed}">
+                                            <Setter Property="Text" Value="{Binding ThemeCount, Mode=OneWay, StringFormat='{}{0} themes'}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Run.Style>
+                        </Run>
+                        <Run>
+                            <Run.Style>
+                                <Style TargetType="Run">
+                                    <Setter Property="Text" Value=""/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Status}" Value="{x:Static viewModels:SlotStatus.Completed}">
+                                            <Setter Property="Text" Value="{Binding TotalTokens, Mode=OneWay, StringFormat=' &#x2014; {0:N0} tokens'}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Run.Style>
+                        </Run>
+                        <Run>
+                            <Run.Style>
+                                <Style TargetType="Run">
+                                    <Setter Property="Text" Value=""/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Status}" Value="{x:Static viewModels:SlotStatus.Completed}">
+                                            <Setter Property="Text" Value="{Binding Duration.TotalSeconds, Mode=OneWay, StringFormat=' &#x2014; {0:F1}s'}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Run.Style>
+                        </Run>
+                    </TextBlock>
+                </Grid>
+            </Border>
+        </StackPanel>
     </Grid>
 </UserControl>

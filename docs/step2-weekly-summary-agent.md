@@ -29,7 +29,7 @@ Every step follows the same pattern: **DB → text → LLM → response → DB.*
 
 ## Trigger
 
-**Schedule:** Weekly (once per week, e.g., Sunday 20:00 UTC — after daily briefs have accumulated). Can also be triggered manually from the app at any time.
+**Schedule:** Weekly (every Thursday 22:00 UTC). Runs automatically via the batch scheduler or can be triggered manually from the Batch tab or Weekly Summary tab at any time.
 
 Step 1 runs multiple models in parallel for comparison — only the **default model's** runs feed the pipeline.
 The confidence filter works with however many days are available; more days means stronger signal.
