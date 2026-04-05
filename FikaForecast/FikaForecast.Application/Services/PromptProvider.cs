@@ -18,6 +18,7 @@ public class PromptProvider : IPromptProvider
     private const string EvaluationKey = "evaluation";
     private const string WeeklySummaryKey = "weeklysummary";
     private const string SubstitutionChainKey = "substitutionchain";
+    private const string OpportunityScanKey = "opportunityscan";
 
     private readonly IPromptFileService _promptFileService;
     private readonly ConcurrentDictionary<string, AgentPrompt> _cache = new();
@@ -41,6 +42,9 @@ public class PromptProvider : IPromptProvider
 
     /// <inheritdoc />
     public AgentPrompt GetSubstitutionChainPrompt() => GetOrLoadPrompt(SubstitutionChainKey);
+
+    /// <inheritdoc />
+    public AgentPrompt GetOpportunityScanPrompt() => GetOrLoadPrompt(OpportunityScanKey);
 
     /// <inheritdoc />
     public void InvalidateCache()

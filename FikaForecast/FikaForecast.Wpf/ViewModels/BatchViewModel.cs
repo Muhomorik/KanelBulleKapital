@@ -28,6 +28,8 @@ public class BatchViewModel : ViewModelBase, IDisposable
     private static readonly TimeOnly WeeklySummaryTime = new(22, 0);
     private static readonly DayOfWeek SubstitutionChainDay = DayOfWeek.Thursday;
     private static readonly TimeOnly SubstitutionChainTime = new(22, 10);
+    private static readonly DayOfWeek OpportunityScanDay = DayOfWeek.Thursday;
+    private static readonly TimeOnly OpportunityScanTime = new(22, 20);
 
     private readonly ILogger _logger;
     private readonly IBatchSchedulingService _schedulingService;
@@ -35,8 +37,10 @@ public class BatchViewModel : ViewModelBase, IDisposable
     private readonly IReadOnlyList<ModelConfig> _models;
     private readonly WeeklySummaryOrchestrator _orchestrator;
     private readonly SubstitutionChainOrchestrator _chainOrchestrator;
+    private readonly OpportunityScanOrchestrator _scanOrchestrator;
     private readonly INewsBriefRunRepository _newsBriefRepository;
     private readonly IWeeklySummaryRunRepository _summaryRepository;
+    private readonly ISubstitutionChainRunRepository _chainRepository;
     private readonly IUserSettingsService _settingsService;
     private readonly ModelConfig? _defaultModel;
 
@@ -44,9 +48,11 @@ public class BatchViewModel : ViewModelBase, IDisposable
     private readonly SerialDisposable _slotTimer = new();
     private readonly SerialDisposable _weeklyTimer = new();
     private readonly SerialDisposable _chainTimer = new();
+    private readonly SerialDisposable _scanTimer = new();
     private CancellationTokenSource? _batchCts;
     private CancellationTokenSource? _weeklyCts;
     private CancellationTokenSource? _chainCts;
+    private CancellationTokenSource? _scanCts;
 
     /// <summary>All planned time slots for today.</summary>
     public ObservableCollection<ScheduledSlot> TodaySlots { get; } = [];
@@ -94,9 +100,13 @@ public class BatchViewModel : ViewModelBase, IDisposable
     /// <summary>Substitution chain schedule info displayed in a separate UI section.</summary>
     public SubstitutionChainScheduleInfo SubstitutionChainInfo { get; }
 
+    /// <summary>Opportunity scan schedule info displayed in a separate UI section.</summary>
+    public OpportunityScanScheduleInfo OpportunityScanInfo { get; }
+
     public ICommand ToggleSchedulerCommand { get; }
     public ICommand RunWeeklySummaryCommand { get; }
     public ICommand RunSubstitutionChainCommand { get; }
+    public ICommand RunOpportunityScanCommand { get; }
 
     public BatchViewModel(
         ILogger logger,
@@ -106,8 +116,10 @@ public class BatchViewModel : ViewModelBase, IDisposable
         CliOptions cliOptions,
         WeeklySummaryOrchestrator orchestrator,
         SubstitutionChainOrchestrator chainOrchestrator,
+        OpportunityScanOrchestrator scanOrchestrator,
         INewsBriefRunRepository newsBriefRepository,
         IWeeklySummaryRunRepository summaryRepository,
+        ISubstitutionChainRunRepository chainRepository,
         IUserSettingsService settingsService)
     {
         _logger = logger;
@@ -116,8 +128,10 @@ public class BatchViewModel : ViewModelBase, IDisposable
         _models = models.ToList();
         _orchestrator = orchestrator;
         _chainOrchestrator = chainOrchestrator;
+        _scanOrchestrator = scanOrchestrator;
         _newsBriefRepository = newsBriefRepository;
         _summaryRepository = summaryRepository;
+        _chainRepository = chainRepository;
         _settingsService = settingsService;
 
         var settings = settingsService.Load();
@@ -128,6 +142,7 @@ public class BatchViewModel : ViewModelBase, IDisposable
         _disposables.Add(_slotTimer);
         _disposables.Add(_weeklyTimer);
         _disposables.Add(_chainTimer);
+        _disposables.Add(_scanTimer);
 
         IsAutoSchedule = cliOptions.AutoSchedule;
         TodayDate = DateTime.Today.ToString("yyyy-MM-dd");
@@ -142,11 +157,18 @@ public class BatchViewModel : ViewModelBase, IDisposable
             _defaultModel?.DisplayName);
         UpdateChainNextRunDate();
 
+        OpportunityScanInfo = new OpportunityScanScheduleInfo(
+            $"{OpportunityScanDay} {OpportunityScanTime:HH:mm} UTC",
+            _defaultModel?.DisplayName);
+        UpdateScanNextRunDate();
+
         ToggleSchedulerCommand = new DelegateCommand(ToggleScheduler);
         RunWeeklySummaryCommand = new AsyncCommand(RunWeeklySummaryManualAsync,
             () => !IsBatchRunning && WeeklySummaryInfo.Status != SlotStatus.Running && _defaultModel is not null);
         RunSubstitutionChainCommand = new AsyncCommand(RunSubstitutionChainManualAsync,
             () => !IsBatchRunning && SubstitutionChainInfo.Status != SlotStatus.Running && _defaultModel is not null);
+        RunOpportunityScanCommand = new AsyncCommand(RunOpportunityScanManualAsync,
+            () => !IsBatchRunning && OpportunityScanInfo.Status != SlotStatus.Running && _defaultModel is not null);
 
         // Build the visual schedule immediately so the user sees the day plan
         RebuildDaySlots();
@@ -175,6 +197,7 @@ public class BatchViewModel : ViewModelBase, IDisposable
         ScheduleNextSlot();
         ScheduleWeeklySummary();
         ScheduleSubstitutionChain();
+        ScheduleOpportunityScan();
 
         var nextWaiting = TodaySlots.FirstOrDefault(s => s.Status == SlotStatus.Waiting);
         SetStatus(nextWaiting is not null
@@ -200,9 +223,14 @@ public class BatchViewModel : ViewModelBase, IDisposable
         _chainCts?.Dispose();
         _chainCts = null;
 
+        _scanCts?.Cancel();
+        _scanCts?.Dispose();
+        _scanCts = null;
+
         _slotTimer.Disposable = null;
         _weeklyTimer.Disposable = null;
         _chainTimer.Disposable = null;
+        _scanTimer.Disposable = null;
 
         // Reset any running slot back to waiting
         foreach (var slot in TodaySlots)
@@ -224,6 +252,12 @@ public class BatchViewModel : ViewModelBase, IDisposable
         {
             SubstitutionChainInfo.Status = SlotStatus.Waiting;
             SubstitutionChainInfo.ProgressText = null;
+        }
+
+        if (OpportunityScanInfo.Status == SlotStatus.Running)
+        {
+            OpportunityScanInfo.Status = SlotStatus.Waiting;
+            OpportunityScanInfo.ProgressText = null;
         }
 
         IsSchedulerActive = false;
@@ -677,6 +711,147 @@ public class BatchViewModel : ViewModelBase, IDisposable
 
     #endregion
 
+    #region Opportunity Scan
+
+    /// <summary>
+    /// Schedules the opportunity scan timer to fire at the next Thursday 22:20 UTC.
+    /// </summary>
+    private void ScheduleOpportunityScan()
+    {
+        if (_defaultModel is null)
+        {
+            _logger.Warn("No default model configured — opportunity scan scheduling skipped");
+            return;
+        }
+
+        var delay = _schedulingService.CalculateWeeklyDelay(OpportunityScanDay, OpportunityScanTime, DateTime.UtcNow);
+        UpdateScanNextRunDate();
+
+        _logger.Debug("Opportunity scan scheduled — fires in {0:F1}h ({1})",
+            delay.TotalHours, OpportunityScanInfo.NextRunDate);
+
+        _scanTimer.Disposable = _schedulingService
+            .CreateTimer(delay)
+            .Subscribe(_ => OnOpportunityScanFired());
+    }
+
+    private async void OnOpportunityScanFired()
+    {
+        if (!IsSchedulerActive) return;
+
+        try
+        {
+            await ExecuteOpportunityScanAsync();
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.Debug("Opportunity scan run cancelled");
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Opportunity scan run failed unexpectedly");
+            OpportunityScanInfo.Status = SlotStatus.Failed;
+            SetStatus($"Opportunity scan failed: {ex.Message}", isError: true);
+        }
+        finally
+        {
+            if (IsSchedulerActive)
+                ScheduleOpportunityScan();
+        }
+    }
+
+    /// <summary>
+    /// Manual trigger for the opportunity scan — runs independently of the scheduler toggle.
+    /// </summary>
+    private async Task RunOpportunityScanManualAsync()
+    {
+        try
+        {
+            await ExecuteOpportunityScanAsync();
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.Debug("Manual opportunity scan run cancelled");
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Manual opportunity scan run failed unexpectedly");
+            OpportunityScanInfo.Status = SlotStatus.Failed;
+            SetStatus($"Opportunity scan failed: {ex.Message}", isError: true);
+        }
+    }
+
+    private async Task ExecuteOpportunityScanAsync()
+    {
+        if (_defaultModel is null)
+        {
+            SetStatus("No default model configured. Set one in Settings.", isError: true);
+            return;
+        }
+
+        OpportunityScanInfo.Status = SlotStatus.Running;
+        OpportunityScanInfo.ProgressText = "Loading latest substitution chain...";
+        SetStatus("Opportunity scan — loading latest substitution chain...");
+
+        _scanCts = new CancellationTokenSource();
+
+        try
+        {
+            var allChains = await _chainRepository.GetAllAsync(_scanCts.Token);
+            var latestChain = allChains
+                .FirstOrDefault(r => r.Status == Domain.Enums.RunStatus.Success && r.Chains.Count > 0);
+
+            if (latestChain is null)
+            {
+                OpportunityScanInfo.Status = SlotStatus.Failed;
+                OpportunityScanInfo.ProgressText = null;
+                SetStatus("Opportunity scan — no successful substitution chain found", isError: true);
+                return;
+            }
+
+            OpportunityScanInfo.ProgressText = $"Running agent with {latestChain.Chains.Count} chains...";
+            SetStatus($"Opportunity scan — running agent with {latestChain.Chains.Count} chains...");
+
+            var result = await _scanOrchestrator.RunAsync(
+                _defaultModel,
+                _promptProvider.GetOpportunityScanPrompt(),
+                latestChain,
+                _scanCts.Token);
+
+            OpportunityScanInfo.ProgressText = null;
+
+            if (result.IsSuccess)
+            {
+                var run = result.Value;
+                OpportunityScanInfo.Status = SlotStatus.Completed;
+                OpportunityScanInfo.TargetCount = run.Targets.Count;
+                OpportunityScanInfo.TotalTokens = run.TotalTokens;
+                OpportunityScanInfo.Duration = run.Duration;
+                SetStatus($"Opportunity scan complete — {run.Targets.Count} targets, {run.TotalTokens:N0} tokens, {run.Duration.TotalSeconds:F1}s");
+            }
+            else
+            {
+                OpportunityScanInfo.Status = SlotStatus.Failed;
+                SetStatus($"Opportunity scan failed: {result.Errors.First().Message}", isError: true);
+            }
+        }
+        finally
+        {
+            _scanCts?.Dispose();
+            _scanCts = null;
+        }
+    }
+
+    private void UpdateScanNextRunDate()
+    {
+        var delay = _schedulingService.CalculateWeeklyDelay(OpportunityScanDay, OpportunityScanTime, DateTime.UtcNow);
+        var nextRun = DateTime.UtcNow + delay;
+        var daysUntil = (int)Math.Ceiling(delay.TotalDays);
+        OpportunityScanInfo.NextRunDate = $"{nextRun:MMM dd, yyyy} ({daysUntil}d)";
+    }
+
+    #endregion
+
     private void SetStatus(string? message, bool isError = false)
     {
         StatusMessage = message;
@@ -691,6 +866,8 @@ public class BatchViewModel : ViewModelBase, IDisposable
         _weeklyCts?.Dispose();
         _chainCts?.Cancel();
         _chainCts?.Dispose();
+        _scanCts?.Cancel();
+        _scanCts?.Dispose();
         _disposables.Dispose();
     }
 }

@@ -73,5 +73,22 @@ public class ApplicationModule : Module
         builder.RegisterType<SubstitutionChainInputFormatter>()
             .AsSelf()
             .InstancePerLifetimeScope();
+
+        // Step 4: Opportunity Scan
+        builder.RegisterType<OpportunityScanOrchestrator>()
+            .AsSelf()
+            .InstancePerLifetimeScope();
+
+        builder.RegisterType<OpportunityScanJsonParser>()
+            .As<IOpportunityScanParser>()
+            .InstancePerLifetimeScope();
+
+        builder.RegisterType<OpportunityScanMarkdownRenderer>()
+            .AsSelf()
+            .InstancePerLifetimeScope();
+
+        builder.RegisterType<OpportunityScanInputFormatter>()
+            .AsSelf()
+            .InstancePerLifetimeScope();
     }
 }

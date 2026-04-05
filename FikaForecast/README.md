@@ -76,7 +76,7 @@ FikaForecast/
 
 ## Analysis Pipeline
 
-Steps 1–3 are implemented. Step 4 is planned.
+Steps 1–4 are implemented.
 
 ```mermaid
 flowchart LR
@@ -86,11 +86,13 @@ flowchart LR
     DB2 --> S3[Step 3\nSubstitution Chain]
     S3 -->|parse| DB3[(SQLite)]
     DB3 --> S4[Step 4\nRotation Targets]
+    S4 -->|parse| DB4[(SQLite)]
 
     style S1 fill:#4a9eff,color:#fff
     style S2 fill:#4a9eff,color:#fff
     style S3 fill:#4a9eff,color:#fff
-    style S4 fill:#555,color:#999
+    style S4 fill:#4a9eff,color:#fff
+    style DB4 fill:#e8a838,color:#fff
     style DB1 fill:#e8a838,color:#fff
     style DB2 fill:#e8a838,color:#fff
     style DB3 fill:#e8a838,color:#fff
@@ -103,7 +105,7 @@ Step 1 uses **Agent Service** (needs Bing Grounding for web search). Steps 2–4
 | 1 | News Brief | Scans 14 days of news via Bing Grounding, produces categorized market brief | Done |
 | 2 | Weekly Summary | Aggregates 5–7 daily briefs (default model) into confidence-weighted weekly summary | Done |
 | 3 | Substitution Chain | Follows disruption chains to find rotation beneficiaries | Done |
-| 4 | Rotation Targets | Flags up to 3 strongest capital rotation destinations worth watching | Planned |
+| 4 | Rotation Targets | Flags up to 3 strongest capital rotation destinations worth watching | Done |
 
 ## Models
 
@@ -254,6 +256,31 @@ erDiagram
     NewsItems ||--o{ CategoryAssessments : "has many"
     WeeklySummaryRuns ||--o{ WeeklySummaryThemes : "has many"
     SubstitutionChainRuns ||--o{ RotationChains : "has many"
+
+    OpportunityScanRuns {
+        Guid RunId PK
+        Guid SubstitutionChainRunId FK
+        DateTimeOffset Timestamp
+        string ModelId
+        TimeSpan Duration
+        int InputTokens
+        int OutputTokens
+        int TotalTokens
+        RunStatus Status "Success | Failed | Partial"
+        string RawAgentOutput
+        string RawMarkdownOutput
+    }
+
+    RotationTargets {
+        Guid TargetId PK
+        string Category
+        SignalStrength SignalStrength "Strong | Moderate"
+        string Rationale
+        string RiskCaveat
+        Guid RunId FK
+    }
+
+    OpportunityScanRuns ||--o{ RotationTargets : "has many"
 ```
 
 ## Documentation

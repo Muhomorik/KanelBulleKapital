@@ -13,7 +13,7 @@ namespace FikaForecast.Wpf.ViewModels;
 /// </summary>
 public class SettingsViewModel : ViewModelBase
 {
-    private static readonly string[] PromptKeys = ["newsbrief", "evaluation", "comparison", "weeklysummary", "substitutionchain"];
+    private static readonly string[] PromptKeys = ["newsbrief", "evaluation", "comparison", "weeklysummary", "substitutionchain", "opportunityscan"];
 
     private readonly IUserSettingsService _settingsService;
     private readonly IPromptFileService _promptFileService;

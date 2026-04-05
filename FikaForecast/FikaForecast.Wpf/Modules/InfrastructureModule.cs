@@ -33,6 +33,7 @@ public class InfrastructureModule : Autofac.Module
         RegisterEvaluationAgent(builder);
         RegisterWeeklySummaryAgent(builder);
         RegisterSubstitutionChainAgent(builder);
+        RegisterOpportunityScanAgent(builder);
     }
 
     private static void RegisterDatabase(ContainerBuilder builder)
@@ -128,6 +129,20 @@ public class InfrastructureModule : Autofac.Module
 
         builder.RegisterType<SubstitutionChainRunRepository>()
             .As<ISubstitutionChainRunRepository>()
+            .InstancePerLifetimeScope();
+    }
+
+    /// <summary>
+    /// Registers the opportunity scan agent (no Bing Grounding — works on DB data only).
+    /// </summary>
+    private static void RegisterOpportunityScanAgent(ContainerBuilder builder)
+    {
+        builder.RegisterType<AgentFrameworkOpportunityScanAgent>()
+            .As<IOpportunityScanAgent>()
+            .SingleInstance();
+
+        builder.RegisterType<OpportunityScanRunRepository>()
+            .As<IOpportunityScanRunRepository>()
             .InstancePerLifetimeScope();
     }
 }

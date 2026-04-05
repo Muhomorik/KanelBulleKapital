@@ -22,6 +22,9 @@ public interface IPromptProvider
     /// <summary>Returns the Substitution Chain Agent prompt (Step 3).</summary>
     AgentPrompt GetSubstitutionChainPrompt();
 
+    /// <summary>Returns the Opportunity Scan Agent prompt (Step 4).</summary>
+    AgentPrompt GetOpportunityScanPrompt();
+
     /// <summary>
     /// Clears the in-memory prompt cache, causing prompts to be re-read
     /// from disk on next access. Call after editing prompt files.

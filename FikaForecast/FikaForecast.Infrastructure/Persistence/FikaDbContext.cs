@@ -15,6 +15,8 @@ public class FikaDbContext : DbContext
     public DbSet<WeeklySummaryTheme> WeeklySummaryThemes => Set<WeeklySummaryTheme>();
     public DbSet<SubstitutionChainRun> SubstitutionChainRuns => Set<SubstitutionChainRun>();
     public DbSet<RotationChain> RotationChains => Set<RotationChain>();
+    public DbSet<OpportunityScanRun> OpportunityScanRuns => Set<OpportunityScanRun>();
+    public DbSet<RotationTarget> RotationTargets => Set<RotationTarget>();
 
     public FikaDbContext(DbContextOptions<FikaDbContext> options) : base(options) { }
 
@@ -96,6 +98,28 @@ public class FikaDbContext : DbContext
         modelBuilder.Entity<RotationChain>(entity =>
         {
             entity.HasKey(e => e.ChainId);
+        });
+
+        // Step 4: Opportunity Scan
+        modelBuilder.Entity<OpportunityScanRun>(entity =>
+        {
+            entity.HasKey(e => e.RunId);
+
+            entity.Property(e => e.Status).HasConversion<string>();
+            entity.Property(e => e.Duration).HasConversion(
+                v => v.TotalMilliseconds,
+                v => TimeSpan.FromMilliseconds(v));
+
+            entity.HasMany(e => e.Targets)
+                .WithOne()
+                .HasForeignKey(e => e.RunId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<RotationTarget>(entity =>
+        {
+            entity.HasKey(e => e.TargetId);
+            entity.Property(e => e.SignalStrength).HasConversion<string>();
         });
     }
 }
