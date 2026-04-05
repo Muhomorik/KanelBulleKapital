@@ -1,0 +1,268 @@
+<UserControl x:Class="FikaForecast.Wpf.Views.WeeklySummaryView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
+             xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+             xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
+             xmlns:behaviors="clr-namespace:FikaForecast.Wpf.Behaviors"
+             xmlns:viewModels="clr-namespace:FikaForecast.Wpf.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance viewModels:WeeklySummaryViewModel, IsDesignTimeCreatable=False}"
+             d:DesignHeight="600" d:DesignWidth="1200">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Description -->
+        <StackPanel Grid.Row="0" Margin="{StaticResource ff.LabelSpacing}">
+            <TextBlock Style="{StaticResource ff.BodyStrongStyle}" Margin="{StaticResource ff.CompactSpacing}">Weekly Summary</TextBlock>
+            <TextBlock Style="{StaticResource ff.CaptionStyle}">Consolidates daily briefs from the default model into a confidence-weighted weekly summary. Persistent themes survive, noise gets dropped.</TextBlock>
+        </StackPanel>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="350"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Left panel: run list + actions -->
+            <DockPanel Grid.Column="0" Margin="0,0,16,0">
+                <Grid DockPanel.Dock="Top" Margin="{StaticResource ff.LabelSpacing}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="8"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Button Grid.Column="0"
+                            Content="Run Summary"
+                            Style="{StaticResource ff.ButtonAccentStyle}"
+                            Command="{Binding RunSummaryCommand}"/>
+                    <Button Grid.Column="2"
+                            Content="Refresh"
+                            Style="{StaticResource ff.ButtonStyle}"
+                            Command="{Binding LoadHistoryCommand}"/>
+                </Grid>
+
+                <!-- Input data preview: what daily briefs will be analyzed -->
+                <Border DockPanel.Dock="Top" Margin="{StaticResource ff.LabelSpacing}"
+                        Padding="12" CornerRadius="4"
+                        Background="{DynamicResource MahApps.Brushes.Gray10}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource ff.BodyStrongStyle}"
+                                   Margin="{StaticResource ff.CompactSpacing}">Input Data</TextBlock>
+
+                        <TextBlock Style="{StaticResource ff.CaptionStyle}">
+                            <Run Text="Model: "/>
+                            <Run Text="{Binding DefaultModelName, Mode=OneWay, FallbackValue='(none)'}"/>
+                        </TextBlock>
+
+                        <TextBlock Style="{StaticResource ff.CaptionStyle}">
+                            <Run Text="Daily briefs: "/>
+                            <Run Text="{Binding DailyBriefCount, Mode=OneWay}"/>
+                        </TextBlock>
+
+                        <TextBlock>
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource ff.CaptionStyle}">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding DailyBriefCount}" Value="0">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                            <Run Text="Range: "/>
+                            <Run Text="{Binding BriefsDateRange, Mode=OneWay}"/>
+                        </TextBlock>
+
+                        <!-- Per-day mood breakdown -->
+                        <ItemsControl ItemsSource="{Binding AvailableBriefs}" Margin="0,4,0,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Style="{StaticResource ff.SmallStyle}">
+                                        <Run Text="{Binding MoodEmoji, Mode=OneWay}"/>
+                                        <Run Text=" "/>
+                                        <Run Text="{Binding Date, Mode=OneWay, StringFormat='ddd MMM dd'}"/>
+                                        <Run Text=" — "/>
+                                        <Run Text="{Binding CategoryCount, Mode=OneWay}"/>
+                                        <Run Text=" categories"/>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
+                <!-- Past summary runs -->
+                <ListBox ItemsSource="{Binding Runs}"
+                         SelectedItem="{Binding SelectedRun}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock x:Name="PrimaryText" Style="{StaticResource ff.BodyStrongStyle}">
+                                        <Run Text="{Binding WeekStart, Mode=OneWay, StringFormat='MMM dd'}"/>
+                                        <Run Text="–"/>
+                                        <Run Text="{Binding WeekEnd, Mode=OneWay, StringFormat='MMM dd'}"/>
+                                        <Run Text=" — "/>
+                                        <Run Text="{Binding Status, Mode=OneWay}"/>
+                                    </TextBlock>
+                                    <TextBlock x:Name="SecondaryText" Style="{StaticResource ff.SmallStyle}">
+                                        <Run Text="{Binding Timestamp, Mode=OneWay, StringFormat='yyyy-MM-dd HH:mm'}"/>
+                                        <Run Text=" | "/>
+                                        <Run Text="{Binding TotalTokens, Mode=OneWay, StringFormat='{}{0} tokens'}"/>
+                                        <Run Text=" | "/>
+                                        <Run Text="{Binding Duration.TotalSeconds, Mode=OneWay, StringFormat='{}{0:F1}s'}"/>
+                                    </TextBlock>
+                                </StackPanel>
+
+                                <Button Grid.Column="1"
+                                        Style="{StaticResource ff.ButtonDeleteIconStyle}"
+                                        Command="{Binding RelativeSource={RelativeSource AncestorType=UserControl}, Path=DataContext.DeleteRunCommand}"
+                                        CommandParameter="{Binding}"
+                                        Margin="8,0,0,0"
+                                        ToolTip="Delete this run">
+                                    <TextBlock FontFamily="Segoe Fluent Icons" FontSize="12" Text="&#xE711;"/>
+                                </Button>
+                            </Grid>
+
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                    <Setter TargetName="PrimaryText" Property="Foreground" Value="{DynamicResource MahApps.Brushes.Selected.Foreground}"/>
+                                    <Setter TargetName="SecondaryText" Property="Foreground" Value="{DynamicResource MahApps.Brushes.Selected.Foreground}"/>
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+
+            <!-- Right panel: detail view or placeholder -->
+            <Grid Grid.Column="1">
+                <!-- Placeholder when no history records exist -->
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Runs.Count}" Value="0">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <TextBlock Text="No weekly summaries yet"
+                               Style="{StaticResource ff.BodyLargeStyle}"
+                               Foreground="{StaticResource MahApps.Brushes.Gray3}"
+                               HorizontalAlignment="Center"
+                               Margin="{StaticResource ff.ItemSpacing}"/>
+                    <TextBlock Text="Run Step 1 daily briefs first, then click Run Summary"
+                               Style="{StaticResource ff.CaptionStyle}"
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Selected run detail -->
+                <Border>
+                    <Border.Style>
+                        <Style TargetType="Border" BasedOn="{StaticResource ff.PanelControlStyle}">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Runs.Count}" Value="0">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+
+                    <Grid>
+                        <!-- Placeholder when no run is selected -->
+                        <TextBlock VerticalAlignment="Center" HorizontalAlignment="Center"
+                                   Foreground="{StaticResource MahApps.Brushes.Gray3}"
+                                   Text="Select a summary to view details">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource ff.BodyStyle}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding SelectedRun}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+
+                        <!-- Selected run details -->
+                        <Grid DataContext="{Binding SelectedRun}">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Grid.Style>
+                                <Style TargetType="Grid">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Grid.Style>
+
+                            <TextBlock Grid.Row="0" Style="{StaticResource ff.TitleStyle}" Margin="{StaticResource ff.CompactSpacing}">
+                                <Run Text="Week of "/>
+                                <Run Text="{Binding WeekStart, Mode=OneWay, StringFormat='MMM dd'}"/>
+                                <Run Text=" – "/>
+                                <Run Text="{Binding WeekEnd, Mode=OneWay, StringFormat='MMM dd, yyyy'}"/>
+                            </TextBlock>
+
+                            <TextBlock Grid.Row="1" Style="{StaticResource ff.CaptionStyle}" Margin="{StaticResource ff.LabelSpacing}">
+                                <Run Text="{Binding Timestamp, Mode=OneWay, StringFormat='yyyy-MM-dd HH:mm:ss'}"/>
+                                <Run Text=" | Input: "/>
+                                <Run Text="{Binding InputTokens, Mode=OneWay}"/>
+                                <Run Text=" | Output: "/>
+                                <Run Text="{Binding OutputTokens, Mode=OneWay}"/>
+                                <Run Text=" | Total: "/>
+                                <Run Text="{Binding TotalTokens, Mode=OneWay}"/>
+                                <Run Text=" | "/>
+                                <Run Text="{Binding Duration.TotalSeconds, Mode=OneWay, StringFormat='{}{0:F1}s'}"/>
+                            </TextBlock>
+
+                            <wv2:WebView2 Grid.Row="2">
+                                <i:Interaction.Behaviors>
+                                    <behaviors:WebView2HtmlBehavior Markdown="{Binding RawMarkdownOutput, Mode=OneWay}"/>
+                                </i:Interaction.Behaviors>
+                            </wv2:WebView2>
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <!-- Status bar -->
+        <TextBlock Grid.Row="2" Text="{Binding StatusMessage}" TextWrapping="Wrap"
+                   Margin="{StaticResource ff.LabelSpacing}">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock" BasedOn="{StaticResource ff.CaptionStyle}">
+                    <Setter Property="Foreground" Value="{StaticResource MahApps.Brushes.Gray2}"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsStatusError}" Value="True">
+                            <Setter Property="Foreground" Value="{DynamicResource ff.ErrorBrush}"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
+    </Grid>
+</UserControl>

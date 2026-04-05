@@ -39,5 +39,22 @@ public class ApplicationModule : Module
         builder.RegisterType<PromptProvider>()
             .As<IPromptProvider>()
             .SingleInstance();
+
+        // Step 2: Weekly Summary
+        builder.RegisterType<WeeklySummaryOrchestrator>()
+            .AsSelf()
+            .InstancePerLifetimeScope();
+
+        builder.RegisterType<WeeklySummaryJsonParser>()
+            .As<IWeeklySummaryParser>()
+            .InstancePerLifetimeScope();
+
+        builder.RegisterType<WeeklySummaryMarkdownRenderer>()
+            .AsSelf()
+            .InstancePerLifetimeScope();
+
+        builder.RegisterType<WeeklySummaryInputFormatter>()
+            .AsSelf()
+            .InstancePerLifetimeScope();
     }
 }

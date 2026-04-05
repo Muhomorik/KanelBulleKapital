@@ -31,6 +31,7 @@ public class InfrastructureModule : Autofac.Module
         RegisterAgentClient(builder);
         RegisterAgent(builder);
         RegisterEvaluationAgent(builder);
+        RegisterWeeklySummaryAgent(builder);
     }
 
     private static void RegisterDatabase(ContainerBuilder builder)
@@ -51,6 +52,10 @@ public class InfrastructureModule : Autofac.Module
 
         builder.RegisterType<NewsBriefRunRepository>()
             .As<INewsBriefRunRepository>()
+            .InstancePerLifetimeScope();
+
+        builder.RegisterType<WeeklySummaryRunRepository>()
+            .As<IWeeklySummaryRunRepository>()
             .InstancePerLifetimeScope();
     }
 
@@ -98,6 +103,16 @@ public class InfrastructureModule : Autofac.Module
     {
         builder.RegisterType<AgentFrameworkEvaluationAgent>()
             .As<IEvaluationAgent>()
+            .SingleInstance();
+    }
+
+    /// <summary>
+    /// Registers the weekly summary agent (no Bing Grounding — works on DB data only).
+    /// </summary>
+    private static void RegisterWeeklySummaryAgent(ContainerBuilder builder)
+    {
+        builder.RegisterType<AgentFrameworkWeeklySummaryAgent>()
+            .As<IWeeklySummaryAgent>()
             .SingleInstance();
     }
 }

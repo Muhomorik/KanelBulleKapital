@@ -16,6 +16,9 @@ public interface IPromptProvider
     /// <summary>Returns the LLM-as-judge comparison prompt for multiple model reports.</summary>
     AgentPrompt GetComparisonPrompt();
 
+    /// <summary>Returns the Weekly Summary Agent prompt (Step 2).</summary>
+    AgentPrompt GetWeeklySummaryPrompt();
+
     /// <summary>
     /// Clears the in-memory prompt cache, causing prompts to be re-read
     /// from disk on next access. Call after editing prompt files.

@@ -16,6 +16,7 @@ public class PromptProvider : IPromptProvider
     private const string NewsBriefKey = "newsbrief";
     private const string ComparisonKey = "comparison";
     private const string EvaluationKey = "evaluation";
+    private const string WeeklySummaryKey = "weeklysummary";
 
     private readonly IPromptFileService _promptFileService;
     private readonly ConcurrentDictionary<string, AgentPrompt> _cache = new();
@@ -33,6 +34,9 @@ public class PromptProvider : IPromptProvider
 
     /// <inheritdoc />
     public AgentPrompt GetEvaluationPrompt() => GetOrLoadPrompt(EvaluationKey);
+
+    /// <inheritdoc />
+    public AgentPrompt GetWeeklySummaryPrompt() => GetOrLoadPrompt(WeeklySummaryKey);
 
     /// <inheritdoc />
     public void InvalidateCache()

@@ -34,5 +34,9 @@
                  IsSelected="{Binding BatchVm.IsAutoSchedule, Mode=OneTime}">
             <views:BatchView DataContext="{Binding BatchVm}" />
         </TabItem>
+        <TabItem Header="&#x1F4CA;  Weekly" Padding="16,8"
+                 IsSelected="{Binding WeeklySummaryVm.IsActive, Mode=TwoWay}">
+            <views:WeeklySummaryView DataContext="{Binding WeeklySummaryVm}" />
+        </TabItem>
     </mah:MetroTabControl>
 </mah:MetroWindow>

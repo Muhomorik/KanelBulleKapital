@@ -3,6 +3,7 @@ using Autofac;
 using CommandLine;
 using FikaForecast.Infrastructure.Persistence;
 using FikaForecast.Wpf.Modules;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using NLog;
 
@@ -122,14 +123,14 @@ public partial class App : System.Windows.Application
     }
 
     /// <summary>
-    /// Ensures the SQLite database and tables exist.
+    /// Applies EF Core migrations to create or update the SQLite database schema.
     /// </summary>
     private async Task InitializeDatabaseAsync()
     {
         try
         {
             var db = _appScope!.Resolve<FikaDbContext>();
-            await db.Database.EnsureCreatedAsync();
+            await db.Database.MigrateAsync();
             Logger.Info("Database initialized successfully");
         }
         catch (Exception ex)

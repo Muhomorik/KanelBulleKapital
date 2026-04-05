@@ -11,6 +11,8 @@ public class FikaDbContext : DbContext
     public DbSet<NewsBriefRun> NewsBriefRuns => Set<NewsBriefRun>();
     public DbSet<NewsItem> NewsItems => Set<NewsItem>();
     public DbSet<CategoryAssessment> CategoryAssessments => Set<CategoryAssessment>();
+    public DbSet<WeeklySummaryRun> WeeklySummaryRuns => Set<WeeklySummaryRun>();
+    public DbSet<WeeklySummaryTheme> WeeklySummaryThemes => Set<WeeklySummaryTheme>();
 
     public FikaDbContext(DbContextOptions<FikaDbContext> options) : base(options) { }
 
@@ -46,6 +48,30 @@ public class FikaDbContext : DbContext
         modelBuilder.Entity<CategoryAssessment>(entity =>
         {
             entity.HasKey(e => e.AssessmentId);
+            entity.Property(e => e.Sentiment).HasConversion<string>();
+        });
+
+        // Step 2: Weekly Summary
+        modelBuilder.Entity<WeeklySummaryRun>(entity =>
+        {
+            entity.HasKey(e => e.RunId);
+
+            entity.Property(e => e.Status).HasConversion<string>();
+            entity.Property(e => e.NetMood).HasConversion<string>();
+            entity.Property(e => e.Duration).HasConversion(
+                v => v.TotalMilliseconds,
+                v => TimeSpan.FromMilliseconds(v));
+
+            entity.HasMany(e => e.Themes)
+                .WithOne()
+                .HasForeignKey(e => e.RunId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<WeeklySummaryTheme>(entity =>
+        {
+            entity.HasKey(e => e.ThemeId);
+            entity.Property(e => e.Confidence).HasConversion<string>();
             entity.Property(e => e.Sentiment).HasConversion<string>();
         });
     }
