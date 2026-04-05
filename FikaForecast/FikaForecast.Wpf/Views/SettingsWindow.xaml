@@ -8,7 +8,7 @@
         xmlns:viewModels="clr-namespace:FikaForecast.Wpf.ViewModels"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance viewModels:SettingsViewModel, IsDesignTimeCreatable=True}"
-        Title="Settings" Height="480" Width="640"
+        Title="Settings" Height="600" Width="900"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         ShowInTaskbar="False"

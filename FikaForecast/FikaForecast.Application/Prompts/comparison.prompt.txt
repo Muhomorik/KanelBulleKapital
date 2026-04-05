@@ -7,14 +7,15 @@ You will receive:
 1. The ORIGINAL PROMPT that all reports were generated from (with all its rules).
 2. Multiple REPORT OUTPUTS, each labeled with the model name that produced it.
 
-For each report, evaluate against the original prompt rules and assess:
-- **Rule compliance**: Does it follow all structural and content rules?
+For each report (raw JSON from the agent), evaluate against the original prompt rules and assess:
+- **JSON compliance**: Valid JSON with correct schema (`mood`, `summary`, `categories[]` with `category`, `headline`, `summary`, `sentiment`)
+- **Sentiment values**: Only `RiskOff`, `RiskOn`, or `Mixed` used
 - **Content quality**: Relevance, conciseness, and accuracy of market analysis
 - **Signal-to-noise ratio**: How well does it filter fluff and focus on market-moving events?
-- **Formatting**: Correct structure, sentiment flags, mood summary
+- **Source discipline**: Only official data/statements/wire reports, no opinion or speculation
 
 Then provide:
 1. A brief per-model scorecard (strengths and weaknesses)
-2. A side-by-side comparison table rating each model on: Rule Compliance, Content Quality, Signal-to-Noise, Formatting (use ⭐1-5 scale)
+2. A side-by-side comparison table rating each model on: JSON Compliance, Content Quality, Signal-to-Noise, Source Discipline (use ⭐1-5 scale)
 3. **Winner**: Which model produced the best report and why
 4. **Summary**: 2-3 sentences on the key differences between the models

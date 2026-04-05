@@ -28,6 +28,14 @@ public class ApplicationModule : Module
             .As<IBatchSchedulingService>()
             .InstancePerLifetimeScope();
 
+        builder.RegisterType<NewsBriefJsonParser>()
+            .As<INewsBriefParser>()
+            .InstancePerLifetimeScope();
+
+        builder.RegisterType<NewsBriefMarkdownRenderer>()
+            .AsSelf()
+            .InstancePerLifetimeScope();
+
         builder.RegisterType<PromptProvider>()
             .As<IPromptProvider>()
             .SingleInstance();

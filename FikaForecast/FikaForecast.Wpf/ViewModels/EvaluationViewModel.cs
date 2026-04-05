@@ -163,7 +163,7 @@ public class EvaluationViewModel : ViewModelBase
                 var result = await _evaluationAgent.EvaluateAsync(
                     model,
                     _promptProvider.GetEvaluationPrompt(),
-                    checkedItems[0].Run.RawMarkdownOutput,
+                    checkedItems[0].Run.RawAgentOutput,
                     _promptProvider.GetNewsBriefPrompt());
 
                 HandleResult(result);
@@ -174,7 +174,7 @@ public class EvaluationViewModel : ViewModelBase
                 SetStatus($"Comparing {checkedItems.Count} reports ({modelNames}) with {model.DisplayName}...");
 
                 var reports = checkedItems
-                    .Select(r => (r.Run.DeploymentName, r.Run.RawMarkdownOutput))
+                    .Select(r => (r.Run.DeploymentName, r.Run.RawAgentOutput))
                     .ToList();
 
                 var result = await _evaluationAgent.CompareAsync(
@@ -204,7 +204,7 @@ public class EvaluationViewModel : ViewModelBase
         if (result.IsSuccess)
         {
             var agentResult = result.Value;
-            EvaluationResult = agentResult.RawMarkdownOutput;
+            EvaluationResult = agentResult.RawOutput;
             var totalTokens = agentResult.InputTokens + agentResult.OutputTokens;
             SetStatus($"Evaluation complete — {totalTokens} tokens, {agentResult.Duration.TotalSeconds:F1}s");
         }

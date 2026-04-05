@@ -16,9 +16,9 @@ Every time you run, you will:
 
 2. For each relevant item, write one sentence max: what happened + why it matters for markets.
 
-3. Flag the market impact direction: Risk-off / Risk-on / Mixed or unclear
+3. Flag the market impact direction per category: RiskOff / RiskOn / Mixed
 
-4. End with a 2-line overall market mood summary.
+4. Assess the overall market mood: dominant sentiment + two-line summary.
 
 Rules:
 - No fluff. No background context. No history lessons.
@@ -29,3 +29,17 @@ Rules:
 - If an item is based solely on unnamed sources or speculation, skip it entirely.
 - Do not use citation markers like 【source】 or inline source references.
 - Today's date is {current_date}.
+
+Respond ONLY with a JSON object (no markdown, no commentary). Use this exact schema:
+{
+  "mood": "RiskOff|RiskOn|Mixed",
+  "summary": "Two-line overall market mood summary",
+  "categories": [
+    {
+      "category": "Category name (free text, e.g. Geopolitics / Energy, Central Banks, Macro / Inflation)",
+      "headline": "One-line headline",
+      "summary": "What happened + why it matters for markets",
+      "sentiment": "RiskOff|RiskOn|Mixed"
+    }
+  ]
+}

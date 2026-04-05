@@ -4,39 +4,46 @@ using FikaForecast.Domain.Enums;
 namespace FikaForecast.Domain.Entities;
 
 /// <summary>
-/// A single market-moving news event extracted from a brief.
+/// Overall mood assessment for a single news brief run.
+/// Contains the dominant market sentiment and a collection of per-category assessments.
 /// </summary>
-[DebuggerDisplay("{Category}: {Headline} ({Sentiment})")]
+[DebuggerDisplay("{Mood}: {Summary}")]
 public class NewsItem
 {
+    private readonly List<CategoryAssessment> _assessments = [];
+
     public Guid ItemId { get; private set; }
-    public NewsCategory Category { get; private set; }
-    public string Headline { get; private set; }
+    public MarketSentiment Mood { get; private set; }
     public string Summary { get; private set; }
-    public MarketSentiment Sentiment { get; private set; }
 
     /// <summary>FK to the parent <see cref="NewsBriefRun"/>.</summary>
     public Guid RunId { get; private set; }
 
+    /// <summary>Per-category news assessments parsed from the agent's output.</summary>
+    public IReadOnlyList<CategoryAssessment> Assessments => _assessments.AsReadOnly();
+
     private NewsItem() // EF Core
     {
-        Headline = null!;
         Summary = null!;
     }
 
     /// <summary>
-    /// Creates a new news item parsed from agent output.
+    /// Creates a new news item with overall mood and summary.
     /// </summary>
-    /// <param name="category">Topic classification.</param>
-    /// <param name="headline">One-line bold headline.</param>
-    /// <param name="summary">One-sentence market impact summary.</param>
-    /// <param name="sentiment">Directional impact flag.</param>
-    public NewsItem(NewsCategory category, string headline, string summary, MarketSentiment sentiment)
+    /// <param name="mood">Overall dominant market sentiment.</param>
+    /// <param name="summary">Overall mood summary text.</param>
+    public NewsItem(MarketSentiment mood, string summary)
     {
         ItemId = Guid.NewGuid();
-        Category = category;
-        Headline = headline;
+        Mood = mood;
         Summary = summary;
-        Sentiment = sentiment;
+    }
+
+    /// <summary>
+    /// Adds a per-category assessment to this item.
+    /// </summary>
+    public void AddAssessment(CategoryAssessment assessment)
+    {
+        _assessments.Add(assessment);
     }
 }

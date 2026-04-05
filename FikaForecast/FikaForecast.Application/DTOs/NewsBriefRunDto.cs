@@ -19,24 +19,25 @@ public sealed record NewsBriefRunDto(
     int TotalTokens,
     RunStatus Status,
     string RawMarkdownOutput,
-    MarketMoodDto? Mood,
-    IReadOnlyList<NewsItemDto> Items);
+    NewsItemDto? Item);
 
 /// <summary>
 /// Projection of <see cref="Domain.Entities.NewsItem"/> for the presentation layer.
 /// </summary>
-[DebuggerDisplay("{Category}: {Headline}")]
+[DebuggerDisplay("{Mood}: {Summary}")]
 public sealed record NewsItemDto(
     Guid ItemId,
-    NewsCategory Category,
+    MarketSentiment Mood,
+    string Summary,
+    IReadOnlyList<CategoryAssessmentDto> Assessments);
+
+/// <summary>
+/// Projection of <see cref="Domain.Entities.CategoryAssessment"/> for the presentation layer.
+/// </summary>
+[DebuggerDisplay("{Category}: {Headline}")]
+public sealed record CategoryAssessmentDto(
+    Guid AssessmentId,
+    string Category,
     string Headline,
     string Summary,
     MarketSentiment Sentiment);
-
-/// <summary>
-/// Projection of <see cref="Domain.ValueObjects.MarketMood"/> for the presentation layer.
-/// </summary>
-[DebuggerDisplay("{DominantSentiment}")]
-public sealed record MarketMoodDto(
-    MarketSentiment DominantSentiment,
-    string MoodSummary);

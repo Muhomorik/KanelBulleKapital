@@ -93,7 +93,7 @@ public class AgentFrameworkEvaluationAgent : IEvaluationAgent
                 outputTokens);
 
             return Result.Ok(new AgentResult(
-                RawMarkdownOutput: output,
+                RawOutput: output,
                 InputTokens: inputTokens,
                 OutputTokens: outputTokens,
                 Duration: stopwatch.Elapsed));
@@ -195,7 +195,7 @@ public class AgentFrameworkEvaluationAgent : IEvaluationAgent
                 outputTokens);
 
             return Result.Ok(new AgentResult(
-                RawMarkdownOutput: output,
+                RawOutput: output,
                 InputTokens: inputTokens,
                 OutputTokens: outputTokens,
                 Duration: stopwatch.Elapsed));

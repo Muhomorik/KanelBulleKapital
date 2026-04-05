@@ -10,6 +10,7 @@ public class FikaDbContext : DbContext
 {
     public DbSet<NewsBriefRun> NewsBriefRuns => Set<NewsBriefRun>();
     public DbSet<NewsItem> NewsItems => Set<NewsItem>();
+    public DbSet<CategoryAssessment> CategoryAssessments => Set<CategoryAssessment>();
 
     public FikaDbContext(DbContextOptions<FikaDbContext> options) : base(options) { }
 
@@ -25,21 +26,26 @@ public class FikaDbContext : DbContext
                 v => v.TotalMilliseconds,
                 v => TimeSpan.FromMilliseconds(v));
 
-            entity.OwnsOne(e => e.Mood, mood =>
-            {
-                mood.Property(m => m.DominantSentiment).HasConversion<string>();
-            });
-
-            entity.HasMany(e => e.Items)
+            entity.HasOne(e => e.Item)
                 .WithOne()
-                .HasForeignKey(e => e.RunId)
+                .HasForeignKey<NewsItem>(e => e.RunId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<NewsItem>(entity =>
         {
             entity.HasKey(e => e.ItemId);
-            entity.Property(e => e.Category).HasConversion<string>();
+            entity.Property(e => e.Mood).HasConversion<string>();
+
+            entity.HasMany(e => e.Assessments)
+                .WithOne()
+                .HasForeignKey(e => e.ItemId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<CategoryAssessment>(entity =>
+        {
+            entity.HasKey(e => e.AssessmentId);
             entity.Property(e => e.Sentiment).HasConversion<string>();
         });
     }

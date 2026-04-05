@@ -7,7 +7,7 @@ namespace FikaForecast.Application.DTOs;
 /// </summary>
 [DebuggerDisplay("In: {InputTokens} Out: {OutputTokens} ({Duration.TotalSeconds:F1}s)")]
 public sealed record AgentResult(
-    string RawMarkdownOutput,
+    string RawOutput,
     int InputTokens,
     int OutputTokens,
     TimeSpan Duration);

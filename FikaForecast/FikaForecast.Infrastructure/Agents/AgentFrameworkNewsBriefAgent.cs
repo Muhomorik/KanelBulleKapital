@@ -20,6 +20,32 @@ namespace FikaForecast.Infrastructure.Agents;
 /// </summary>
 public class AgentFrameworkNewsBriefAgent : INewsBriefAgent
 {
+    private const string NewsBriefJsonSchema = """
+        {
+            "type": "object",
+            "properties": {
+                "mood": { "type": "string" },
+                "summary": { "type": "string" },
+                "categories": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "category": { "type": "string" },
+                            "headline": { "type": "string" },
+                            "summary": { "type": "string" },
+                            "sentiment": { "type": "string" }
+                        },
+                        "required": ["category", "headline", "summary", "sentiment"],
+                        "additionalProperties": false
+                    }
+                }
+            },
+            "required": ["mood", "summary", "categories"],
+            "additionalProperties": false
+        }
+        """;
+
     private readonly ILogger _logger;
     private readonly AIProjectClient _projectClient;
     private readonly string? _bingConnectionName;
@@ -52,10 +78,18 @@ public class AgentFrameworkNewsBriefAgent : INewsBriefAgent
             "{current_date}",
             DateTime.UtcNow.ToString("yyyy-MM-dd"));
 
-        // Configure Bing Grounding tool
+        // Configure agent with JSON structured output
         var agentDefinition = new PromptAgentDefinition(model: model.DeploymentName)
         {
-            Instructions = systemPrompt
+            Instructions = systemPrompt,
+            TextOptions = new ResponseTextOptions
+            {
+                TextFormat = ResponseTextFormat.CreateJsonSchemaFormat(
+                    jsonSchemaFormatName: "NewsBriefOutput",
+                    jsonSchema: BinaryData.FromString(NewsBriefJsonSchema),
+                    jsonSchemaFormatDescription: "Structured news brief with mood and per-category assessments",
+                    jsonSchemaIsStrict: true)
+            }
         };
 
         if (!string.IsNullOrEmpty(_bingConnectionName))
@@ -116,7 +150,7 @@ public class AgentFrameworkNewsBriefAgent : INewsBriefAgent
                 outputTokens);
 
             return Result.Ok(new AgentResult(
-                RawMarkdownOutput: output,
+                RawOutput: output,
                 InputTokens: inputTokens,
                 OutputTokens: outputTokens,
                 Duration: stopwatch.Elapsed));

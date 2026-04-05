@@ -11,8 +11,6 @@ namespace FikaForecast.Domain.Entities;
 [DebuggerDisplay("{DeploymentName} — {Status} ({TotalTokens} tokens, {Duration.TotalSeconds:F1}s)")]
 public class NewsBriefRun
 {
-    private readonly List<NewsItem> _items = [];
-
     public Guid RunId { get; private set; }
     public DateTimeOffset Timestamp { get; private set; }
     public string ModelId { get; private set; }
@@ -23,17 +21,22 @@ public class NewsBriefRun
     public int OutputTokens { get; private set; }
     public int TotalTokens { get; private set; }
     public RunStatus Status { get; private set; }
-    public string RawMarkdownOutput { get; private set; }
-    public MarketMood? Mood { get; private set; }
 
-    /// <summary>Parsed news items from the agent's markdown output.</summary>
-    public IReadOnlyList<NewsItem> Items => _items.AsReadOnly();
+    /// <summary>Raw JSON response from the agent. Used for evaluation and audit.</summary>
+    public string RawAgentOutput { get; private set; }
+
+    /// <summary>Rendered display markdown with emojis, generated from structured data. Used by WebView2 UI.</summary>
+    public string RawMarkdownOutput { get; private set; }
+
+    /// <summary>Parsed brief with overall mood and per-category assessments.</summary>
+    public NewsItem? Item { get; private set; }
 
     private NewsBriefRun() // EF Core
     {
         ModelId = null!;
         DeploymentName = null!;
         PromptName = null!;
+        RawAgentOutput = null!;
         RawMarkdownOutput = null!;
     }
 
@@ -51,25 +54,34 @@ public class NewsBriefRun
             DeploymentName = model.DeploymentName,
             PromptName = prompt.Name,
             Status = RunStatus.Partial,
+            RawAgentOutput = string.Empty,
             RawMarkdownOutput = string.Empty
         };
     }
 
     /// <summary>
-    /// Marks the run as successful and records output and token usage.
+    /// Marks the run as successful and records the raw agent output and token usage.
     /// </summary>
     public void Complete(
-        string rawMarkdownOutput,
+        string rawAgentOutput,
         TimeSpan duration,
         int inputTokens,
         int outputTokens)
     {
-        RawMarkdownOutput = rawMarkdownOutput;
+        RawAgentOutput = rawAgentOutput;
         Duration = duration;
         InputTokens = inputTokens;
         OutputTokens = outputTokens;
         TotalTokens = inputTokens + outputTokens;
         Status = RunStatus.Success;
+    }
+
+    /// <summary>
+    /// Sets the rendered display markdown (generated from structured data).
+    /// </summary>
+    public void SetDisplayMarkdown(string displayMarkdown)
+    {
+        RawMarkdownOutput = displayMarkdown;
     }
 
     /// <summary>
@@ -82,18 +94,21 @@ public class NewsBriefRun
     }
 
     /// <summary>
-    /// Sets the overall market mood parsed from the brief's closing summary.
+    /// Downgrades the run status to <see cref="RunStatus.Partial"/> when
+    /// parsing succeeded partially but some content was skipped.
+    /// Only valid when the current status is <see cref="RunStatus.Success"/>.
     /// </summary>
-    public void SetMood(MarketMood mood)
+    public void MarkPartial()
     {
-        Mood = mood;
+        if (Status == RunStatus.Success)
+            Status = RunStatus.Partial;
     }
 
     /// <summary>
-    /// Adds a parsed news item to this run.
+    /// Sets the parsed news item with overall mood and per-category assessments.
     /// </summary>
-    public void AddItem(NewsItem item)
+    public void SetItem(NewsItem item)
     {
-        _items.Add(item);
+        Item = item;
     }
 }

@@ -25,14 +25,16 @@ public class NewsBriefRunRepository : INewsBriefRunRepository
     public async Task<NewsBriefRun?> GetByIdAsync(Guid runId, CancellationToken cancellationToken = default)
     {
         return await _db.NewsBriefRuns
-            .Include(r => r.Items)
+            .Include(r => r.Item)
+            .ThenInclude(i => i!.Assessments)
             .FirstOrDefaultAsync(r => r.RunId == runId, cancellationToken);
     }
 
     public async Task<IReadOnlyList<NewsBriefRun>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         var runs = await _db.NewsBriefRuns
-            .Include(r => r.Items)
+            .Include(r => r.Item)
+            .ThenInclude(i => i!.Assessments)
             .ToListAsync(cancellationToken);
 
         return runs.OrderByDescending(r => r.Timestamp).ToList();
@@ -41,7 +43,8 @@ public class NewsBriefRunRepository : INewsBriefRunRepository
     public async Task<IReadOnlyList<NewsBriefRun>> GetByModelAsync(string modelId, CancellationToken cancellationToken = default)
     {
         var runs = await _db.NewsBriefRuns
-            .Include(r => r.Items)
+            .Include(r => r.Item)
+            .ThenInclude(i => i!.Assessments)
             .Where(r => r.ModelId == modelId)
             .ToListAsync(cancellationToken);
 

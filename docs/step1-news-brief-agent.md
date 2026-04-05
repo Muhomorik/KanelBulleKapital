@@ -248,6 +248,7 @@ erDiagram
         int OutputTokens
         int TotalTokens
         RunStatus Status
+        string RawAgentOutput "raw JSON from agent"
         string RawMarkdownOutput "rendered display markdown"
     }
 
@@ -292,7 +293,7 @@ classDiagram
 
 | Purpose | Table | Key Columns | Notes |
 | --- | --- | --- | --- |
-| Save run metadata | `NewsBriefRuns` | RunId, Timestamp, ModelId, DeploymentName, PromptName, Duration, InputTokens, OutputTokens, TotalTokens, Status, **RawMarkdownOutput** | One row per agent run. `RawMarkdownOutput` contains rendered display markdown (generated from structured data). |
+| Save run metadata | `NewsBriefRuns` | RunId, Timestamp, ModelId, DeploymentName, PromptName, Duration, InputTokens, OutputTokens, TotalTokens, Status, **RawAgentOutput**, **RawMarkdownOutput** | One row per agent run. `RawAgentOutput` = raw JSON from agent (for evaluation + audit). `RawMarkdownOutput` = rendered display markdown (for WebView2 UI). |
 | Save overall mood | `NewsItems` | ItemId, RunId (FK), Mood (MarketSentiment), Summary | One row per run. Overall market mood and summary. |
 | Save per-category data (for Step 2) | `CategoryAssessments` | AssessmentId, ItemId (FK), Category (string), Headline, Summary, Sentiment (MarketSentiment) | One row per category item. Category is free text from the LLM. Step 2 reads these to build daily briefs. |
 
@@ -301,11 +302,18 @@ classDiagram
 ```mermaid
 flowchart LR
     A[Agent + Bing Grounding] -->|JSON| B[JsonSerializer.Deserialize]
+    A -->|JSON| R[RawAgentOutput]
+    R --> G[Evaluation Agent]
     B -->|structured data| C[Save to DB]
     B -->|structured data| D[Render display markdown]
     D -->|emoji markdown| E[RawMarkdownOutput]
     E --> F[WebView2 UI]
 ```
+
+**Two outputs stored per run:**
+
+- `RawAgentOutput` — the original JSON from the agent, preserved for evaluation and audit
+- `RawMarkdownOutput` — rendered display markdown with emojis, generated from the structured data by the application
 
 **Parsing:** JSON deserialization is deterministic (not an LLM call). The application renders display markdown from the structured data — consistent formatting every run.
 
@@ -315,7 +323,7 @@ The Foundry Agent Service SDK enforces JSON output at the API level via `PromptA
 
 **SDK:** `Azure.AI.Projects.Agents` (`PromptAgentDefinition` class)
 
-**Property chain:** `PromptAgentDefinition.TextOptions` → `ResponseTextOptions.Format` → `json_schema`
+**Property chain:** `PromptAgentDefinition.TextOptions` → `ResponseTextOptions.TextFormat` → `json_schema`
 
 ```csharp
 var agentDefinition = new PromptAgentDefinition(model: model.DeploymentName)
@@ -323,10 +331,11 @@ var agentDefinition = new PromptAgentDefinition(model: model.DeploymentName)
     Instructions = systemPrompt,
     TextOptions = new ResponseTextOptions
     {
-        Format = ResponseTextFormat.CreateJsonSchemaFormat(
-            name: "NewsBriefOutput",
+        TextFormat = ResponseTextFormat.CreateJsonSchemaFormat(
+            jsonSchemaFormatName: "NewsBriefOutput",
             jsonSchema: BinaryData.FromString(jsonSchemaString),
-            strict: true)
+            jsonSchemaFormatDescription: "Structured news brief with mood and per-category assessments",
+            jsonSchemaIsStrict: true)
     }
 };
 ```

@@ -8,7 +8,7 @@
         xmlns:viewModels="clr-namespace:FikaForecast.Wpf.ViewModels"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance viewModels:MainWindowViewModel, IsDesignTimeCreatable=True}"
-        Title="FikaForecast" Height="768" Width="1280"
+        Title="FikaForecast" Height="700" Width="1200"
         WindowStartupLocation="CenterScreen"
         Icon="fikaforecast.ico">
 
