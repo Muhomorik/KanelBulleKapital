@@ -275,11 +275,16 @@
                            Style="{StaticResource ff.SubheaderStyle}"
                            VerticalAlignment="Center">Weekly Summary</TextBlock>
                 <Button DockPanel.Dock="Right"
-                        Content="&#xE768;  Run now"
-                        FontFamily="Segoe Fluent Icons"
+                        Style="{StaticResource ff.ButtonAccentStyle}"
                         Command="{Binding DataContext.RunWeeklySummaryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                         HorizontalAlignment="Right"
-                        Padding="12,4" Margin="0"/>
+                        Padding="12,4" Margin="0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE768;" FontFamily="Segoe Fluent Icons" FontSize="12"
+                                   VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock Text="Run now" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
             </DockPanel>
 
             <!-- Single slot-style entry -->

@@ -30,13 +30,13 @@
         <TabItem Header="&#x1F50D;  Evaluation" Padding="16,8">
             <views:EvaluationView DataContext="{Binding EvaluationVm}" />
         </TabItem>
-        <TabItem Header="&#x1F4C5;  Batch" Padding="16,8"
-                 IsSelected="{Binding BatchVm.IsAutoSchedule, Mode=OneTime}">
-            <views:BatchView DataContext="{Binding BatchVm}" />
-        </TabItem>
         <TabItem Header="&#x1F4CA;  Weekly" Padding="16,8"
                  IsSelected="{Binding WeeklySummaryVm.IsActive, Mode=TwoWay}">
             <views:WeeklySummaryView DataContext="{Binding WeeklySummaryVm}" />
+        </TabItem>
+        <TabItem Header="&#x1F4C5;  Batch" Padding="16,8" Margin="16,0,0,0"
+                 IsSelected="{Binding BatchVm.IsAutoSchedule, Mode=OneTime}">
+            <views:BatchView DataContext="{Binding BatchVm}" />
         </TabItem>
     </mah:MetroTabControl>
 </mah:MetroWindow>
