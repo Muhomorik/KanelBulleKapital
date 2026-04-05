@@ -58,35 +58,30 @@ Enable/disable models, set the default, and edit all three prompts (news brief, 
 
 ## Analysis Pipeline
 
-Step 1 is implemented. Steps 2--6 are planned.
+Step 1 is implemented. Steps 2--4 are planned.
 
 ```mermaid
 flowchart LR
-    S1[Step 1\nNews Brief] --> S2[Step 2\nMacro Regime]
-    S2 --> S3[Step 3\nCategory Impact]
-    S1 --> S3
-    S3 --> S4[Step 4\nSubstitution Chain]
-    S4 --> S5[Step 5\nPortfolio Implications]
-    S5 --> S6[Step 6\nOpportunity Scan]
-    S6 --> OUT[Final\nMarkdown Report]
+    S1[Step 1\nNews Brief] -->|parse| DB1[(SQLite)]
+    DB1 -->|5-7 days| S2[Step 2\nWeekly Summary]
+    S2 --> S3[Step 3\nSubstitution Chain]
+    S3 --> S4[Step 4\nRotation Targets]
 
     style S1 fill:#4a9eff,color:#fff
     style S2 fill:#555,color:#999
     style S3 fill:#555,color:#999
     style S4 fill:#555,color:#999
-    style S5 fill:#555,color:#999
-    style S6 fill:#555,color:#999
-    style OUT fill:#555,color:#999
+    style DB1 fill:#e8a838,color:#fff
 ```
+
+Step 1 uses **Agent Service** (needs Bing Grounding for web search). Steps 2--4 use **chat completions** (prompt-in/JSON-out, no tools needed).
 
 | Step | Agent | What it does | Status |
 | --- | --- | --- | --- |
 | 1 | News Brief | Scans 14 days of news via Bing Grounding, produces categorized market brief | Done |
-| 2 | Macro Regime | Classifies current regime (stagflation, risk-off, reflationary, etc.) | Planned |
-| 3 | Category Impact | Maps direction + causal chains for every fund category | Planned |
-| 4 | Substitution Chain | Follows disruption chains to find rotation beneficiaries | Planned |
-| 5 | Portfolio Implications | Evaluates current positions against new signals | Planned |
-| 6 | Opportunity Scan | Flags up to 3 uninvested categories worth watching | Planned |
+| 2 | Weekly Summary | Aggregates 5--7 daily briefs (default model) into confidence-weighted weekly summary | Planned |
+| 3 | Substitution Chain | Follows disruption chains to find rotation beneficiaries | Planned |
+| 4 | Rotation Targets | Flags up to 3 strongest capital rotation destinations worth watching | Planned |
 
 ## Models
 
@@ -132,8 +127,21 @@ Claude models have [built-in web search](https://www.anthropic.com/news/web-sear
 ## Roadmap
 
 - [ ] Add gpt-5.4, gpt-5.4-nano, DeepSeek-V3.1, grok-3 model configs
-- [ ] Implement pipeline steps 2--6
-- [ ] Parse agent markdown output into structured domain entities (NewsItem, MarketMood)
+- [ ] Implement pipeline steps 2--4
+- [ ] Portfolio integration layer — match rotation signals to holdings and buyable funds
+
+### Portfolio Integration (future)
+
+The pipeline (Steps 1--4) produces market intelligence: what's moving, where capital is rotating, and which targets are strongest. A future portfolio layer connects this to actionable fund decisions.
+
+| Component | Description |
+| --- | --- |
+| Fund category taxonomy | Fixed list of fund categories (e.g. MENA equity, gold miners, US growth, defence). Defined in config, not LLM-generated. |
+| Holdings table | User-managed list of currently held funds, each tagged with categories from the taxonomy. |
+| Fund matching via RAG | Semantic search over fund descriptions and names to find buyable funds matching rotation targets. Leverages the existing [shared backend RAG pipeline](https://github.com/Muhomorik/SemanticKernel-FundDocsQnA-dotnet-nextjs). |
+| Trend analysis | All pipeline runs are timestamped and persisted. Query across multiple weekly runs to detect persistent rotation trends (e.g. "capital has flowed toward defence for 3 consecutive weeks"). |
+
+The pipeline's DB-as-interface pattern means the portfolio layer can join `RotationChains` and `RotationTargets` with holdings data without changing Steps 1--4.
 
 ## Documentation
 

@@ -6,6 +6,25 @@ Scans the last 14 days of global news and extracts only what matters for financi
 
 ---
 
+## Trigger
+
+**Schedule:** Daily (once per day, e.g., 07:00 UTC)
+
+No DB dependency — this step kicks off the pipeline.
+
+---
+
+## Input
+
+| Source | Table | What |
+| --- | --- | --- |
+| Web | *(none — Bing Grounding)* | Searches the last 14 days of global news autonomously |
+| Config | *(app config)* | `{current_date}` injected into the prompt |
+
+No database input. The agent's only input is the current date and live web search results via Bing Grounding.
+
+---
+
 ## Agent Prompt
 
 ```text
@@ -121,17 +140,33 @@ and inflation dominate.
 
 ---
 
-## Output Schema
+## Output
+
+### LLM Response Schema
 
 The agent returns structured markdown with these sections:
 
 | Section | Required | Description |
-| --------- | ---------- | ------------- |
+| --- | --- | --- |
 | Title with date | Yes | `MARKET-MOVING NEWS BRIEF — {date}` |
 | Category blocks | Yes | One or more of: Geopolitics/Energy, Central Banks, Macro/Inflation, Equities, Tech/AI, Corporate/Other |
 | Impact flag per item | Yes | 🔴 Risk-off / 🟢 Risk-on / 🟡 Mixed |
 | Overall mood summary | Yes | 2-line closing summary with dominant sentiment flag |
 
+### Persistence
+
+| Purpose | Table | Key Columns | Notes |
+| --- | --- | --- | --- |
+| Save raw LLM response | `NewsBriefRuns` | RunId, Timestamp, ModelId, DeploymentName, Duration, InputTokens, OutputTokens, TotalTokens, Status, **RawMarkdownOutput** | One row per agent run. Raw markdown stored as-is for audit/replay. |
+| Save structured data (for Step 2) | `NewsItems` | ItemId, RunId (FK), Category (NewsCategory), Headline, Summary, Sentiment (MarketSentiment) | One row per category block. Parsed from the raw markdown output. |
+| Save overall mood | `NewsBriefRuns.Mood` | DominantSentiment, MoodSummary | MarketMood value object, owned by NewsBriefRun. Parsed from the "OVERALL MOOD" line. |
+
+**Parsing:** Raw markdown → structured `NewsItems` rows requires a deterministic parsing step (not an LLM call). This runs after the agent completes and before Step 2 can query the data.
+
+For the full data model (Step 1 + Step 2 tables), see [Step 2 — Data Model](step2-weekly-summary-agent.md#data-model).
+
+---
+
 ## Downstream Consumers
 
-- **Step 2** — Sector Impact Mapper (takes this brief and maps it to sector-level signals)
+- **Step 2** — [Weekly Summary Agent](step2-weekly-summary-agent.md) (aggregates daily briefs into confidence-weighted weekly summary)

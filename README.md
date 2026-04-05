@@ -25,6 +25,7 @@ Continuous hypothesis evaluation using event-driven multi-agent architecture on 
   - [ ] Hypothesis as a named belief: claim, catalyst, expected direction, invalidation condition
   - [ ] Peer group comparison — category-wide flush vs single-instrument failure
   - [ ] Hypothesis persists across sessions with explicit status tracking
+  - [ ] Portfolio implications — evaluate current positions against new signals (requires shared backend fund data)
 - [ ] **Step 2 — Event-driven trigger**
   - [ ] Fund data → Service Bus queue → EventGrid trigger → Foundry Agent workflow
   - [ ] Agent wakes on data arrival, not on schedule
