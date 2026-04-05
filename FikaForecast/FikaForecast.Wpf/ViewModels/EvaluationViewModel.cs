@@ -108,7 +108,7 @@ public class EvaluationViewModel : ViewModelBase
         try
         {
             var allRuns = await _repository.GetAllAsync();
-            var cutoff = DateTimeOffset.UtcNow.AddDays(-7);
+            var cutoff = DateTimeOffset.Now.AddDays(-7);
 
             Runs.Clear();
             foreach (var run in allRuns)

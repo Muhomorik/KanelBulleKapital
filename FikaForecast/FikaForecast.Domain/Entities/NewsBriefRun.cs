@@ -46,7 +46,7 @@ public class NewsBriefRun
         return new NewsBriefRun
         {
             RunId = Guid.NewGuid(),
-            Timestamp = DateTimeOffset.UtcNow,
+            Timestamp = DateTimeOffset.Now,
             ModelId = model.ModelId,
             DeploymentName = model.DeploymentName,
             PromptName = prompt.Name,
