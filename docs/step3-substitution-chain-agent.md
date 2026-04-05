@@ -10,20 +10,16 @@ Identifies what sectors, commodities, or themes benefit as capital rotates away 
 
 ```mermaid
 flowchart TD
-    S1[Step 1 — News Brief Agent\ndaily] -->|raw markdown| PARSE[Parse to structured data]
-    PARSE -->|NewsItem + CategoryAssessment| DB1[(SQLite)]
-    DB1 -->|query 7 days| S2[Step 2 — Weekly Summary Agent\nLLM call]
-    S2 -->|weekly summary| DB2[(SQLite)]
-    DB2 -->|read Step 2 output| S3[Step 3 — Substitution Chain Agent\nLLM call]
-    S3 -->|rotation chains| DB3[(SQLite)]
+    S2[Step 2 — Weekly Summary Agent\nweekly] -->|parse| DB2[(SQLite\nWeeklySummaryRuns + WeeklySummaryThemes)]
+    DB2 -->|read latest| S3[Step 3 — Substitution Chain Agent\nLLM call]
+    S3 -->|parse| DB3[(SQLite\nSubstitutionChainRuns + RotationChains)]
+    DB3 --> S4[Step 4 — Opportunity Scan Agent]
 
-    style S1 fill:#4a9eff,color:#fff
     style S2 fill:#4a9eff,color:#fff
     style S3 fill:#4a9eff,color:#fff
-    style DB1 fill:#e8a838,color:#fff
+    style S4 fill:#555,color:#ccc
     style DB2 fill:#e8a838,color:#fff
     style DB3 fill:#e8a838,color:#fff
-    style PARSE fill:#555,color:#ccc
 ```
 
 Every step follows the same pattern: **DB → text → LLM → response → DB.** No cross-LLM calls between steps. The database is the only interface.
@@ -32,9 +28,9 @@ Every step follows the same pattern: **DB → text → LLM → response → DB.*
 
 ## Trigger
 
-**Chained:** Runs immediately after Step 2 completes successfully.
+**Schedule:** Weekly (every Thursday 22:10 UTC). Runs automatically via the batch scheduler or can be triggered manually from the Batch tab or Weekly Summary tab at any time.
 
-**Precondition:** A `WeeklySummaryRuns` row with Status = Completed exists for the current week.
+**Precondition:** A `WeeklySummaryRuns` row with Status = Success exists for the current week.
 
 ---
 
@@ -42,10 +38,11 @@ Every step follows the same pattern: **DB → text → LLM → response → DB.*
 
 | Source | Table | What |
 | --- | --- | --- |
-| DB | `WeeklySummaryRuns` | Latest completed weekly summary (RawMarkdownOutput) |
-| DB | `WeeklySummaryThemes` | Structured themes with confidence levels (used to build the prompt text) |
+| DB | `WeeklySummaryRuns` | Latest completed weekly summary (NetMood, MoodSummary) |
+| DB | `WeeklySummaryThemes` | Structured themes with confidence levels (Category, Summary, Confidence, Sentiment) |
 
-The application queries the latest `WeeklySummaryRun` and formats its content as text for the LLM prompt. See [Example Input](#example-input) below.
+The application queries the latest `WeeklySummaryRun` with Status = Success, eager-loads `Themes` (WeeklySummaryThemes),
+groups by confidence level, and formats as text for the LLM prompt. See [Example Input](#example-input) below.
 
 ---
 
@@ -67,8 +64,8 @@ erDiagram
         string ModelId
         RunStatus Status
         string RawMarkdownOutput
-        MarketSentiment NetMood_DominantSentiment "MarketMood VO"
-        string NetMood_MoodSummary "MarketMood VO"
+        MarketSentiment NetMood
+        string MoodSummary
     }
 
     WeeklySummaryTheme {
@@ -90,7 +87,8 @@ erDiagram
         int InputTokens
         int OutputTokens
         int TotalTokens
-        string RawMarkdownOutput
+        string RawAgentOutput "raw JSON from agent"
+        string RawMarkdownOutput "rendered display markdown"
     }
 
     RotationChain {
@@ -140,6 +138,17 @@ Rules:
 - Do not search the web. Work only with the provided weekly summary.
 - Do not invent news events — only reference themes present in the input.
 - Today's date is {current_date}.
+
+Respond ONLY with a JSON object (no markdown, no commentary). Use this exact schema:
+{
+  "chains": [
+    {
+      "capital_fleeing": "What capital is fleeing from",
+      "flows_toward": "Where it flows to",
+      "mechanism": "Full causal chain — follow to the end, be specific"
+    }
+  ]
+}
 ```
 
 ---
@@ -191,28 +200,63 @@ Stagflation risk back on the table. Rate cut hopes evaporating. Energy and infla
 
 ---
 
-## Example Output
+## Example Output (JSON from LLM)
 
-**Rotation and substitution chains:**
+The agent returns JSON. The application deserializes it, saves structured data to the DB,
+and renders display markdown with emojis for the WebView2 UI.
 
-When capital flees energy-importing EM, US growth equities, and broad global equity in a stagflation regime, it follows a predictable rotation chain:
+```json
+{
+  "chains": [
+    {
+      "capital_fleeing": "US growth equities",
+      "flows_toward": "Real assets (gold, infrastructure)",
+      "mechanism": "Energy shock → inflation fear → real asset premium rises → gold as monetary hedge + CPI-linked infrastructure contracts reprice upward. Duration compression favors real yield proxies."
+    },
+    {
+      "capital_fleeing": "Energy-importing EM (Korea, Asia, Japan)",
+      "flows_toward": "Energy-exporting EM (MENA, GCC)",
+      "mechanism": "Hormuz disruption inverts terms of trade — oil exporters capture windfall, GCC sovereign wealth expands, MENA equities re-rated upward."
+    },
+    {
+      "capital_fleeing": "Long-duration bonds",
+      "flows_toward": "Short-duration / T-bills",
+      "mechanism": "Fed hold at 3.5-3.75% with hawkish signals → rate cut expectations evaporate → yield curve steepens at long end → capital moves to short-duration safety."
+    },
+    {
+      "capital_fleeing": "Consumer discretionary",
+      "flows_toward": "Energy, defence, commodities",
+      "mechanism": "Stagflation sector rotation — rising energy costs squeeze consumer spending, capital rotates to sectors that benefit from inflation pass-through."
+    }
+  ]
+}
+```
 
-**Energy supply shock → Oil/LNG exporters win → GCC sovereign wealth expands → MENA equities re-rated upward.**
+### Rendered Display (generated by application)
 
-**Inflation fear → Real asset premium rises → Gold as monetary hedge + inflation hedge.** At $96--$100 crude, the gold miners' cost base rises somewhat (energy-intensive extraction), but the gold spot price tailwind is so strong it overwhelms the cost effect.
+The application renders the structured data back into emoji markdown for the WebView2 UI:
 
-**Infrastructure as inflation pass-through:** When energy prices rise, pipeline operators, LNG terminal owners, and regulated utilities earn more — and CPI-linked contracts reprice upward. Listed infrastructure globally captures this.
+```text
+SUBSTITUTION CHAINS — Week of March 12--18, 2026
 
-**AI capex immune sub-sector:** The Nvidia/Amazon AI infrastructure announcements signal that hyperscaler capex is decoupling from the macro downturn. This is a narrow bright spot inside broad tech — not sufficient to rescue US Growth funds broadly, but relevant for funds with meaningful tech weights.
+---
 
-**The substitution chain in full:**
+🔴 US growth equities → 🟢 Real assets (gold, infrastructure)
+Energy shock → inflation fear → real asset premium rises → gold as monetary
+hedge + CPI-linked infrastructure contracts reprice upward.
 
-| Capital fleeing | Flows toward | Mechanism |
-| --- | --- | --- |
-| US growth equities | Real assets (gold, infra) | Duration compression, real yield proxy |
-| Energy-importing EM (Korea, Asia, Japan) | Energy-exporting EM (MENA, GCC) | Terms-of-trade inversion |
-| Long-duration bonds | Short-duration / T-bills | Rate hold → yield curve steepens at long end |
-| Consumer discretionary | Energy, defence, commodities | Stagflation sector rotation |
+🔴 Energy-importing EM (Korea, Asia, Japan) → 🟢 Energy-exporting EM (MENA, GCC)
+Hormuz disruption inverts terms of trade — oil exporters capture windfall,
+GCC sovereign wealth expands, MENA equities re-rated upward.
+
+🔴 Long-duration bonds → 🟢 Short-duration / T-bills
+Fed hold with hawkish signals → rate cut expectations evaporate → yield curve
+steepens at long end → capital moves to short-duration safety.
+
+🔴 Consumer discretionary → 🟢 Energy, defence, commodities
+Stagflation sector rotation — rising energy costs squeeze consumer spending,
+capital rotates to sectors that benefit from inflation pass-through.
+```
 
 ---
 
@@ -220,17 +264,59 @@ When capital flees energy-importing EM, US growth equities, and broad global equ
 
 ### LLM Response Schema
 
-| Section | Required | Description |
+The agent returns a **JSON object** with these fields:
+
+| Field | Required | Description |
 | --- | --- | --- |
-| Rotation chains | Yes | Named causal chains explaining how capital rotates (e.g. energy shock → exporters win → MENA re-rated) |
-| Substitution table | Yes | Table with columns: Capital fleeing / Flows toward / Mechanism |
+| `chains` | Yes | Array of substitution chain entries |
+| `chains[].capital_fleeing` | Yes | What capital is fleeing from |
+| `chains[].flows_toward` | Yes | Where capital flows to |
+| `chains[].mechanism` | Yes | Full causal chain — follow to the end, be specific |
+
+### Output JSON Schema
+
+```mermaid
+classDiagram
+    class SubstitutionChainOutput {
+        +List~SubstitutionChainOutputChain~ chains
+    }
+
+    class SubstitutionChainOutputChain {
+        +string capital_fleeing
+        +string flows_toward
+        +string mechanism
+    }
+
+    SubstitutionChainOutput *-- SubstitutionChainOutputChain
+```
+
+### Processing Pipeline
+
+```mermaid
+flowchart LR
+    A[Query DB\nWeeklySummaryRun + WeeklySummaryThemes] -->|text| B[LLM\nchat completions]
+    B -->|JSON| C[JsonSerializer.Deserialize]
+    B -->|JSON| R[RawAgentOutput]
+    C -->|structured data| D[Save to DB]
+    C -->|structured data| E[Render display markdown]
+    E -->|emoji markdown| F[RawMarkdownOutput]
+    F --> G[WebView2 UI]
+```
+
+**Two outputs stored per run:**
+
+- `RawAgentOutput` — the original JSON from the agent, preserved for audit
+- `RawMarkdownOutput` — rendered display markdown with emojis, generated from the structured data by the application
+
+**Parsing:** JSON deserialization is deterministic (not an LLM call).
+The application renders display markdown from the structured data — consistent formatting every run.
 
 ### Persistence
 
 | Purpose | Table | Key Columns | Notes |
 | --- | --- | --- | --- |
-| Save raw LLM response | `SubstitutionChainRuns` | RunId, WeeklySummaryRunId (FK), Timestamp, ModelId, Status, Duration, InputTokens, OutputTokens, TotalTokens, **RawMarkdownOutput** | One row per run. Raw markdown stored for audit/replay. |
-| Save structured data (for Step 4) | `RotationChains` | ChainId, RunId (FK), CapitalFleeing, FlowsToward, Mechanism | One row per substitution table entry. Parsed from the raw markdown output. |
+| Save run metadata | `SubstitutionChainRuns` | RunId, WeeklySummaryRunId (FK), Timestamp, ModelId, Status, Duration, InputTokens, OutputTokens, TotalTokens, **RawAgentOutput**, **RawMarkdownOutput** | One row per run. |
+| Save structured data (for Step 4) | `RotationChains` | ChainId, RunId (FK), CapitalFleeing, FlowsToward, Mechanism | One row per chain entry. Parsed from the raw JSON output. |
 
 This agent does **not** search the web. It reads Step 2's saved output from the database — no dependency on Step 1.
 
