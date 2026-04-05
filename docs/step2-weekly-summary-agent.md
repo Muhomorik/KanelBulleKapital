@@ -2,7 +2,8 @@
 
 **Role:** Weekly Market Summarizer
 
-Reads 7 days of structured `NewsItems` rows from the database, asks the LLM to consolidate them into a confidence-weighted weekly summary, and saves the result back to the DB. Run-to-run inconsistency becomes a confidence filter — persistent themes survive, noise gets dropped.
+Reads recent daily briefs from the database, asks the LLM to consolidate them into a confidence-weighted weekly summary, and saves the result back to the DB.
+Run-to-run inconsistency becomes a confidence filter — persistent themes survive, noise gets dropped.
 
 ---
 
@@ -28,9 +29,10 @@ Every step follows the same pattern: **DB → text → LLM → response → DB.*
 
 ## Trigger
 
-**Schedule:** Weekly (once per week, e.g., Sunday 20:00 UTC — after daily briefs have accumulated)
+**Schedule:** Weekly (once per week, e.g., Sunday 20:00 UTC — after daily briefs have accumulated). Can also be triggered manually from the app at any time.
 
-**Precondition:** At least 5 distinct calendar days with a completed `NewsBriefRun` from the default model exist for the current week. Step 1 runs multiple models in parallel for comparison — only the default model's runs feed the pipeline.
+Step 1 runs multiple models in parallel for comparison — only the **default model's** runs feed the pipeline.
+The confidence filter works with however many days are available; more days means stronger signal.
 
 ---
 
@@ -38,39 +40,50 @@ Every step follows the same pattern: **DB → text → LLM → response → DB.*
 
 | Source | Table | What |
 | --- | --- | --- |
-| DB | `NewsBriefRuns` | 5--7 daily runs from the default model for the current week (Timestamp, Mood) |
-| DB | `NewsItems` | All news items from those runs (Category, Headline, Summary, Sentiment) |
+| DB | `NewsBriefRuns` | Recent daily runs from the default model (filter by ModelId + Status = Success) |
+| DB | `NewsItems` | Overall mood and summary per run (Mood, Summary) |
+| DB | `CategoryAssessments` | Per-category news items from those runs (Category, Headline, Summary, Sentiment) |
 
-The application queries 5--7 days of `NewsItems` rows from the default model's runs, groups them by day, and formats them as text for the LLM prompt. See [Example Input](#example-input) below.
+The application queries recent `NewsBriefRuns` from the default model, eager-loads `Item` (NewsItem) and `Item.Assessments` (CategoryAssessments).
+Results are grouped by day and formatted as text for the LLM prompt. See [Example Input](#example-input) below.
 
 ---
 
 ## Data Model
 
-Steps 1--2 data flow. Step 1 stores raw markdown + parsed structured data. Step 2 reads that structured data and produces its own raw + structured output.
+Steps 1--2 data flow. Step 1 stores raw JSON + parsed structured data. Step 2 reads that structured data and produces its own raw JSON + structured output.
 
 ```mermaid
 erDiagram
-    NewsBriefRun ||--o{ NewsItem : "has many"
+    NewsBriefRun ||--o| NewsItem : "has one"
+    NewsItem ||--o{ CategoryAssessment : "has many"
+
     NewsBriefRun {
         guid RunId PK
         datetimeoffset Timestamp
         string ModelId
         string DeploymentName
+        string PromptName
         timespan Duration
         int InputTokens
         int OutputTokens
         int TotalTokens
         RunStatus Status
-        string RawMarkdownOutput
-        MarketSentiment Mood_DominantSentiment "MarketMood VO"
-        string Mood_MoodSummary "MarketMood VO"
+        string RawAgentOutput "raw JSON from agent"
+        string RawMarkdownOutput "rendered display markdown"
     }
 
     NewsItem {
         guid ItemId PK
         guid RunId FK
-        NewsCategory Category
+        MarketSentiment Mood "overall sentiment"
+        string Summary "overall mood summary"
+    }
+
+    CategoryAssessment {
+        guid AssessmentId PK
+        guid ItemId FK
+        string Category "free text from LLM"
         string Headline
         string Summary
         MarketSentiment Sentiment
@@ -88,9 +101,10 @@ erDiagram
         int InputTokens
         int OutputTokens
         int TotalTokens
-        string RawMarkdownOutput
-        MarketSentiment NetMood_DominantSentiment "MarketMood VO"
-        string NetMood_MoodSummary "MarketMood VO"
+        string RawAgentOutput "raw JSON from agent"
+        string RawMarkdownOutput "rendered display markdown"
+        MarketSentiment NetMood
+        string MoodSummary
     }
 
     WeeklySummaryTheme {
@@ -103,7 +117,7 @@ erDiagram
     }
 ```
 
-`NewsBriefRun` + `NewsItem` are **Step 1 output / Step 2 input.** `WeeklySummaryRun` + `WeeklySummaryTheme` are **Step 2 output / Step 3 input.**
+`NewsBriefRun` + `NewsItem` + `CategoryAssessment` are **Step 1 output / Step 2 input.** `WeeklySummaryRun` + `WeeklySummaryTheme` are **Step 2 output / Step 3 input.**
 
 ---
 
@@ -147,33 +161,49 @@ flowchart LR
 
 ## Agent Prompt
 
+The agent returns **JSON** (not markdown). This makes parsing deterministic — `JsonSerializer.Deserialize` instead of fragile regex over variable LLM output.
+Display markdown with emojis is rendered from the structured data by the application.
+
 ```text
-You are a weekly market summarizer. You will receive 5--7 daily market briefs (structured by news category). Your job is to consolidate them into a single weekly summary with confidence levels.
+You are a weekly market summarizer. You will receive daily market briefs (structured by news category).
+Your job is to consolidate them into a single weekly summary with confidence levels.
 
 For each news category that appeared during the week:
 1. Count how many of the available days it appeared.
 2. Check if the sentiment direction was consistent across days.
-3. Classify confidence: High (appeared 70%+ of days, consistent), Moderate (40--69% of days), Low (less than 40%), or Inconsistent (contradictory signals).
-
-Output:
-- HIGH CONFIDENCE themes with their persistent signals.
-- MODERATE CONFIDENCE themes with caveats.
-- DROPPED themes (low confidence or inconsistent) — list them briefly so the user knows what was filtered out.
-- NET WEEKLY MOOD: the dominant sentiment across the week.
+3. Classify confidence:
+   - High: appeared 70%+ of days, consistent direction
+   - Moderate: appeared 40--69% of days
+   - Dropped: appeared less than 40% of days, or contradictory signals
 
 Rules:
 - Do not search the web. Work only with the provided daily briefs.
-- Merge semantically similar themes across days (e.g. "Fed holds rates" and "Fed signals hawkish pause" are the same theme).
-- If a theme flipped direction during the week, mark it as Inconsistent and drop it.
+- Merge semantically similar themes across days
+  (e.g. "Fed holds rates" and "Fed signals hawkish pause" are the same theme).
+- If a theme flipped direction during the week, mark it as Dropped.
 - Be concise — this summary feeds into downstream agents, not human readers.
 - Today's date is {current_date}.
+
+Respond ONLY with a JSON object (no markdown, no commentary). Use this exact schema:
+{
+  "net_mood": "RiskOff|RiskOn|Mixed",
+  "mood_summary": "One-line net weekly mood summary",
+  "themes": [
+    {
+      "category": "Category name (free text, e.g. Geopolitics / Energy, Central Banks)",
+      "summary": "Consolidated summary of the theme across the week",
+      "confidence": "High|Moderate|Dropped",
+      "sentiment": "RiskOff|RiskOn|Mixed"
+    }
+  ]
+}
 ```
 
 ---
 
 ## Example Input
 
-The input is **built from a DB query** of 7 days of `NewsItems` rows. The application reads the rows, groups them by day, and formats them as text:
+The input is **built from a DB query** of `NewsBriefRuns` + `CategoryAssessments`. The application reads the rows, groups by day, and formats as text:
 
 ```text
 DAILY BRIEFS — Week of March 12--18, 2026
@@ -219,46 +249,99 @@ SUNDAY March 18:
 
 ---
 
-## Example Output
+## Example Output (JSON from LLM)
+
+The agent returns JSON. The application deserializes it, saves structured data to the DB, and renders display markdown with emojis for the WebView2 UI.
+
+```json
+{
+  "net_mood": "RiskOff",
+  "mood_summary": "Risk-off dominant. Stagflation risk back on the table, rate cut hopes evaporating, energy and inflation dominate.",
+  "themes": [
+    {
+      "category": "Geopolitics / Energy",
+      "summary": "Iran war / Strait of Hormuz disruption drove Brent above $96-100. IEA emergency reserve release provided limited relief.",
+      "confidence": "High",
+      "sentiment": "RiskOff"
+    },
+    {
+      "category": "Central Banks",
+      "summary": "Fed holding at 3.5-3.75% with hawkish signals. Rate cut expectations evaporating. ECB, BOE, Riksbank, SNB expected to hold.",
+      "confidence": "High",
+      "sentiment": "RiskOff"
+    },
+    {
+      "category": "Macro / Inflation",
+      "summary": "US producer prices above expectations. Consumer sentiment declining. 30-year mortgage rate jumped to 6.26%.",
+      "confidence": "High",
+      "sentiment": "RiskOff"
+    },
+    {
+      "category": "Tech / AI",
+      "summary": "NVIDIA GTC announcements and AI capex cycle. Amazon AWS $600B projection.",
+      "confidence": "Moderate",
+      "sentiment": "RiskOn"
+    },
+    {
+      "category": "Equities",
+      "summary": "S&P 500 at 2026 lows, third consecutive weekly loss.",
+      "confidence": "Moderate",
+      "sentiment": "RiskOff"
+    },
+    {
+      "category": "BoJ Policy",
+      "summary": "Contradictory signals — hawkish and accommodative on different days.",
+      "confidence": "Dropped",
+      "sentiment": "Mixed"
+    },
+    {
+      "category": "Corporate",
+      "summary": "SoFi short report — one-off, single day only.",
+      "confidence": "Dropped",
+      "sentiment": "RiskOff"
+    }
+  ]
+}
+```
+
+### Rendered Display (generated by application)
+
+The application renders the structured data back into emoji markdown for the WebView2 UI:
 
 ```text
 WEEKLY MARKET SUMMARY — Week of March 12--18, 2026
 
 ---
 
-HIGH CONFIDENCE (5+ of 7 days):
+HIGH CONFIDENCE:
 
 🔴 GEOPOLITICS / ENERGY
-- Iran war / Strait of Hormuz disruption (7/7 days)
-- Brent crude above $96--100 (6/7 days)
-- IEA emergency reserve release provided limited relief (5/7 days)
+- Iran war / Strait of Hormuz disruption drove Brent above $96-100.
+  IEA emergency reserve release provided limited relief.
 
 🔴 CENTRAL BANKS
-- Fed holding rates at 3.5--3.75%, hawkish signals (6/7 days)
-- Rate cut expectations evaporating — probability of hold through June rose to 77% (5/7 days)
-- ECB, BOE, Riksbank, SNB expected to hold (5/7 days)
+- Fed holding at 3.5-3.75% with hawkish signals. Rate cut expectations
+  evaporating. ECB, BOE, Riksbank, SNB expected to hold.
 
 🔴 MACRO / INFLATION
-- US producer prices above expectations (5/7 days)
-- Consumer sentiment declining, expectations sub-index down (5/7 days)
-- 30-year mortgage rate jumped to 6.26% (5/7 days)
+- US producer prices above expectations. Consumer sentiment declining.
+  30-year mortgage rate jumped to 6.26%.
 
-MODERATE CONFIDENCE (3--4 of 7 days):
+MODERATE CONFIDENCE:
 
 🟢 TECH / AI
-- NVIDIA GTC announcements / AI capex cycle (4/7 days)
-- Amazon AWS $600B projection (3/7 days)
+- NVIDIA GTC announcements and AI capex cycle. Amazon AWS $600B projection.
 
 🔴 EQUITIES
-- S&P 500 at 2026 lows, third consecutive weekly loss (4/7 days)
+- S&P 500 at 2026 lows, third consecutive weekly loss.
 
-DROPPED (low confidence / inconsistent):
-- BoJ policy direction (2x hawkish, 2x accommodative — contradictory)
-- SoFi short report (1/7 days — one-off)
+DROPPED:
+- BoJ Policy — contradictory signals
+- Corporate — SoFi short report (one-off)
 
 ---
 
-NET WEEKLY MOOD: 🔴 Risk-off (5/7 days risk-off dominant)
+NET WEEKLY MOOD: 🔴 Risk-off
 Stagflation risk back on the table. Rate cut hopes evaporating. Energy and inflation dominate.
 ```
 
@@ -268,20 +351,64 @@ Stagflation risk back on the table. Rate cut hopes evaporating. Energy and infla
 
 ### LLM Response Schema
 
-| Section | Required | Description |
+The agent returns a **JSON object** with these fields:
+
+| Field | Required | Description |
 | --- | --- | --- |
-| High confidence themes | Yes | Themes that appeared 70%+ of available days with consistent direction |
-| Moderate confidence themes | Yes | Themes that appeared 40--69% of available days |
-| Dropped themes | Yes | Low confidence or inconsistent — listed so downstream knows what was filtered |
-| Net weekly mood | Yes | Dominant sentiment + one-line summary |
+| `net_mood` | Yes | Dominant weekly sentiment: `RiskOff`, `RiskOn`, or `Mixed` |
+| `mood_summary` | Yes | One-line net weekly mood summary |
+| `themes` | Yes | Array of per-category themes with confidence levels |
+| `themes[].category` | Yes | Free text category name (e.g., "Geopolitics / Energy", "Central Banks") |
+| `themes[].summary` | Yes | Consolidated summary of the theme across the week |
+| `themes[].confidence` | Yes | `High`, `Moderate`, or `Dropped` |
+| `themes[].sentiment` | Yes | Per-theme impact: `RiskOff`, `RiskOn`, or `Mixed` |
+
+### Output JSON Schema
+
+```mermaid
+classDiagram
+    class WeeklySummaryOutput {
+        +string net_mood
+        +string mood_summary
+        +List~WeeklySummaryOutputTheme~ themes
+    }
+
+    class WeeklySummaryOutputTheme {
+        +string category
+        +string summary
+        +string confidence
+        +string sentiment
+    }
+
+    WeeklySummaryOutput *-- WeeklySummaryOutputTheme
+```
+
+### Processing Pipeline
+
+```mermaid
+flowchart LR
+    A[Query DB\nNewsBriefRuns + CategoryAssessments] -->|text| B[LLM\nchat completions]
+    B -->|JSON| C[JsonSerializer.Deserialize]
+    B -->|JSON| R[RawAgentOutput]
+    C -->|structured data| D[Save to DB]
+    C -->|structured data| E[Render display markdown]
+    E -->|emoji markdown| F[RawMarkdownOutput]
+    F --> G[WebView2 UI]
+```
+
+**Two outputs stored per run:**
+
+- `RawAgentOutput` — the original JSON from the agent, preserved for audit
+- `RawMarkdownOutput` — rendered display markdown with emojis, generated from the structured data by the application
+
+**Parsing:** JSON deserialization is deterministic (not an LLM call). The application renders display markdown from the structured data — consistent formatting every run.
 
 ### Persistence
 
 | Purpose | Table | Key Columns | Notes |
 | --- | --- | --- | --- |
-| Save raw LLM response | `WeeklySummaryRuns` | RunId, WeekStart, WeekEnd, Timestamp, ModelId, Status, Duration, InputTokens, OutputTokens, TotalTokens, **RawMarkdownOutput** | One row per weekly run. Raw markdown stored for audit/replay. |
-| Save structured data (for Step 3) | `WeeklySummaryThemes` | ThemeId, RunId (FK), Category, Summary, Confidence (High/Moderate/Dropped), Sentiment (MarketSentiment) | One row per theme. Parsed from the raw markdown output. |
-| Save weekly mood | `WeeklySummaryRuns.NetMood` | DominantSentiment, MoodSummary | MarketMood value object, owned by WeeklySummaryRun. |
+| Save run metadata | `WeeklySummaryRuns` | RunId, WeekStart, WeekEnd, Timestamp, ModelId, Status, Duration, InputTokens, OutputTokens, TotalTokens, **RawAgentOutput**, **RawMarkdownOutput**, NetMood, MoodSummary | One row per weekly run. |
+| Save structured themes (for Step 3) | `WeeklySummaryThemes` | ThemeId, RunId (FK), Category, Summary, Confidence (ConfidenceLevel), Sentiment (MarketSentiment) | One row per theme. Parsed from the raw JSON output. |
 
 This agent does **not** search the web. Input is built from structured database rows saved by Step 1.
 
