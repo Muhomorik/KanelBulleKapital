@@ -6,26 +6,18 @@
 
 > Continuation of [SemanticKernel-FundDocsQnA-dotnet-nextjs](https://github.com/Muhomorik/SemanticKernel-FundDocsQnA-dotnet-nextjs) — shares the same backend (ASP.NET Core Web API, RAG over fund documents, function calling against Azure SQL).
 
-## Projects
-
-This repo is a monorepo — each step in the roadmap lives in its own project folder.
-
-### [FikaForecast](FikaForecast/)
-
-A WPF desktop app that runs AI agents to analyze financial markets. Compares how different LLMs perform on the same market analysis task using Microsoft Agent Framework and Azure AI Foundry.
-
-**Stack:** .NET 9, WPF, MahApps.Metro, EF Core + SQLite, Azure AI Foundry, Microsoft Agent Framework
-
 ## Roadmap
 
 Continuous hypothesis evaluation using event-driven multi-agent architecture on Azure AI Foundry.
 
-- [ ] **Step 1 — [The macro story](FikaForecast/README.md)**
-  - [x] Macro event triggers regime classification and hypothesis formation
-  - [ ] Hypothesis as a named belief: claim, catalyst, expected direction, invalidation condition
-  - [ ] Peer group comparison — category-wide flush vs single-instrument failure
-  - [ ] Hypothesis persists across sessions with explicit status tracking
-  - [ ] Portfolio implications — evaluate current positions against new signals (requires shared backend fund data)
+- [x] **Step 1 — [News Brief & Model Comparison](FikaForecast/README.md)**
+  - [x] News Brief agent — 14-day Bing Grounding scan, categorized market brief
+  - [x] Multi-model comparison — same prompt through multiple Azure AI Foundry models in parallel
+  - [x] Evaluation agent — checks individual reports against quality rules
+  - [x] Comparison agent — ranks reports with scorecard, picks a winner
+  - [x] Batch scheduler — automated runs at 4-hour intervals, `--auto-schedule` CLI flag
+  - [x] Run history — all runs persisted to SQLite, filterable by model
+  - [x] Configurable models and prompts
 - [ ] **Step 2 — Event-driven trigger**
   - [ ] Fund data → Service Bus queue → EventGrid trigger → Foundry Agent workflow
   - [ ] Agent wakes on data arrival, not on schedule
@@ -49,6 +41,20 @@ Continuous hypothesis evaluation using event-driven multi-agent architecture on 
   - [ ] Automatic weekly evaluation of portfolio performance
 - [ ] **Step 7 — Deploy as frontend to Azure**
   - [ ] Web frontend on Azure Static Web Apps
+
+## Projects
+
+This repo is a monorepo — each step in the roadmap lives in its own project folder.
+
+### [FikaForecast](FikaForecast/)
+
+A WPF desktop app that runs AI agents to analyze financial markets. Compares how different LLMs perform on the same market analysis task using Microsoft Agent Framework and Azure AI Foundry.
+
+![FikaForecast in action](FikaForecast/docs/ANIMATION_OVERVIEW.gif)
+
+**Features:** model comparison, batch scheduler (automated daily runs at 4-hour intervals), run history, evaluation agent, configurable prompts and models
+
+**Stack:** .NET 9, WPF, MahApps.Metro, EF Core + SQLite, Azure AI Foundry, Microsoft Agent Framework
 
 ## Documentation
 

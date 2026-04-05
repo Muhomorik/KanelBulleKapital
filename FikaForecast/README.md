@@ -2,7 +2,51 @@
 
 WPF desktop application that runs AI agents to analyze financial markets. Compare how different models handle the same analysis task, and let a judge agent evaluate report quality.
 
-![FikaForecast Overview](docs/IMG_OVERVIEW.png)
+![FikaForecast in action](docs/ANIMATION_OVERVIEW.gif)
+
+## Features
+
+<details>
+<summary><strong>Run models and compare results</strong></summary>
+
+Run the same News Brief prompt through multiple Azure AI Foundry models in parallel. Each result shows token usage, duration, and the full markdown report rendered via WebView2.
+
+![Overview](docs/IMG_OVERVIEW.png)
+
+Compare results side-by-side — same prompt, different brain.
+
+![Comparison](docs/IMG_COMPARISON.png)
+
+</details>
+
+<details>
+<summary><strong>Batch scheduler — automated daily runs</strong></summary>
+
+Schedule batch runs across all enabled models at fixed 4-hour intervals. Toggle the scheduler on/off, watch per-slot progress, and inspect token counts and durations after each run. Launch with `--auto-schedule` to start automatically on app startup.
+
+![Batch view](docs/IMG_BATCH.png)
+
+</details>
+
+<details>
+<summary><strong>Browse run history</strong></summary>
+
+All runs are persisted to SQLite. Filter by model, inspect past reports, delete old runs. Full markdown rendering in the detail pane.
+
+![History](docs/IMG_HISTORY.png)
+
+</details>
+
+<details>
+<summary><strong>Configure models and prompts</strong></summary>
+
+Enable/disable models, set the default, and edit all three prompts (news brief, evaluation, comparison) directly in the app. Prompts are stored as external files with embedded-resource fallback.
+
+![Settings — Models](docs/IMG_SETTINGS_MODELS.png)
+
+![Settings — Prompts](docs/IMG_SETTINGS_PROMPTS.png)
+
+</details>
 
 ## Tech Stack
 
@@ -28,37 +72,11 @@ FikaForecast/
   FikaForecast.Infrastructure/ -- AI agents, EF Core, external services
 ```
 
-**Domain-Driven Design** -- dependencies point inward. Domain has zero external references. Infrastructure implements application interfaces. Autofac wires everything up with per-layer modules.
-
-## Features
-
-### Compare models side-by-side
-
-Run the same News Brief prompt through multiple Azure AI Foundry models in parallel. Each result shows token usage, duration, and the full markdown report rendered via WebView2.
-
-<!-- ![Comparison View](docs/IMG_COMPARISON.png) -->
-
-### Evaluate and rank reports
-
-An evaluation agent checks individual reports against quality rules (formatting, source attribution, category coverage). Select multiple reports and a comparison agent ranks them with a scorecard and picks a winner.
-
-<!-- ![Evaluation View](docs/IMG_EVALUATION.png) -->
-
-### Browse run history
-
-All runs are persisted to SQLite. Filter by model, inspect past reports, delete old runs. Full markdown rendering in the detail pane.
-
-<!-- ![History View](docs/IMG_HISTORY.png) -->
-
-### Configure models and prompts
-
-Enable/disable models, set the default, and edit all three prompts (news brief, evaluation, comparison) directly in the app. Prompts are stored as external files with embedded-resource fallback.
-
-<!-- ![Settings](docs/IMG_SETTINGS.png) -->
+**Domain-Driven Design** — dependencies point inward. Domain has zero external references. Infrastructure implements application interfaces. Autofac wires everything up with per-layer modules.
 
 ## Analysis Pipeline
 
-Step 1 is implemented. Steps 2--4 are planned.
+Step 1 is implemented. Steps 2–4 are planned.
 
 ```mermaid
 flowchart LR
@@ -74,12 +92,12 @@ flowchart LR
     style DB1 fill:#e8a838,color:#fff
 ```
 
-Step 1 uses **Agent Service** (needs Bing Grounding for web search). Steps 2--4 use **chat completions** (prompt-in/JSON-out, no tools needed).
+Step 1 uses **Agent Service** (needs Bing Grounding for web search). Steps 2–4 use **chat completions** (prompt-in/JSON-out, no tools needed).
 
 | Step | Agent | What it does | Status |
 | --- | --- | --- | --- |
 | 1 | News Brief | Scans 14 days of news via Bing Grounding, produces categorized market brief | Done |
-| 2 | Weekly Summary | Aggregates 5--7 daily briefs (default model) into confidence-weighted weekly summary | Planned |
+| 2 | Weekly Summary | Aggregates 5–7 daily briefs (default model) into confidence-weighted weekly summary | Planned |
 | 3 | Substitution Chain | Follows disruption chains to find rotation beneficiaries | Planned |
 | 4 | Rotation Targets | Flags up to 3 strongest capital rotation destinations worth watching | Planned |
 
@@ -127,12 +145,12 @@ Claude models have [built-in web search](https://www.anthropic.com/news/web-sear
 ## Roadmap
 
 - [ ] Add gpt-5.4, gpt-5.4-nano, DeepSeek-V3.1, grok-3 model configs
-- [ ] Implement pipeline steps 2--4
+- [ ] Implement pipeline steps 2–4
 - [ ] Portfolio integration layer — match rotation signals to holdings and buyable funds
 
 ### Portfolio Integration (future)
 
-The pipeline (Steps 1--4) produces market intelligence: what's moving, where capital is rotating, and which targets are strongest. A future portfolio layer connects this to actionable fund decisions.
+The pipeline (Steps 1–4) produces market intelligence: what's moving, where capital is rotating, and which targets are strongest. A future portfolio layer connects this to actionable fund decisions.
 
 | Component | Description |
 | --- | --- |
@@ -141,8 +159,8 @@ The pipeline (Steps 1--4) produces market intelligence: what's moving, where cap
 | Fund matching via RAG | Semantic search over fund descriptions and names to find buyable funds matching rotation targets. Leverages the existing [shared backend RAG pipeline](https://github.com/Muhomorik/SemanticKernel-FundDocsQnA-dotnet-nextjs). |
 | Trend analysis | All pipeline runs are timestamped and persisted. Query across multiple weekly runs to detect persistent rotation trends (e.g. "capital has flowed toward defence for 3 consecutive weeks"). |
 
-The pipeline's DB-as-interface pattern means the portfolio layer can join `RotationChains` and `RotationTargets` with holdings data without changing Steps 1--4.
+The pipeline's DB-as-interface pattern means the portfolio layer can join `RotationChains` and `RotationTargets` with holdings data without changing Steps 1–4.
 
 ## Documentation
 
-- [News Brief Agent Architecture](docs/news-brief-agent-architecture.md) -- Step 1 design, Mermaid diagrams, domain model, persistence schema
+- [News Brief Agent Architecture](docs/news-brief-agent-architecture.md) — Step 1 design, Mermaid diagrams, domain model, persistence schema
