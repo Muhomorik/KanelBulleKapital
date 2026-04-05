@@ -76,20 +76,24 @@ FikaForecast/
 
 ## Analysis Pipeline
 
-Step 1 is implemented. Steps 2–4 are planned.
+Steps 1–3 are implemented. Step 4 is planned.
 
 ```mermaid
 flowchart LR
     S1[Step 1\nNews Brief] -->|parse| DB1[(SQLite)]
     DB1 -->|5-7 days| S2[Step 2\nWeekly Summary]
-    S2 --> S3[Step 3\nSubstitution Chain]
-    S3 --> S4[Step 4\nRotation Targets]
+    S2 -->|parse| DB2[(SQLite)]
+    DB2 --> S3[Step 3\nSubstitution Chain]
+    S3 -->|parse| DB3[(SQLite)]
+    DB3 --> S4[Step 4\nRotation Targets]
 
     style S1 fill:#4a9eff,color:#fff
-    style S2 fill:#555,color:#999
-    style S3 fill:#555,color:#999
+    style S2 fill:#4a9eff,color:#fff
+    style S3 fill:#4a9eff,color:#fff
     style S4 fill:#555,color:#999
     style DB1 fill:#e8a838,color:#fff
+    style DB2 fill:#e8a838,color:#fff
+    style DB3 fill:#e8a838,color:#fff
 ```
 
 Step 1 uses **Agent Service** (needs Bing Grounding for web search). Steps 2–4 use **chat completions** (prompt-in/JSON-out, no tools needed).
@@ -97,8 +101,8 @@ Step 1 uses **Agent Service** (needs Bing Grounding for web search). Steps 2–4
 | Step | Agent | What it does | Status |
 | --- | --- | --- | --- |
 | 1 | News Brief | Scans 14 days of news via Bing Grounding, produces categorized market brief | Done |
-| 2 | Weekly Summary | Aggregates 5–7 daily briefs (default model) into confidence-weighted weekly summary | Planned |
-| 3 | Substitution Chain | Follows disruption chains to find rotation beneficiaries | Planned |
+| 2 | Weekly Summary | Aggregates 5–7 daily briefs (default model) into confidence-weighted weekly summary | Done |
+| 3 | Substitution Chain | Follows disruption chains to find rotation beneficiaries | Done |
 | 4 | Rotation Targets | Flags up to 3 strongest capital rotation destinations worth watching | Planned |
 
 ## Models
@@ -224,9 +228,32 @@ erDiagram
         Guid RunId FK
     }
 
+    SubstitutionChainRuns {
+        Guid RunId PK
+        Guid WeeklySummaryRunId FK
+        DateTimeOffset Timestamp
+        string ModelId
+        RunStatus Status "Success | Failed | Partial"
+        TimeSpan Duration
+        int InputTokens
+        int OutputTokens
+        int TotalTokens
+        string RawAgentOutput
+        string RawMarkdownOutput
+    }
+
+    RotationChains {
+        Guid ChainId PK
+        string CapitalFleeing
+        string FlowsToward
+        string Mechanism
+        Guid RunId FK
+    }
+
     NewsBriefRuns ||--o| NewsItems : "has one"
     NewsItems ||--o{ CategoryAssessments : "has many"
     WeeklySummaryRuns ||--o{ WeeklySummaryThemes : "has many"
+    SubstitutionChainRuns ||--o{ RotationChains : "has many"
 ```
 
 ## Documentation

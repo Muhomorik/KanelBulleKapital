@@ -19,6 +19,9 @@ public interface IPromptProvider
     /// <summary>Returns the Weekly Summary Agent prompt (Step 2).</summary>
     AgentPrompt GetWeeklySummaryPrompt();
 
+    /// <summary>Returns the Substitution Chain Agent prompt (Step 3).</summary>
+    AgentPrompt GetSubstitutionChainPrompt();
+
     /// <summary>
     /// Clears the in-memory prompt cache, causing prompts to be re-read
     /// from disk on next access. Call after editing prompt files.

@@ -13,6 +13,8 @@ public class FikaDbContext : DbContext
     public DbSet<CategoryAssessment> CategoryAssessments => Set<CategoryAssessment>();
     public DbSet<WeeklySummaryRun> WeeklySummaryRuns => Set<WeeklySummaryRun>();
     public DbSet<WeeklySummaryTheme> WeeklySummaryThemes => Set<WeeklySummaryTheme>();
+    public DbSet<SubstitutionChainRun> SubstitutionChainRuns => Set<SubstitutionChainRun>();
+    public DbSet<RotationChain> RotationChains => Set<RotationChain>();
 
     public FikaDbContext(DbContextOptions<FikaDbContext> options) : base(options) { }
 
@@ -73,6 +75,27 @@ public class FikaDbContext : DbContext
             entity.HasKey(e => e.ThemeId);
             entity.Property(e => e.Confidence).HasConversion<string>();
             entity.Property(e => e.Sentiment).HasConversion<string>();
+        });
+
+        // Step 3: Substitution Chain
+        modelBuilder.Entity<SubstitutionChainRun>(entity =>
+        {
+            entity.HasKey(e => e.RunId);
+
+            entity.Property(e => e.Status).HasConversion<string>();
+            entity.Property(e => e.Duration).HasConversion(
+                v => v.TotalMilliseconds,
+                v => TimeSpan.FromMilliseconds(v));
+
+            entity.HasMany(e => e.Chains)
+                .WithOne()
+                .HasForeignKey(e => e.RunId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<RotationChain>(entity =>
+        {
+            entity.HasKey(e => e.ChainId);
         });
     }
 }

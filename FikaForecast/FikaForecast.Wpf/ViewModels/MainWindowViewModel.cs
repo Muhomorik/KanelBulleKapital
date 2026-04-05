@@ -14,6 +14,7 @@ public class MainWindowViewModel : ViewModelBase
     public EvaluationViewModel EvaluationVm { get; }
     public BatchViewModel BatchVm { get; }
     public WeeklySummaryViewModel WeeklySummaryVm { get; }
+    public SubstitutionChainViewModel SubstitutionChainVm { get; }
 
     /// <summary>Runtime constructor (DI).</summary>
     public MainWindowViewModel(
@@ -22,13 +23,15 @@ public class MainWindowViewModel : ViewModelBase
         HistoryViewModel historyVm,
         EvaluationViewModel evaluationVm,
         BatchViewModel batchVm,
-        WeeklySummaryViewModel weeklySummaryVm)
+        WeeklySummaryViewModel weeklySummaryVm,
+        SubstitutionChainViewModel substitutionChainVm)
     {
         ComparisonVm = comparisonVm ?? throw new ArgumentNullException(nameof(comparisonVm));
         HistoryVm = historyVm ?? throw new ArgumentNullException(nameof(historyVm));
         EvaluationVm = evaluationVm ?? throw new ArgumentNullException(nameof(evaluationVm));
         BatchVm = batchVm ?? throw new ArgumentNullException(nameof(batchVm));
         WeeklySummaryVm = weeklySummaryVm ?? throw new ArgumentNullException(nameof(weeklySummaryVm));
+        SubstitutionChainVm = substitutionChainVm ?? throw new ArgumentNullException(nameof(substitutionChainVm));
     }
 
     /// <summary>Design-time constructor.</summary>
@@ -39,5 +42,6 @@ public class MainWindowViewModel : ViewModelBase
         EvaluationVm = null!;
         BatchVm = null!;
         WeeklySummaryVm = null!;
+        SubstitutionChainVm = null!;
     }
 }

@@ -32,6 +32,7 @@ public class InfrastructureModule : Autofac.Module
         RegisterAgent(builder);
         RegisterEvaluationAgent(builder);
         RegisterWeeklySummaryAgent(builder);
+        RegisterSubstitutionChainAgent(builder);
     }
 
     private static void RegisterDatabase(ContainerBuilder builder)
@@ -114,5 +115,19 @@ public class InfrastructureModule : Autofac.Module
         builder.RegisterType<AgentFrameworkWeeklySummaryAgent>()
             .As<IWeeklySummaryAgent>()
             .SingleInstance();
+    }
+
+    /// <summary>
+    /// Registers the substitution chain agent (no Bing Grounding — works on DB data only).
+    /// </summary>
+    private static void RegisterSubstitutionChainAgent(ContainerBuilder builder)
+    {
+        builder.RegisterType<AgentFrameworkSubstitutionChainAgent>()
+            .As<ISubstitutionChainAgent>()
+            .SingleInstance();
+
+        builder.RegisterType<SubstitutionChainRunRepository>()
+            .As<ISubstitutionChainRunRepository>()
+            .InstancePerLifetimeScope();
     }
 }

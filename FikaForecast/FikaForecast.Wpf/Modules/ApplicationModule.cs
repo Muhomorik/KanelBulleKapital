@@ -56,5 +56,22 @@ public class ApplicationModule : Module
         builder.RegisterType<WeeklySummaryInputFormatter>()
             .AsSelf()
             .InstancePerLifetimeScope();
+
+        // Step 3: Substitution Chain
+        builder.RegisterType<SubstitutionChainOrchestrator>()
+            .AsSelf()
+            .InstancePerLifetimeScope();
+
+        builder.RegisterType<SubstitutionChainJsonParser>()
+            .As<ISubstitutionChainParser>()
+            .InstancePerLifetimeScope();
+
+        builder.RegisterType<SubstitutionChainMarkdownRenderer>()
+            .AsSelf()
+            .InstancePerLifetimeScope();
+
+        builder.RegisterType<SubstitutionChainInputFormatter>()
+            .AsSelf()
+            .InstancePerLifetimeScope();
     }
 }

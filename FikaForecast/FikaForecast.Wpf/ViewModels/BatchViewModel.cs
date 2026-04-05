@@ -26,21 +26,27 @@ public class BatchViewModel : ViewModelBase, IDisposable
     private static readonly TimeSpan Interval = TimeSpan.FromHours(4);
     private static readonly DayOfWeek WeeklySummaryDay = DayOfWeek.Thursday;
     private static readonly TimeOnly WeeklySummaryTime = new(22, 0);
+    private static readonly DayOfWeek SubstitutionChainDay = DayOfWeek.Thursday;
+    private static readonly TimeOnly SubstitutionChainTime = new(22, 10);
 
     private readonly ILogger _logger;
     private readonly IBatchSchedulingService _schedulingService;
     private readonly IPromptProvider _promptProvider;
     private readonly IReadOnlyList<ModelConfig> _models;
     private readonly WeeklySummaryOrchestrator _orchestrator;
+    private readonly SubstitutionChainOrchestrator _chainOrchestrator;
     private readonly INewsBriefRunRepository _newsBriefRepository;
+    private readonly IWeeklySummaryRunRepository _summaryRepository;
     private readonly IUserSettingsService _settingsService;
     private readonly ModelConfig? _defaultModel;
 
     private readonly CompositeDisposable _disposables = new();
     private readonly SerialDisposable _slotTimer = new();
     private readonly SerialDisposable _weeklyTimer = new();
+    private readonly SerialDisposable _chainTimer = new();
     private CancellationTokenSource? _batchCts;
     private CancellationTokenSource? _weeklyCts;
+    private CancellationTokenSource? _chainCts;
 
     /// <summary>All planned time slots for today.</summary>
     public ObservableCollection<ScheduledSlot> TodaySlots { get; } = [];
@@ -85,8 +91,12 @@ public class BatchViewModel : ViewModelBase, IDisposable
     /// <summary>Weekly summary schedule info displayed in a separate UI section.</summary>
     public WeeklySummaryScheduleInfo WeeklySummaryInfo { get; }
 
+    /// <summary>Substitution chain schedule info displayed in a separate UI section.</summary>
+    public SubstitutionChainScheduleInfo SubstitutionChainInfo { get; }
+
     public ICommand ToggleSchedulerCommand { get; }
     public ICommand RunWeeklySummaryCommand { get; }
+    public ICommand RunSubstitutionChainCommand { get; }
 
     public BatchViewModel(
         ILogger logger,
@@ -95,7 +105,9 @@ public class BatchViewModel : ViewModelBase, IDisposable
         IEnumerable<ModelConfig> models,
         CliOptions cliOptions,
         WeeklySummaryOrchestrator orchestrator,
+        SubstitutionChainOrchestrator chainOrchestrator,
         INewsBriefRunRepository newsBriefRepository,
+        IWeeklySummaryRunRepository summaryRepository,
         IUserSettingsService settingsService)
     {
         _logger = logger;
@@ -103,7 +115,9 @@ public class BatchViewModel : ViewModelBase, IDisposable
         _promptProvider = promptProvider;
         _models = models.ToList();
         _orchestrator = orchestrator;
+        _chainOrchestrator = chainOrchestrator;
         _newsBriefRepository = newsBriefRepository;
+        _summaryRepository = summaryRepository;
         _settingsService = settingsService;
 
         var settings = settingsService.Load();
@@ -113,6 +127,7 @@ public class BatchViewModel : ViewModelBase, IDisposable
 
         _disposables.Add(_slotTimer);
         _disposables.Add(_weeklyTimer);
+        _disposables.Add(_chainTimer);
 
         IsAutoSchedule = cliOptions.AutoSchedule;
         TodayDate = DateTime.Today.ToString("yyyy-MM-dd");
@@ -122,9 +137,16 @@ public class BatchViewModel : ViewModelBase, IDisposable
             _defaultModel?.DisplayName);
         UpdateWeeklyNextRunDate();
 
+        SubstitutionChainInfo = new SubstitutionChainScheduleInfo(
+            $"{SubstitutionChainDay} {SubstitutionChainTime:HH:mm} UTC",
+            _defaultModel?.DisplayName);
+        UpdateChainNextRunDate();
+
         ToggleSchedulerCommand = new DelegateCommand(ToggleScheduler);
         RunWeeklySummaryCommand = new AsyncCommand(RunWeeklySummaryManualAsync,
             () => !IsBatchRunning && WeeklySummaryInfo.Status != SlotStatus.Running && _defaultModel is not null);
+        RunSubstitutionChainCommand = new AsyncCommand(RunSubstitutionChainManualAsync,
+            () => !IsBatchRunning && SubstitutionChainInfo.Status != SlotStatus.Running && _defaultModel is not null);
 
         // Build the visual schedule immediately so the user sees the day plan
         RebuildDaySlots();
@@ -152,6 +174,7 @@ public class BatchViewModel : ViewModelBase, IDisposable
 
         ScheduleNextSlot();
         ScheduleWeeklySummary();
+        ScheduleSubstitutionChain();
 
         var nextWaiting = TodaySlots.FirstOrDefault(s => s.Status == SlotStatus.Waiting);
         SetStatus(nextWaiting is not null
@@ -173,8 +196,13 @@ public class BatchViewModel : ViewModelBase, IDisposable
         _weeklyCts?.Dispose();
         _weeklyCts = null;
 
+        _chainCts?.Cancel();
+        _chainCts?.Dispose();
+        _chainCts = null;
+
         _slotTimer.Disposable = null;
         _weeklyTimer.Disposable = null;
+        _chainTimer.Disposable = null;
 
         // Reset any running slot back to waiting
         foreach (var slot in TodaySlots)
@@ -190,6 +218,12 @@ public class BatchViewModel : ViewModelBase, IDisposable
         {
             WeeklySummaryInfo.Status = SlotStatus.Waiting;
             WeeklySummaryInfo.ProgressText = null;
+        }
+
+        if (SubstitutionChainInfo.Status == SlotStatus.Running)
+        {
+            SubstitutionChainInfo.Status = SlotStatus.Waiting;
+            SubstitutionChainInfo.ProgressText = null;
         }
 
         IsSchedulerActive = false;
@@ -502,6 +536,147 @@ public class BatchViewModel : ViewModelBase, IDisposable
 
     #endregion
 
+    #region Substitution Chain
+
+    /// <summary>
+    /// Schedules the substitution chain timer to fire at the next Thursday 22:10 UTC.
+    /// </summary>
+    private void ScheduleSubstitutionChain()
+    {
+        if (_defaultModel is null)
+        {
+            _logger.Warn("No default model configured — substitution chain scheduling skipped");
+            return;
+        }
+
+        var delay = _schedulingService.CalculateWeeklyDelay(SubstitutionChainDay, SubstitutionChainTime, DateTime.UtcNow);
+        UpdateChainNextRunDate();
+
+        _logger.Debug("Substitution chain scheduled — fires in {0:F1}h ({1})",
+            delay.TotalHours, SubstitutionChainInfo.NextRunDate);
+
+        _chainTimer.Disposable = _schedulingService
+            .CreateTimer(delay)
+            .Subscribe(_ => OnSubstitutionChainFired());
+    }
+
+    private async void OnSubstitutionChainFired()
+    {
+        if (!IsSchedulerActive) return;
+
+        try
+        {
+            await ExecuteSubstitutionChainAsync();
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.Debug("Substitution chain run cancelled");
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Substitution chain run failed unexpectedly");
+            SubstitutionChainInfo.Status = SlotStatus.Failed;
+            SetStatus($"Substitution chain failed: {ex.Message}", isError: true);
+        }
+        finally
+        {
+            if (IsSchedulerActive)
+                ScheduleSubstitutionChain();
+        }
+    }
+
+    /// <summary>
+    /// Manual trigger for the substitution chain — runs independently of the scheduler toggle.
+    /// </summary>
+    private async Task RunSubstitutionChainManualAsync()
+    {
+        try
+        {
+            await ExecuteSubstitutionChainAsync();
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.Debug("Manual substitution chain run cancelled");
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Manual substitution chain run failed unexpectedly");
+            SubstitutionChainInfo.Status = SlotStatus.Failed;
+            SetStatus($"Substitution chain failed: {ex.Message}", isError: true);
+        }
+    }
+
+    private async Task ExecuteSubstitutionChainAsync()
+    {
+        if (_defaultModel is null)
+        {
+            SetStatus("No default model configured. Set one in Settings.", isError: true);
+            return;
+        }
+
+        SubstitutionChainInfo.Status = SlotStatus.Running;
+        SubstitutionChainInfo.ProgressText = "Loading latest weekly summary...";
+        SetStatus($"Substitution chain — loading latest weekly summary...");
+
+        _chainCts = new CancellationTokenSource();
+
+        try
+        {
+            var allSummaries = await _summaryRepository.GetAllAsync(_chainCts.Token);
+            var latestSummary = allSummaries
+                .FirstOrDefault(r => r.Status == Domain.Enums.RunStatus.Success && r.Themes.Count > 0);
+
+            if (latestSummary is null)
+            {
+                SubstitutionChainInfo.Status = SlotStatus.Failed;
+                SubstitutionChainInfo.ProgressText = null;
+                SetStatus("Substitution chain — no successful weekly summary found", isError: true);
+                return;
+            }
+
+            SubstitutionChainInfo.ProgressText = $"Running agent with {latestSummary.Themes.Count} themes...";
+            SetStatus($"Substitution chain — running agent with {latestSummary.Themes.Count} themes...");
+
+            var result = await _chainOrchestrator.RunAsync(
+                _defaultModel,
+                _promptProvider.GetSubstitutionChainPrompt(),
+                latestSummary,
+                _chainCts.Token);
+
+            SubstitutionChainInfo.ProgressText = null;
+
+            if (result.IsSuccess)
+            {
+                var run = result.Value;
+                SubstitutionChainInfo.Status = SlotStatus.Completed;
+                SubstitutionChainInfo.ChainCount = run.Chains.Count;
+                SubstitutionChainInfo.TotalTokens = run.TotalTokens;
+                SubstitutionChainInfo.Duration = run.Duration;
+                SetStatus($"Substitution chain complete — {run.Chains.Count} chains, {run.TotalTokens:N0} tokens, {run.Duration.TotalSeconds:F1}s");
+            }
+            else
+            {
+                SubstitutionChainInfo.Status = SlotStatus.Failed;
+                SetStatus($"Substitution chain failed: {result.Errors.First().Message}", isError: true);
+            }
+        }
+        finally
+        {
+            _chainCts?.Dispose();
+            _chainCts = null;
+        }
+    }
+
+    private void UpdateChainNextRunDate()
+    {
+        var delay = _schedulingService.CalculateWeeklyDelay(SubstitutionChainDay, SubstitutionChainTime, DateTime.UtcNow);
+        var nextRun = DateTime.UtcNow + delay;
+        var daysUntil = (int)Math.Ceiling(delay.TotalDays);
+        SubstitutionChainInfo.NextRunDate = $"{nextRun:MMM dd, yyyy} ({daysUntil}d)";
+    }
+
+    #endregion
+
     private void SetStatus(string? message, bool isError = false)
     {
         StatusMessage = message;
@@ -514,6 +689,8 @@ public class BatchViewModel : ViewModelBase, IDisposable
         _batchCts?.Dispose();
         _weeklyCts?.Cancel();
         _weeklyCts?.Dispose();
+        _chainCts?.Cancel();
+        _chainCts?.Dispose();
         _disposables.Dispose();
     }
 }
