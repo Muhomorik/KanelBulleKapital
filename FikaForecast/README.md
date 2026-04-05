@@ -161,6 +161,74 @@ The pipeline (Steps 1–4) produces market intelligence: what's moving, where ca
 
 The pipeline's DB-as-interface pattern means the portfolio layer can join `RotationChains` and `RotationTargets` with holdings data without changing Steps 1–4.
 
+## Database Schema
+
+EF Core 9 + SQLite. All enums stored as strings. Cascade deletes throughout.
+
+```mermaid
+erDiagram
+    NewsBriefRuns {
+        Guid RunId PK
+        DateTimeOffset Timestamp
+        string ModelId
+        string DeploymentName
+        string PromptName
+        TimeSpan Duration
+        int InputTokens
+        int OutputTokens
+        int TotalTokens
+        RunStatus Status "Success | Failed | Partial"
+        string RawAgentOutput
+        string RawMarkdownOutput
+    }
+
+    NewsItems {
+        Guid ItemId PK
+        MarketSentiment Mood "RiskOff | RiskOn | Mixed"
+        string Summary
+        Guid RunId FK "unique"
+    }
+
+    CategoryAssessments {
+        Guid AssessmentId PK
+        string Category
+        string Headline
+        string Summary
+        MarketSentiment Sentiment "RiskOff | RiskOn | Mixed"
+        Guid ItemId FK
+    }
+
+    WeeklySummaryRuns {
+        Guid RunId PK
+        DateTimeOffset WeekStart
+        DateTimeOffset WeekEnd
+        DateTimeOffset Timestamp
+        string ModelId
+        RunStatus Status "Success | Failed | Partial"
+        TimeSpan Duration
+        int InputTokens
+        int OutputTokens
+        int TotalTokens
+        string RawAgentOutput
+        string RawMarkdownOutput
+        MarketSentiment NetMood "RiskOff | RiskOn | Mixed"
+        string MoodSummary
+    }
+
+    WeeklySummaryThemes {
+        Guid ThemeId PK
+        string Category
+        string Summary
+        ConfidenceLevel Confidence "High | Moderate | Dropped"
+        MarketSentiment Sentiment "RiskOff | RiskOn | Mixed"
+        Guid RunId FK
+    }
+
+    NewsBriefRuns ||--o| NewsItems : "has one"
+    NewsItems ||--o{ CategoryAssessments : "has many"
+    WeeklySummaryRuns ||--o{ WeeklySummaryThemes : "has many"
+```
+
 ## Documentation
 
 - [News Brief Agent Architecture](docs/news-brief-agent-architecture.md) — Step 1 design, Mermaid diagrams, domain model, persistence schema
