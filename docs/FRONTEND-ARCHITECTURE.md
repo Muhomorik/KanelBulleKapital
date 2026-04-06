@@ -12,6 +12,17 @@ Cloud-native AI analysis pipeline. KanelBrief runs agents on schedule, stores re
 
 FikaForecast and KanelBrief are **separate solutions** with no shared project references. KanelBrief has its own reduced DTOs. They do not sync — each operates independently.
 
+## Branching Strategy
+
+Gitflow. `main` is the production branch — merges to `main` trigger deployment.
+
+| Branch | Purpose |
+| --- | --- |
+| `main` | Production — deployed automatically on merge |
+| `develop` | Integration branch — features merge here first |
+| `feature/*` | New features branched from `develop` |
+| `hotfix/*` | Urgent fixes — branched from `main`, merged to `main` + `develop` |
+
 ## System Overview
 
 ```mermaid
