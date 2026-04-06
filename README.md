@@ -6,6 +6,12 @@
 
 > Continuation of [SemanticKernel-FundDocsQnA-dotnet-nextjs](https://github.com/Muhomorik/SemanticKernel-FundDocsQnA-dotnet-nextjs) — shares the same backend (ASP.NET Core Web API, RAG over fund documents, function calling against Azure SQL).
 
+### [FikaForecast](FikaForecast/)
+
+A WPF desktop app that runs AI agents to analyze financial markets. Compares how different LLMs perform on the same market analysis task using Microsoft Agent Framework and Azure AI Foundry.
+
+![FikaForecast in action](FikaForecast/docs/ANIMATION_OVERVIEW.gif)
+
 ## Roadmap
 
 Continuous hypothesis evaluation using event-driven multi-agent architecture on Azure AI Foundry.
@@ -42,15 +48,6 @@ Continuous hypothesis evaluation using event-driven multi-agent architecture on 
 - [ ] **Step 7 — Deploy as frontend to Azure**
   - [ ] Web frontend on Azure Static Web Apps
 
-## Projects
-
-This repo is a monorepo — each step in the roadmap lives in its own project folder.
-
-### [FikaForecast](FikaForecast/)
-
-A WPF desktop app that runs AI agents to analyze financial markets. Compares how different LLMs perform on the same market analysis task using Microsoft Agent Framework and Azure AI Foundry.
-
-![FikaForecast in action](FikaForecast/docs/ANIMATION_OVERVIEW.gif)
 
 **Features:** model comparison, batch scheduler (automated daily runs at 4-hour intervals), run history, evaluation agent, configurable prompts and models
 

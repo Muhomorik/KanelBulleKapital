@@ -29,6 +29,33 @@ Schedule batch runs across all enabled models at fixed 4-hour intervals. Toggle 
 </details>
 
 <details>
+<summary><strong>Weekly summary — aggregate daily briefs</strong></summary>
+
+Step 2 of the pipeline. Aggregates 5–7 daily news briefs into a confidence-weighted weekly summary with net mood and recurring themes.
+
+![Weekly summary](docs/IMG_WEEKLY.png)
+
+</details>
+
+<details>
+<summary><strong>Substitution chains — follow the capital</strong></summary>
+
+Step 3 of the pipeline. Traces disruption chains to find where capital fleeing one sector flows toward another.
+
+![Substitution chains](docs/IMG_CHAINS.png)
+
+</details>
+
+<details>
+<summary><strong>Rotation targets — strongest destinations</strong></summary>
+
+Step 4 of the pipeline. Flags up to 3 strongest capital rotation destinations worth watching, with signal strength and risk caveats.
+
+![Rotation targets](docs/IMG_TARGETS.png)
+
+</details>
+
+<details>
 <summary><strong>Browse run history</strong></summary>
 
 All runs are persisted to SQLite. Filter by model, inspect past reports, delete old runs. Full markdown rendering in the detail pane.
