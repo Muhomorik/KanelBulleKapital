@@ -129,6 +129,132 @@ dotnet user-secrets set "AzureAIFoundry:ProjectEndpoint" "https://<your-ai-resou
 dotnet user-secrets set "AzureAIFoundry:BingConnectionName" "<your-bing-connection>"
 ```
 
+## Storage Account
+
+Azure Tables for agent results + Durable Functions state. Single account handles both.
+
+### Storage — Create (Portal)
+
+1. Search **"Storage accounts"** → **+ Create**
+2. Fill in:
+   - **Resource group**: `<your-resource-group>`
+   - **Name**: `<your-storage-account>` (lowercase, no dashes)
+   - **Region**: `Sweden Central`
+   - **Preferred storage type**: Other (Tables and Queues)
+   - **Performance**: Standard
+   - **Redundancy**: LRS
+3. Leave Advanced, Networking, Data Protection, Encryption as defaults
+4. **Review + create** → **Create**
+
+### Storage — Create (CLI)
+
+```bash
+az storage account create \
+  --name <your-storage-account> \
+  --resource-group <your-resource-group> \
+  --location swedencentral \
+  --sku Standard_LRS \
+  --kind StorageV2
+```
+
+### Tables Created by the System
+
+Tables are created automatically on first write via `CreateIfNotExistsAsync()` in the Azure.Data.Tables SDK — no manual setup needed:
+
+| Table | Purpose |
+| --- | --- |
+| `NewsBriefRuns` | News Brief agent results |
+| `WeeklySummaryRuns` | Weekly Summary agent results |
+| `SubstitutionChainRuns` | Substitution Chain agent results |
+| `OpportunityScanRuns` | Opportunity Scan agent results |
+| `LatestRuns` | Dashboard accelerator (latest run per model) |
+
+Durable Functions also auto-creates its own internal tables/queues in the same account on first orchestration run.
+
+### Schema & Migrations
+
+Azure Tables is schemaless — there are no migrations. Each row is a bag of key-value properties.
+
+- **Add a property** — just start writing it. Old rows return `null`, new rows have it.
+- **Remove a property** — stop writing it. Old rows keep it, new rows don't.
+- **Change a property type** — old rows have the old type, new rows the new one. Read code must handle both.
+
+Agent results are write-once, read-many — old runs are never updated. If the output format changes, new runs simply have different properties. Read code handles missing properties with null checks.
+
+### Storage — Cost
+
+~$0.05/month at this workload volume. Effectively free.
+
+## Function App (KanelBrief)
+
+Azure Functions (Flex Consumption) — runs AI agents, Durable orchestrations, and read API endpoints.
+
+### Functions — Create (Portal)
+
+1. Search **"Function App"** → **+ Create**
+2. Fill in:
+   - **Resource group**: `<your-resource-group>`
+   - **Name**: `<your-function-app>`
+   - **Region**: `Sweden Central`
+   - **Hosting plan**: Flex Consumption
+   - **Runtime stack**: .NET 9 (Isolated)
+   - **Instance size**: 2048 MB (default)
+   - **Zone redundancy**: Disabled
+3. **Storage**: select `<your-storage-account>`
+4. **Durable Functions**: Enable — Azure managed (Durable Task Scheduler), Consumption SKU
+5. **Monitoring**: Application Insights — skip (add later if needed)
+6. **Networking, Deployment, Authentication**: defaults
+7. **Review + create** → **Create**
+
+### Functions — Create (CLI)
+
+```bash
+az functionapp create \
+  --name <your-function-app> \
+  --resource-group <your-resource-group> \
+  --storage-account <your-storage-account> \
+  --runtime dotnet-isolated \
+  --runtime-version 9.0 \
+  --functions-version 4 \
+  --os-type Linux \
+  --location swedencentral
+```
+
+### Functions — Cost
+
+Flex Consumption: effectively $0 within free grant (250,000 GB-s + 1,000,000 executions/month). KanelBrief uses ~10% of the free grant.
+
+## Static Web App (SmorgasBoard)
+
+Next.js frontend dashboard — displays agent pipeline results from KanelBrief.
+
+### SWA — Create (Portal)
+
+1. Search **"Static Web Apps"** → **+ Create**
+2. Fill in:
+   - **Resource group**: `<your-resource-group>`
+   - **Name**: `<your-static-web-app>`
+   - **Plan type**: Free
+   - **Region**: `West Europe` (SWA regions differ from regular Azure — pick closest available)
+   - **Deployment source**: Other (connect repo later)
+   - **Deployment authorization**: Deployment token
+3. **Enterprise-grade edge**: Disabled
+4. **Review + create** → **Create**
+
+### SWA — Create (CLI)
+
+```bash
+az staticwebapp create \
+  --name <your-static-web-app> \
+  --resource-group <your-resource-group> \
+  --location westeurope \
+  --sku Free
+```
+
+### SWA — Cost
+
+Free tier: $0.
+
 ## Existing Services (Shared Backend)
 
 These services are already deployed and shared with [SemanticKernel-FundDocsQnA](https://github.com/Muhomorik/SemanticKernel-FundDocsQnA-dotnet-nextjs):
