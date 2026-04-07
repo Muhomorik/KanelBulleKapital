@@ -92,6 +92,25 @@ Verify secrets are set:
 dotnet user-secrets list
 ```
 
+## GitHub Actions Secrets (CI/CD)
+
+Stored in GitHub → Repository → Settings → Secrets and variables → Actions.
+
+| Secret | Description | Where to find it |
+| --- | --- | --- |
+| `AZURE_FUNCTIONAPP_NAME` | Function App name | Azure Portal → Function App → Overview → Name |
+| `AZURE_FUNCTION_PUBLISH_PROFILE` | XML publish profile for deployment | Azure Portal → Function App → Overview → **Get publish profile** (downloads XML file) |
+
+### How to Add a GitHub Secret
+
+1. Go to your repository on GitHub
+2. **Settings** → **Secrets and variables** → **Actions**
+3. Click **New repository secret**
+4. Enter the name (e.g. `AZURE_FUNCTIONAPP_NAME`) and value
+5. Click **Add secret**
+
+> **Publish profile:** Download from Azure Portal → Function App → Overview → **Get publish profile**. Paste the entire XML content as the secret value.
+
 ## Security Best Practices
 
 ### Do
