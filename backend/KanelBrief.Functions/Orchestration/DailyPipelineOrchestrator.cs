@@ -60,7 +60,7 @@ public class DailyPipelineOrchestrator
             _logger.LogInformation("Weekly aggregation pipeline starting at {Time}", timer.ScheduleStatus?.Last);
 
             // Calculate week boundaries (previous week)
-            var now = DateTime.UtcNow;
+            var now = DateTimeOffset.UtcNow;
             var dayOfWeek = (int)now.DayOfWeek;
             var weekStart = now.AddDays(-(dayOfWeek + 6) % 7).Date;
             var weekEnd = weekStart.AddDays(7).Date;

@@ -1,4 +1,6 @@
+using Azure.AI.Projects;
 using Azure.Data.Tables;
+using Azure.Identity;
 using KanelBrief.Core.Repositories;
 using KanelBrief.Functions.Repositories;
 using Microsoft.Azure.Functions.Worker;
@@ -48,6 +50,17 @@ builder.Services.AddScoped<IAgentRunRepository>(sp =>
         tableServiceClient.GetTableClient("SubstitutionChainRuns"),
         tableServiceClient.GetTableClient("OpportunityScanRuns")
     );
+});
+
+// Register AIProjectClient for Agent Framework
+builder.Services.AddSingleton(sp =>
+{
+    var foundryEndpoint = builder.Configuration["FOUNDRY_PROJECT_ENDPOINT"]
+        ?? throw new InvalidOperationException("FOUNDRY_PROJECT_ENDPOINT not configured");
+
+    return new AIProjectClient(
+        new Uri(foundryEndpoint),
+        new DefaultAzureCredential());
 });
 
 builder.Build().Run();

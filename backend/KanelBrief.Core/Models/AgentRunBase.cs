@@ -9,6 +9,9 @@ public abstract class AgentRunBase
     /// <summary>Unique run identifier (GUID). Maps to Azure Tables RowKey.</summary>
     public string RunId { get; set; } = string.Empty;
 
+    /// <summary>Exact timestamp when the run was created, preserving timezone information.</summary>
+    public DateTimeOffset CreatedAt { get; set; }
+
     public string ModelId { get; set; } = string.Empty;
 
     public RunStatus Status { get; set; }

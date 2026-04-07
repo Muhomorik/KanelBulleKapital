@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Azure.AI.Projects;
 using KanelBrief.Core.Models;
 using KanelBrief.Core.Repositories;
 using Microsoft.Azure.Functions.Worker;
@@ -10,18 +11,22 @@ namespace KanelBrief.Functions.Agents;
 /// <summary>
 /// Opportunity Scan agent: identifies actionable rotation opportunities from capital chains.
 /// Evaluates rotation paths for investment potential and associated risks.
+/// Integrates with Microsoft Agent Framework for LLM-powered analysis.
 /// </summary>
 public class OpportunityScanAgent
 {
     private readonly ILogger<OpportunityScanAgent> _logger;
+    private readonly AIProjectClient _aiProjectClient;
     private readonly IAgentRunRepository _repository;
     private readonly JsonSerializerOptions _jsonOptions;
 
     public OpportunityScanAgent(
         ILogger<OpportunityScanAgent> logger,
+        AIProjectClient aiProjectClient,
         IAgentRunRepository repository)
     {
         _logger = logger;
+        _aiProjectClient = aiProjectClient;
         _repository = repository;
         _jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     }
@@ -39,39 +44,41 @@ public class OpportunityScanAgent
 
             _logger.LogInformation("Processing opportunities from substitution chain {RunId}", request.SubstitutionChainRunId);
 
+            var startTime = DateTimeOffset.UtcNow;
+            var runId = Guid.NewGuid().ToString();
+
             // Create the Opportunity Scan run
             var run = new OpportunityScanRun
             {
-                RunDate = DateOnly.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd"),
-                RunId = Guid.NewGuid().ToString(),
-                ModelId = "gpt-5.4-mini",
+                RunDate = startTime.ToString("yyyy-MM-dd"),
+                RunId = runId,
+                CreatedAt = startTime,
+                ModelId = "gpt-4o-mini",
                 Status = RunStatus.Success,
                 DurationSeconds = 0,
                 InputTokens = 0,
                 OutputTokens = 0,
                 TotalTokens = 0,
                 SubstitutionChainRunId = request.SubstitutionChainRunId,
-                Targets = GenerateTargets()
+                Targets = []
             };
-
-            var startTime = DateTime.UtcNow;
 
             try
             {
-                // TODO: Integrate Microsoft Agent Framework
-                // - Fetch the substitution chain run by ID
-                // - Evaluate each rotation path for opportunity strength
-                // - Assess entry points and risk factors
-                // - Score and rank opportunities
+                // Use Microsoft Agent Framework for analysis
+                var analysis = await AnalyzeOpportunitiesWithAgentAsync(request.SubstitutionChainRunId);
+                run.Targets = analysis.Targets;
+
                 _logger.LogInformation("Opportunity Scan completed: {TargetCount} opportunities", run.Targets.Count);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Analysis processing failed");
+                _logger.LogError(ex, "Analysis processing failed, using fallback");
                 run.Status = RunStatus.Partial;
+                run.Targets = GenerateFallbackTargets();
             }
 
-            run.DurationSeconds = (DateTime.UtcNow - startTime).TotalSeconds;
+            run.DurationSeconds = (DateTimeOffset.UtcNow - startTime).TotalSeconds;
 
             // Save to repository
             await _repository.SaveOpportunityScanRunAsync(run);
@@ -91,9 +98,63 @@ public class OpportunityScanAgent
         }
     }
 
-    private List<RotationTarget> GenerateTargets()
+    private async Task<OpportunityScanAnalysisResult> AnalyzeOpportunitiesWithAgentAsync(string substitutionChainRunId)
     {
-        // TODO: Replace with Agent Framework LLM analysis of rotation chains
+        // Create agent for opportunity analysis
+        var agent = _aiProjectClient.AsAIAgent(
+            model: "gpt-4o-mini",
+            name: "OpportunityScanAnalyzer",
+            instructions: @"You are a financial investment analyst. Evaluate capital rotation opportunities and identify actionable targets.
+
+Return a JSON object with this exact structure:
+{
+  ""targets"": [
+    {
+      ""category"": ""Asset or sector to invest in"",
+      ""signalStrength"": ""Strong|Medium|Weak"",
+      ""rationale"": ""Why this is a good opportunity"",
+      ""riskCaveat"": ""Key risks or conditions to watch""
+    }
+  ]
+}"
+        );
+
+        var prompt = $"Based on the substitution chain analysis (ID: {substitutionChainRunId}), identify investment opportunities.\nEvaluate each rotation path for signal strength, entry points, and risks.";
+
+        var agentResponse = await agent.RunAsync(prompt);
+        var responseText = agentResponse.ToString() ?? string.Empty;
+
+        var analysisJson = ExtractJson(responseText);
+        var analysis = JsonSerializer.Deserialize<OpportunityScanAnalysisResult>(analysisJson, _jsonOptions)
+            ?? throw new InvalidOperationException("Failed to parse agent response");
+
+        return analysis;
+    }
+
+    private string ExtractJson(string text)
+    {
+        var startIndex = text.IndexOf('{');
+        var endIndex = text.LastIndexOf('}');
+
+        if (startIndex < 0 || endIndex < 0)
+            throw new InvalidOperationException("No JSON found in agent response");
+
+        return text[startIndex..(endIndex + 1)];
+    }
+
+    private SignalStrength ParseSignalStrength(string strength)
+    {
+        return strength.ToLowerInvariant() switch
+        {
+            "strong" => SignalStrength.Strong,
+            "moderate" => SignalStrength.Moderate,
+            "weak" => SignalStrength.Weak,
+            _ => SignalStrength.Moderate
+        };
+    }
+
+    private List<RotationTarget> GenerateFallbackTargets()
+    {
         return new List<RotationTarget>
         {
             new()
@@ -111,4 +172,10 @@ public class OpportunityScanAgent
 public class OpportunityScanRequest
 {
     public string SubstitutionChainRunId { get; set; } = string.Empty;
+}
+
+/// <summary>Agent analysis result structure matching agent instructions.</summary>
+internal class OpportunityScanAnalysisResult
+{
+    public List<RotationTarget> Targets { get; set; } = [];
 }

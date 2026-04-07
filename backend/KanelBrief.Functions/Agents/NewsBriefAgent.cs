@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Azure.AI.Projects;
 using KanelBrief.Core.Models;
 using KanelBrief.Core.Repositories;
 using Microsoft.Azure.Functions.Worker;
@@ -10,18 +11,22 @@ namespace KanelBrief.Functions.Agents;
 /// <summary>
 /// News Brief agent: analyzes daily news and produces market sentiment briefing.
 /// Accepts news articles as input and produces structured market sentiment assessment.
+/// Integrates with Microsoft Agent Framework for LLM-powered analysis.
 /// </summary>
 public class NewsBriefAgent
 {
-    private readonly IAgentRunRepository _repository;
     private readonly ILogger<NewsBriefAgent> _logger;
+    private readonly AIProjectClient _aiProjectClient;
+    private readonly IAgentRunRepository _repository;
     private readonly JsonSerializerOptions _jsonOptions;
 
     public NewsBriefAgent(
         ILogger<NewsBriefAgent> logger,
+        AIProjectClient aiProjectClient,
         IAgentRunRepository repository)
     {
         _logger = logger;
+        _aiProjectClient = aiProjectClient;
         _repository = repository;
         _jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     }
@@ -42,38 +47,48 @@ public class NewsBriefAgent
 
             _logger.LogInformation("Processing {ArticleCount} news articles", newsArticles.Count);
 
+            var startTime = DateTimeOffset.UtcNow;
+            var runId = Guid.NewGuid().ToString();
+
             // Create the News Brief run
             var run = new NewsBriefRun
             {
-                RunDate = DateOnly.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd"),
-                RunId = Guid.NewGuid().ToString(),
-                ModelId = "gpt-5.4-mini",
+                RunDate = startTime.ToString("yyyy-MM-dd"),
+                RunId = runId,
+                CreatedAt = startTime,
+                ModelId = "gpt-4o-mini",
                 Status = RunStatus.Success,
                 DurationSeconds = 0,
                 InputTokens = 0,
                 OutputTokens = 0,
                 TotalTokens = 0,
-                DeploymentName = "gpt-5.4-mini",
-                Mood = "Mixed",
-                Summary = GenerateSummary(newsArticles),
-                Assessments = GenerateAssessments(newsArticles)
+                DeploymentName = "gpt-4o-mini",
+                Mood = MarketSentiment.Mixed.ToString(),
+                Summary = string.Empty,
+                Assessments = []
             };
-
-            var startTime = DateTime.UtcNow;
 
             try
             {
-                // TODO: Integrate Microsoft Agent Framework for LLM analysis
-                // For now, generate assessments from input structure
-                _logger.LogInformation("News Brief analysis completed: {Mood}", run.Mood);
+                // Use Microsoft Agent Framework for analysis
+                var analysis = await AnalyzeNewsWithAgentAsync(newsArticles);
+                run.Mood = analysis.Mood;
+                run.Summary = analysis.Summary;
+                run.Assessments = analysis.Assessments;
+
+                _logger.LogInformation("News Brief analysis completed: Mood={Mood}, Assessments={Count}",
+                    run.Mood, run.Assessments.Count);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Analysis processing failed");
+                _logger.LogError(ex, "Analysis processing failed, using fallback");
                 run.Status = RunStatus.Partial;
+                // Use fallback assessment from article structure
+                run.Summary = GenerateFallbackSummary(newsArticles);
+                run.Assessments = GenerateFallbackAssessments(newsArticles);
             }
 
-            run.DurationSeconds = (DateTime.UtcNow - startTime).TotalSeconds;
+            run.DurationSeconds = (DateTimeOffset.UtcNow - startTime).TotalSeconds;
 
             // Save to repository
             await _repository.SaveNewsBriefRunAsync(run);
@@ -93,17 +108,70 @@ public class NewsBriefAgent
         }
     }
 
-    private string GenerateSummary(List<NewsArticle> articles)
+    private async Task<NewsBriefAnalysisResult> AnalyzeNewsWithAgentAsync(List<NewsArticle> articles)
     {
-        // TODO: Replace with Agent Framework LLM call
+        // Create agent for news analysis
+        var agent = _aiProjectClient.AsAIAgent(
+            model: "gpt-4o-mini",
+            name: "NewsBriefAnalyzer",
+            instructions: @"You are a financial market analyst. Analyze the provided news articles and:
+1. Determine the overall market mood (RiskOn, RiskOff, or Mixed)
+2. Generate a brief market summary (1-2 sentences)
+3. For each category/sector, provide sentiment assessment
+
+Return a JSON object with this exact structure:
+{
+  ""mood"": ""RiskOn|RiskOff|Mixed"",
+  ""summary"": ""Your analysis summary"",
+  ""assessments"": [
+    {
+      ""category"": ""Sector name"",
+      ""headline"": ""Key headline"",
+      ""summary"": ""Analysis summary"",
+      ""sentiment"": ""RiskOn|RiskOff|Mixed""
+    }
+  ]
+}"
+        );
+
+        // Format articles for the agent
+        var articlesText = string.Join("\n\n", articles.Select((a, i) =>
+            $"[Article {i + 1}]\nCategory: {a.Category}\nTitle: {a.Title}\nContent: {a.Content}"));
+
+        var prompt = $"Analyze these market news articles:\n\n{articlesText}";
+
+        // Run agent and get response
+        var agentResponse = await agent.RunAsync(prompt);
+        var responseText = agentResponse.ToString() ?? string.Empty;
+
+        // Parse JSON response
+        var analysisJson = ExtractJson(responseText);
+        var analysis = JsonSerializer.Deserialize<NewsBriefAnalysisResult>(analysisJson, _jsonOptions)
+            ?? throw new InvalidOperationException("Failed to parse agent response");
+
+        return analysis;
+    }
+
+    private string ExtractJson(string text)
+    {
+        // Extract JSON from response (agent might include extra text)
+        var startIndex = text.IndexOf('{');
+        var endIndex = text.LastIndexOf('}');
+
+        if (startIndex < 0 || endIndex < 0)
+            throw new InvalidOperationException("No JSON found in agent response");
+
+        return text[startIndex..(endIndex + 1)];
+    }
+
+    private string GenerateFallbackSummary(List<NewsArticle> articles)
+    {
         var categories = articles.Select(a => a.Category).Distinct();
         return $"Market briefing covering {categories.Count()} sectors: {string.Join(", ", categories)}.";
     }
 
-    private List<CategoryAssessment> GenerateAssessments(List<NewsArticle> articles)
+    private List<CategoryAssessment> GenerateFallbackAssessments(List<NewsArticle> articles)
     {
-        // TODO: Replace with Agent Framework LLM call
-        // For now, create basic assessments from input
         return articles
             .GroupBy(a => a.Category)
             .Select(g => new CategoryAssessment
@@ -123,4 +191,12 @@ public class NewsArticle
     public string Title { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty;
+}
+
+/// <summary>Agent analysis result structure matching agent instructions.</summary>
+internal class NewsBriefAnalysisResult
+{
+    public string Mood { get; set; } = MarketSentiment.Mixed.ToString();
+    public string Summary { get; set; } = string.Empty;
+    public List<CategoryAssessment> Assessments { get; set; } = [];
 }
