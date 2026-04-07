@@ -15,6 +15,7 @@ public class DailyPipelineOrchestratorTests
     {
         var schedule = DailyPipelineOrchestrator.DAILY_BRIEF_SCHEDULE;
 
+        
         // Should not throw; valid cron format
         var cron = CronExpression.Parse(schedule);
         Assert.That(cron, Is.Not.Null);
