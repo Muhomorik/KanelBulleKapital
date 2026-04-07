@@ -165,17 +165,16 @@ Returns:
 
 ### Phase 3: CI/CD Pipeline
 
-- [ ] **PR Checks** (pr-checks.yml): Run on PR to main/develop
+- [x] **PR Checks** (pr-checks.yml): Run on PR to main/develop
   - Build backend with .NET 9.0
   - Run all unit tests
-  - Build frontend with Next.js
-- [ ] **Deploy Backend** (deploy-backend.yml): Run on push to main
+- [x] **Deploy Backend** (deploy-backend.yml): Run on push to main
   - Build + test backend
-  - Publish to Azure Functions
-- [ ] **Deploy Frontend** (deploy-frontend.yml): Run on push to main
+  - Publish to Azure Functions (Flex Consumption via One Deploy)
+- [ ] **Deploy Frontend** (deploy-frontend.yml): Run on push to main (deferred — no frontend yet)
   - Build + test frontend
   - Deploy to Azure Static Web Apps
-- [ ] **Branch Protection**: Protect `main` branch (require PR reviews, CI/CD checks pass)
+- [x] **Branch Protection**: Protect `main` branch (require PR, CI/CD checks pass, restrict push)
 
 **Tech Stack**: GitHub Actions (reference: [SemanticKernel repo workflows](https://github.com/Muhomorik/SemanticKernel-FundDocsQnA-dotnet-nextjs/tree/main/.github/workflows))
 

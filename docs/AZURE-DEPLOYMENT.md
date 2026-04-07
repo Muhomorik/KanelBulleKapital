@@ -268,11 +268,12 @@ Automated build, test, and deployment via GitHub Actions.
 
 ### Branch Protection (main)
 
-Configured in GitHub → Repository → Settings → Branches → Branch protection rules:
+Configured via GitHub → Repository → Settings → Rules → Rulesets → `Protect main`:
 
-- **Require pull request before merging** (no direct pushes)
-- **Require status checks to pass** — select `Backend - Build & Test`
-- **Dismiss stale pull request approvals** when new commits are pushed
+- **Restrict deletions** — prevent deleting `main`
+- **Require a pull request before merging** (required approvals: 0, dismiss stale approvals)
+- **Require status checks to pass** — `Backend - Build & Test`
+- **Block force pushes**
 
 ### GitHub Secrets
 
@@ -280,11 +281,21 @@ See [SECRETS-MANAGEMENT.md](SECRETS-MANAGEMENT.md#github-actions-secrets-cicd) f
 
 ### Publish Profile Setup
 
+> **Important (Flex Consumption):** SCM Basic Auth must be enabled for publish profiles to work.
+> Azure Portal → Function App → **Settings** → **Configuration** → **General settings** → **SCM Basic Auth Publishing Credentials** → **On** → **Apply**.
+
 1. Azure Portal → Function App (`<your-function-app>`) → **Overview**
 2. Click **Get publish profile** (downloads an XML file)
 3. Copy the entire XML content
 4. GitHub → Repository → Settings → Secrets → Actions → **New repository secret**
 5. Name: `AZURE_FUNCTION_PUBLISH_PROFILE`, Value: paste the XML
+
+### Flex Consumption Deployment Notes
+
+- Uses **One Deploy** (not Kudu zip deploy)
+- Set `sku: flexconsumption` in the GitHub Action
+- Set `remote-build: false` for .NET (project is pre-compiled via `dotnet publish`)
+- `remote-build: true` is only needed for interpreted languages (Node.js, Python)
 
 ### Manual Deploy
 
