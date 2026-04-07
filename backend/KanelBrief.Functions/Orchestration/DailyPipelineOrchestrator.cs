@@ -12,6 +12,12 @@ namespace KanelBrief.Functions.Orchestration;
 /// </summary>
 public class DailyPipelineOrchestrator
 {
+    /// <summary>Cron schedule: every day at 8 UTC (5 fields: minute hour day month day-of-week).</summary>
+    public const string DAILY_BRIEF_SCHEDULE = "0 8 * * *";
+
+    /// <summary>Cron schedule: every Monday at 9 UTC.</summary>
+    public const string WEEKLY_AGGREGATION_SCHEDULE = "0 9 * * 1";
+
     private readonly ILogger<DailyPipelineOrchestrator> _logger;
     private readonly IAgentRunRepository _repository;
 
@@ -26,7 +32,7 @@ public class DailyPipelineOrchestrator
     /// <summary>Daily timer trigger: executes the News Brief agent every morning at 8 UTC.</summary>
     [Function("DailyNewsBriefTimer")]
     public Task RunDailyNewsBrief(
-        [TimerTrigger("0 8 * * *")] TimerInfo timer)
+        [TimerTrigger(DAILY_BRIEF_SCHEDULE)] TimerInfo timer)
     {
         try
         {
@@ -53,7 +59,7 @@ public class DailyPipelineOrchestrator
     /// <summary>Weekly timer trigger: aggregates the week's briefs into themes (runs Monday morning).</summary>
     [Function("WeeklyAggregationTimer")]
     public async Task RunWeeklyAggregation(
-        [TimerTrigger("0 9 * * 1")] TimerInfo timer)
+        [TimerTrigger(WEEKLY_AGGREGATION_SCHEDULE)] TimerInfo timer)
     {
         try
         {
