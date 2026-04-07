@@ -255,6 +255,41 @@ az staticwebapp create \
 
 Free tier: $0.
 
+## CI/CD (GitHub Actions)
+
+Automated build, test, and deployment via GitHub Actions.
+
+### Workflows
+
+| Workflow | Trigger | What it does |
+| --- | --- | --- |
+| `pr-checks.yml` | PR to `main` or `develop` | Build + test backend |
+| `deploy-backend.yml` | Push to `main` (PR merge) | Build + test + deploy to Azure Functions |
+
+### Branch Protection (main)
+
+Configured in GitHub → Repository → Settings → Branches → Branch protection rules:
+
+- **Require pull request before merging** (no direct pushes)
+- **Require status checks to pass** — select `Backend - Build & Test`
+- **Dismiss stale pull request approvals** when new commits are pushed
+
+### GitHub Secrets
+
+See [SECRETS-MANAGEMENT.md](SECRETS-MANAGEMENT.md#github-actions-secrets-cicd) for required secrets.
+
+### Publish Profile Setup
+
+1. Azure Portal → Function App (`<your-function-app>`) → **Overview**
+2. Click **Get publish profile** (downloads an XML file)
+3. Copy the entire XML content
+4. GitHub → Repository → Settings → Secrets → Actions → **New repository secret**
+5. Name: `AZURE_FUNCTION_PUBLISH_PROFILE`, Value: paste the XML
+
+### Manual Deploy
+
+You can trigger a deploy manually from GitHub → Actions → **Deploy Backend** → **Run workflow**.
+
 ## Existing Services (Shared Backend)
 
 These services are already deployed and shared with [SemanticKernel-FundDocsQnA](https://github.com/Muhomorik/SemanticKernel-FundDocsQnA-dotnet-nextjs):
