@@ -181,8 +181,8 @@ Returns:
 ### Phase 4: Azure Deployment
 
 - [x] Secure Azure Tables access (Managed Identity + RBAC — no connection strings for table data)
-- [ ] Configure AI Foundry access for Azure Functions (FOUNDRY_PROJECT_ENDPOINT + Managed Identity RBAC)
-- [ ] Test agent pipeline end-to-end on Azure Functions (Flex Consumption)
+- [x] Configure AI Foundry access for Azure Functions (FOUNDRY_PROJECT_ENDPOINT + Managed Identity RBAC)
+- [x] Test agent pipeline end-to-end on Azure Functions (Flex Consumption)
 
 ### Phase 5: Frontend Integration
 

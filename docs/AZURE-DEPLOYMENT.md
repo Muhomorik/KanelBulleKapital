@@ -106,7 +106,10 @@ dotnet user-secrets set "AzureAIFoundry:BingConnectionName" "<connection-name>"
 
 ### Authentication and Endpoints
 
-FikaForecast uses **DefaultAzureCredential** — no API keys needed. The recommended local setup is Azure CLI:
+Both FikaForecast and KanelBrief use **DefaultAzureCredential** — no API keys needed.
+
+- **Locally**: Azure CLI (`az login`)
+- **Azure Functions**: System-assigned Managed Identity
 
 ```bash
 # Install Azure CLI (one-time)
@@ -116,18 +119,46 @@ winget install Microsoft.AzureCLI
 az login
 ```
 
-After setup, save the project endpoint as a user secret (see [SECRETS-MANAGEMENT.md](SECRETS-MANAGEMENT.md)):
-
 | Value | Where to find it |
 | --- | --- |
 | Project endpoint | Foundry portal → project overview → "Microsoft Foundry project endpoint": `https://<your-ai-resource>.services.ai.azure.com/api/projects/<your-project>` |
 | Bing connection | Management center → Connected resources → connection name |
+
+**FikaForecast** — save as user secrets:
 
 ```bash
 cd FikaForecast/FikaForecast.Wpf
 dotnet user-secrets set "AzureAIFoundry:ProjectEndpoint" "https://<your-ai-resource>.services.ai.azure.com/api/projects/<your-project>"
 dotnet user-secrets set "AzureAIFoundry:BingConnectionName" "<your-bing-connection>"
 ```
+
+**KanelBrief** — set as Function App environment variable:
+
+Azure Portal → Function App → **Environment variables** → add:
+
+- **Name:** `FOUNDRY_PROJECT_ENDPOINT`
+- **Value:** `https://<your-ai-resource>.services.ai.azure.com/api/projects/<your-project>`
+
+### Foundry — Security (Managed Identity + RBAC)
+
+The Function App authenticates to AI Foundry via Managed Identity.
+The Agent Framework needs permission to create and run agents.
+
+**Required roles on the Foundry resource (`<your-ai-resource>`):**
+
+| Role | Why |
+| --- | --- |
+| Azure AI Developer | General access to AI Foundry project |
+| Cognitive Services User | Required for agent create/run operations |
+
+**Setup steps:**
+
+1. Azure Portal → Foundry resource (`<your-ai-resource>`) →
+   **Access Control (IAM)** → **+ Add** → **Add role assignment**
+2. Search **"Azure AI Developer"** → select → **Next** →
+   Assign access to: **Managed identity** → **+ Select members** →
+   pick your Function App → **Review + assign**
+3. Repeat for **"Cognitive Services User"**
 
 ## Storage Account
 
@@ -234,7 +265,7 @@ Azure Functions (Flex Consumption) — runs AI agents, Durable orchestrations, a
    - **Zone redundancy**: Disabled
 3. **Storage**: select `<your-storage-account>`
 4. **Durable Functions**: Enable — Azure managed (Durable Task Scheduler), Consumption SKU
-5. **Monitoring**: Application Insights — skip (add later if needed)
+5. **Monitoring**: Application Insights — enable (free grant: 5 GB/month)
 6. **Networking, Deployment, Authentication**: defaults
 7. **Review + create** → **Create**
 

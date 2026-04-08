@@ -121,10 +121,13 @@ Settings configured in Azure Portal → Function App → **Environment variables
 | `TableStorageUri` | Storage Table endpoint for Managed Identity auth | No — just a URL |
 | `FOUNDRY_PROJECT_ENDPOINT` | AI Foundry project endpoint | No — just a URL |
 
-> **Managed Identity:** Table data access uses `DefaultAzureCredential` with the
-> Function App's system-assigned managed identity — no keys or connection strings.
+> **Managed Identity:** Both Table data access and AI Foundry use
+> `DefaultAzureCredential` with the Function App's system-assigned managed
+> identity — no keys or connection strings needed.
 > See [AZURE-DEPLOYMENT.md](AZURE-DEPLOYMENT.md#storage--security-managed-identity--rbac)
-> for setup steps.
+> for Storage setup and
+> [AZURE-DEPLOYMENT.md](AZURE-DEPLOYMENT.md#foundry--security-managed-identity--rbac)
+> for AI Foundry setup.
 
 ## Security Best Practices
 
