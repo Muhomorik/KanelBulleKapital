@@ -53,7 +53,7 @@ public class OpportunityScanAgent
                 RunDate = startTime.ToString("yyyy-MM-dd"),
                 RunId = runId,
                 CreatedAt = startTime,
-                ModelId = "gpt-4o-mini",
+                ModelId = "gpt-5.4-mini",
                 Status = RunStatus.Success,
                 DurationSeconds = 0,
                 InputTokens = 0,
@@ -102,7 +102,7 @@ public class OpportunityScanAgent
     {
         // Create agent for opportunity analysis
         var agent = _aiProjectClient.AsAIAgent(
-            model: "gpt-4o-mini",
+            model: "gpt-5.4-mini",
             name: "OpportunityScanAnalyzer",
             instructions: @"You are a financial investment analyst. Evaluate capital rotation opportunities and identify actionable targets.
 

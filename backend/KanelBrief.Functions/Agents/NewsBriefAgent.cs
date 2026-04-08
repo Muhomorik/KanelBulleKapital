@@ -56,13 +56,13 @@ public class NewsBriefAgent
                 RunDate = startTime.ToString("yyyy-MM-dd"),
                 RunId = runId,
                 CreatedAt = startTime,
-                ModelId = "gpt-4o-mini",
+                ModelId = "gpt-5.4-mini",
                 Status = RunStatus.Success,
                 DurationSeconds = 0,
                 InputTokens = 0,
                 OutputTokens = 0,
                 TotalTokens = 0,
-                DeploymentName = "gpt-4o-mini",
+                DeploymentName = "gpt-5.4-mini",
                 Mood = MarketSentiment.Mixed.ToString(),
                 Summary = string.Empty,
                 Assessments = []
@@ -112,7 +112,7 @@ public class NewsBriefAgent
     {
         // Create agent for news analysis
         var agent = _aiProjectClient.AsAIAgent(
-            model: "gpt-4o-mini",
+            model: "gpt-5.4-mini",
             name: "NewsBriefAnalyzer",
             instructions: @"You are a financial market analyst. Analyze the provided news articles and:
 1. Determine the overall market mood (RiskOn, RiskOff, or Mixed)
