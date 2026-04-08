@@ -157,6 +157,38 @@ az storage account create \
   --kind StorageV2
 ```
 
+### Storage — Security (Managed Identity + RBAC)
+
+Azure Tables data access uses **Managed Identity** — no connection strings or keys for table operations. Even if the storage account URL leaks, unauthorized requests get `403 Forbidden`.
+
+**How it works:**
+
+- The Function App has a **system-assigned managed identity** enabled
+- The identity is granted **"Storage Table Data Contributor"** RBAC role on the storage account
+- The app uses `DefaultAzureCredential` + `TableStorageUri` instead of a connection string
+- Locally, `UseDevelopmentStorage=true` connects to Azurite (local emulator)
+
+**Setup steps:**
+
+1. **Enable Managed Identity:**
+   Azure Portal → Function App (`<your-function-app>`) → **Settings** → **Identity** → System assigned → **On** → **Save**
+
+2. **Assign RBAC role:**
+   Azure Portal → Storage Account (`<your-storage-account>`) → **Access Control (IAM)** →
+   **+ Add** → **Add role assignment** → search **"Storage Table Data Contributor"** →
+   select it → **Next** → Assign access to: **Managed identity** →
+   **+ Select members** → pick your Function App → **Review + assign**
+
+3. **Add `TableStorageUri` app setting:**
+   Azure Portal → Function App → **Settings** → **Environment variables** → add:
+   - **Name:** `TableStorageUri`
+   - **Value:** `https://<your-storage-account>.table.core.windows.net`
+
+> **Note:** `AzureWebJobsStorage` still uses a connection string for Functions runtime
+> internals (timer triggers, Durable Tasks, blob leases). Only table *data* access uses
+> Managed Identity. A future improvement is migrating `AzureWebJobsStorage` to
+> identity-based connections as well.
+
 ### Tables Created by the System
 
 Tables are created automatically on first write via `CreateIfNotExistsAsync()` in the Azure.Data.Tables SDK — no manual setup needed:

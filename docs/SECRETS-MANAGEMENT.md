@@ -111,6 +111,21 @@ Stored in GitHub → Repository → Settings → Secrets and variables → Actio
 
 > **Publish profile:** Download from Azure Portal → Function App → Overview → **Get publish profile**. Paste the entire XML content as the secret value.
 
+## Azure Functions App Settings (Production)
+
+Settings configured in Azure Portal → Function App → **Environment variables**.
+
+| Setting | Description | Sensitive? |
+| --- | --- | --- |
+| `AzureWebJobsStorage` | Storage connection string (Functions runtime) | Yes — set by Azure at creation |
+| `TableStorageUri` | Storage Table endpoint for Managed Identity auth | No — just a URL |
+| `FOUNDRY_PROJECT_ENDPOINT` | AI Foundry project endpoint | No — just a URL |
+
+> **Managed Identity:** Table data access uses `DefaultAzureCredential` with the
+> Function App's system-assigned managed identity — no keys or connection strings.
+> See [AZURE-DEPLOYMENT.md](AZURE-DEPLOYMENT.md#storage--security-managed-identity--rbac)
+> for setup steps.
+
 ## Security Best Practices
 
 ### Do

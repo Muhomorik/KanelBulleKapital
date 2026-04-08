@@ -180,13 +180,11 @@ Returns:
 
 ### Phase 4: Azure Deployment
 
-- [ ] Configure connection string for Azure Tables (AzureWebJobsStorage)
+- [ ] Secure Azure Tables access (Managed Identity + RBAC, disable shared keys)
 - [ ] Set up Azure AI Foundry deployments (models, endpoints)
 - [ ] Store secrets in Azure Key Vault:
-  - Azure Tables connection string
   - AI Foundry API keys & endpoints
-- [ ] Enable Application Insights for monitoring
-- [ ] Test on Azure Functions (F1 free tier)
+- [ ] Test on Azure Functions (Flex Consumption)
 
 ### Phase 5: Frontend Integration
 

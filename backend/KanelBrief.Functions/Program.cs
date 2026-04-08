@@ -16,14 +16,21 @@ builder.Services
     .AddApplicationInsightsTelemetryWorkerService()
     .ConfigureFunctionsApplicationInsights();
 
-// Azure Tables setup
+// Azure Tables setup — Managed Identity in Azure, Azurite locally
 var storageConnectionString = builder.Configuration["ConnectionStrings:AzureWebJobsStorage"]
-    ?? builder.Configuration["AzureWebJobsStorage"]
-    ?? throw new InvalidOperationException("AzureWebJobsStorage connection string not found");
+    ?? builder.Configuration["AzureWebJobsStorage"];
 
 builder.Services.AddSingleton(sp =>
 {
-    var tableServiceClient = new TableServiceClient(storageConnectionString);
+    var isLocalDev = string.Equals(storageConnectionString, "UseDevelopmentStorage=true",
+        StringComparison.OrdinalIgnoreCase);
+
+    var tableServiceClient = isLocalDev
+        ? new TableServiceClient(storageConnectionString)
+        : new TableServiceClient(
+            new Uri(builder.Configuration["TableStorageUri"]
+                ?? throw new InvalidOperationException("TableStorageUri not configured")),
+            new DefaultAzureCredential());
 
     // Ensure tables exist (creates if not present)
     tableServiceClient.GetTableClient("NewsBriefRuns").CreateIfNotExistsAsync().GetAwaiter().GetResult();
