@@ -53,7 +53,7 @@ public class SubstitutionChainAgent
                 RunDate = startTime.ToString("yyyy-MM-dd"),
                 RunId = runId,
                 CreatedAt = startTime,
-                ModelId = "gpt-4o-mini",
+                ModelId = "gpt-5.4-mini",
                 Status = RunStatus.Success,
                 DurationSeconds = 0,
                 InputTokens = 0,
@@ -102,7 +102,7 @@ public class SubstitutionChainAgent
     {
         // Create agent for rotation analysis
         var agent = _aiProjectClient.AsAIAgent(
-            model: "gpt-4o-mini",
+            model: "gpt-5.4-mini",
             name: "SubstitutionChainAnalyzer",
             instructions: @"You are a financial market rotation analyst. Analyze capital rotation patterns and identify substitution chains.
 A substitution chain shows where capital is fleeing from and flowing toward based on market sentiment.

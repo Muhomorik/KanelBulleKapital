@@ -48,7 +48,7 @@ AgentRunsApi (GET endpoints) → retrieve runs by date/ID
 
 ### 1. Microsoft Agent Framework Integration (Phase 1)
 
-- **NewsBriefAgent**: Uses `AIProjectClient.AsAIAgent()` to analyze news articles with gpt-4o-mini
+- **NewsBriefAgent**: Uses `AIProjectClient.AsAIAgent()` to analyze news articles with gpt-5.4-mini
   - Agent generates mood assessment and category-level sentiment analysis
   - Parses JSON response and populates structured run data
   - Fallback mechanism if LLM call fails
@@ -65,7 +65,7 @@ AgentRunsApi (GET endpoints) → retrieve runs by date/ID
   - Configured with Foundry project endpoint (from `FOUNDRY_PROJECT_ENDPOINT` config)
   - Uses `DefaultAzureCredential` for Azure authentication
 - **Error Handling**: Each agent has fallback placeholder data if LLM call fails
-- **Model**: gpt-4o-mini (from available Foundry models)
+- **Model**: gpt-5.4-mini (from available Foundry models)
 
 ### 2. DateTimeOffset for Timezone Awareness
 
@@ -180,11 +180,9 @@ Returns:
 
 ### Phase 4: Azure Deployment
 
-- [ ] Secure Azure Tables access (Managed Identity + RBAC, disable shared keys)
-- [ ] Set up Azure AI Foundry deployments (models, endpoints)
-- [ ] Store secrets in Azure Key Vault:
-  - AI Foundry API keys & endpoints
-- [ ] Test on Azure Functions (Flex Consumption)
+- [x] Secure Azure Tables access (Managed Identity + RBAC — no connection strings for table data)
+- [ ] Configure AI Foundry access for Azure Functions (FOUNDRY_PROJECT_ENDPOINT + Managed Identity RBAC)
+- [ ] Test agent pipeline end-to-end on Azure Functions (Flex Consumption)
 
 ### Phase 5: Frontend Integration
 
