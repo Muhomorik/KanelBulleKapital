@@ -184,12 +184,20 @@ Returns:
 - [x] Configure AI Foundry access for Azure Functions (FOUNDRY_PROJECT_ENDPOINT + Managed Identity RBAC)
 - [x] Test agent pipeline end-to-end on Azure Functions (Flex Consumption)
 
-### Phase 5: Frontend Integration
+### Phase 5: Frontend Integration (SmorgasBoard)
 
-- [ ] Wire Next.js frontend to read API endpoints
-- [ ] Display run history (filter by date/type)
-- [ ] Show real-time agent execution status
-- [ ] Visualize market themes & rotation paths
+- [x] Scaffold Next.js 16 frontend with React 19, TypeScript, Tailwind CSS 4, shadcn/ui
+- [x] Create "Nordic Financial Editorial" design system (Cormorant Garamond + Outfit, warm cinnamon/espresso palette, dark mode)
+- [x] Build dashboard with 4 sections: Market Pulse, Weekly Themes, Capital Flows, Opportunities
+- [x] Create API client matching all KanelBrief read endpoints
+- [x] Add demo mode with realistic sample data (graceful fallback when API unavailable)
+- [x] Add demo banner and cold-start warning banner (~30s Azure Functions free tier)
+- [x] Configure static export for Azure Static Web Apps deployment
+- [ ] Add CORS to Function App for local dev
+- [ ] Create `staticwebapp.config.json` for SWA linked backend routing
+- [ ] Deploy frontend to Azure Static Web Apps
+- [ ] Create deploy-frontend.yml GitHub Action
+- [ ] Add date picker for browsing historical runs
 
 ## 🔧 Local Development
 
