@@ -157,6 +157,38 @@ az storage account create \
   --kind StorageV2
 ```
 
+### Storage — Security (Managed Identity + RBAC)
+
+Azure Tables data access uses **Managed Identity** — no connection strings or keys for table operations. Even if the storage account URL leaks, unauthorized requests get `403 Forbidden`.
+
+**How it works:**
+
+- The Function App has a **system-assigned managed identity** enabled
+- The identity is granted **"Storage Table Data Contributor"** RBAC role on the storage account
+- The app uses `DefaultAzureCredential` + `TableStorageUri` instead of a connection string
+- Locally, `UseDevelopmentStorage=true` connects to Azurite (local emulator)
+
+**Setup steps:**
+
+1. **Enable Managed Identity:**
+   Azure Portal → Function App (`<your-function-app>`) → **Settings** → **Identity** → System assigned → **On** → **Save**
+
+2. **Assign RBAC role:**
+   Azure Portal → Storage Account (`<your-storage-account>`) → **Access Control (IAM)** →
+   **+ Add** → **Add role assignment** → search **"Storage Table Data Contributor"** →
+   select it → **Next** → Assign access to: **Managed identity** →
+   **+ Select members** → pick your Function App → **Review + assign**
+
+3. **Add `TableStorageUri` app setting:**
+   Azure Portal → Function App → **Settings** → **Environment variables** → add:
+   - **Name:** `TableStorageUri`
+   - **Value:** `https://<your-storage-account>.table.core.windows.net`
+
+> **Note:** `AzureWebJobsStorage` still uses a connection string for Functions runtime
+> internals (timer triggers, Durable Tasks, blob leases). Only table *data* access uses
+> Managed Identity. A future improvement is migrating `AzureWebJobsStorage` to
+> identity-based connections as well.
+
 ### Tables Created by the System
 
 Tables are created automatically on first write via `CreateIfNotExistsAsync()` in the Azure.Data.Tables SDK — no manual setup needed:
@@ -268,11 +300,12 @@ Automated build, test, and deployment via GitHub Actions.
 
 ### Branch Protection (main)
 
-Configured in GitHub → Repository → Settings → Branches → Branch protection rules:
+Configured via GitHub → Repository → Settings → Rules → Rulesets → `Protect main`:
 
-- **Require pull request before merging** (no direct pushes)
-- **Require status checks to pass** — select `Backend - Build & Test`
-- **Dismiss stale pull request approvals** when new commits are pushed
+- **Restrict deletions** — prevent deleting `main`
+- **Require a pull request before merging** (required approvals: 0, dismiss stale approvals)
+- **Require status checks to pass** — `Backend - Build & Test`
+- **Block force pushes**
 
 ### GitHub Secrets
 
@@ -280,11 +313,21 @@ See [SECRETS-MANAGEMENT.md](SECRETS-MANAGEMENT.md#github-actions-secrets-cicd) f
 
 ### Publish Profile Setup
 
+> **Important (Flex Consumption):** SCM Basic Auth must be enabled for publish profiles to work.
+> Azure Portal → Function App → **Settings** → **Configuration** → **General settings** → **SCM Basic Auth Publishing Credentials** → **On** → **Apply**.
+
 1. Azure Portal → Function App (`<your-function-app>`) → **Overview**
 2. Click **Get publish profile** (downloads an XML file)
 3. Copy the entire XML content
 4. GitHub → Repository → Settings → Secrets → Actions → **New repository secret**
 5. Name: `AZURE_FUNCTION_PUBLISH_PROFILE`, Value: paste the XML
+
+### Flex Consumption Deployment Notes
+
+- Uses **One Deploy** (not Kudu zip deploy)
+- Set `sku: flexconsumption` in the GitHub Action
+- Set `remote-build: false` for .NET (project is pre-compiled via `dotnet publish`)
+- `remote-build: true` is only needed for interpreted languages (Node.js, Python)
 
 ### Manual Deploy
 
