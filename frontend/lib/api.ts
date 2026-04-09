@@ -31,8 +31,9 @@ async function fetchJson<T>(path: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export async function getNewsBriefs(date: string): Promise<NewsBriefRun[]> {
-  return fetchJson(`/api/runs/news-briefs?date=${date}`);
+export async function getNewsBriefs(date?: string): Promise<NewsBriefRun[]> {
+  const query = date ? `?date=${date}` : "";
+  return fetchJson(`/api/runs/news-briefs${query}`);
 }
 
 export async function getNewsBrief(
@@ -43,9 +44,10 @@ export async function getNewsBrief(
 }
 
 export async function getWeeklySummaries(
-  date: string,
+  date?: string,
 ): Promise<WeeklySummaryRun[]> {
-  return fetchJson(`/api/runs/weekly-summaries?date=${date}`);
+  const query = date ? `?date=${date}` : "";
+  return fetchJson(`/api/runs/weekly-summaries${query}`);
 }
 
 export async function getWeeklySummary(
@@ -56,9 +58,10 @@ export async function getWeeklySummary(
 }
 
 export async function getSubstitutionChains(
-  date: string,
+  date?: string,
 ): Promise<SubstitutionChainRun[]> {
-  return fetchJson(`/api/runs/substitution-chains?date=${date}`);
+  const query = date ? `?date=${date}` : "";
+  return fetchJson(`/api/runs/substitution-chains${query}`);
 }
 
 export async function getSubstitutionChain(
@@ -69,9 +72,10 @@ export async function getSubstitutionChain(
 }
 
 export async function getOpportunityScans(
-  date: string,
+  date?: string,
 ): Promise<OpportunityScanRun[]> {
-  return fetchJson(`/api/runs/opportunity-scans?date=${date}`);
+  const query = date ? `?date=${date}` : "";
+  return fetchJson(`/api/runs/opportunity-scans${query}`);
 }
 
 export async function getOpportunityScan(
@@ -81,7 +85,7 @@ export async function getOpportunityScan(
   return fetchJson(`/api/runs/opportunity-scans/${runDate}/${runId}`);
 }
 
-export async function getDashboard(date: string): Promise<DashboardData> {
+export async function getDashboard(date?: string): Promise<DashboardData> {
   const [newsBriefs, weeklySummaries, substitutionChains, opportunityScans] =
     await Promise.allSettled([
       getNewsBriefs(date),

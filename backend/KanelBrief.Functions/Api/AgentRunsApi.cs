@@ -26,7 +26,7 @@ public class AgentRunsApi
         _jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     }
 
-    /// <summary>Get all News Brief runs for a specific date.</summary>
+    /// <summary>Get News Brief runs. If ?date is provided, returns runs for that date. Otherwise returns the latest available (up to 7 days back).</summary>
     [Function("GetNewsBriefRuns")]
     public async Task<HttpResponseData> GetNewsBriefRuns(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "runs/news-briefs")] HttpRequestData req)
@@ -34,21 +34,14 @@ public class AgentRunsApi
         try
         {
             var runDate = req.Query["date"];
-            if (string.IsNullOrEmpty(runDate))
-                throw new ArgumentException("date query parameter is required (format: yyyy-MM-dd)");
+            var runs = string.IsNullOrEmpty(runDate)
+                ? await FindLatestAsync(_repository.GetNewsBriefRunsByDateAsync)
+                : await _repository.GetNewsBriefRunsByDateAsync(runDate);
 
-            _logger.LogInformation("Fetching News Brief runs for date {Date}", runDate);
-
-            var runs = await _repository.GetNewsBriefRunsByDateAsync(runDate);
+            _logger.LogInformation("Fetched {Count} News Brief runs (date={Date})", runs.Count, runDate ?? "latest");
 
             var response = req.CreateResponse(System.Net.HttpStatusCode.OK);
             await response.WriteAsJsonAsync(runs);
-            return response;
-        }
-        catch (ArgumentException ex)
-        {
-            var response = req.CreateResponse(System.Net.HttpStatusCode.BadRequest);
-            await response.WriteAsJsonAsync(new { error = ex.Message });
             return response;
         }
         catch (Exception ex)
@@ -88,7 +81,7 @@ public class AgentRunsApi
         }
     }
 
-    /// <summary>Get all Weekly Summary runs for a specific date.</summary>
+    /// <summary>Get Weekly Summary runs. If ?date is provided, returns runs for that date. Otherwise returns the latest available (up to 7 days back).</summary>
     [Function("GetWeeklySummaryRuns")]
     public async Task<HttpResponseData> GetWeeklySummaryRuns(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "runs/weekly-summaries")] HttpRequestData req)
@@ -96,21 +89,14 @@ public class AgentRunsApi
         try
         {
             var runDate = req.Query["date"];
-            if (string.IsNullOrEmpty(runDate))
-                throw new ArgumentException("date query parameter is required (format: yyyy-MM-dd)");
+            var runs = string.IsNullOrEmpty(runDate)
+                ? await FindLatestAsync(_repository.GetWeeklySummaryRunsByDateAsync)
+                : await _repository.GetWeeklySummaryRunsByDateAsync(runDate);
 
-            _logger.LogInformation("Fetching Weekly Summary runs for date {Date}", runDate);
-
-            var runs = await _repository.GetWeeklySummaryRunsByDateAsync(runDate);
+            _logger.LogInformation("Fetched {Count} Weekly Summary runs (date={Date})", runs.Count, runDate ?? "latest");
 
             var response = req.CreateResponse(System.Net.HttpStatusCode.OK);
             await response.WriteAsJsonAsync(runs);
-            return response;
-        }
-        catch (ArgumentException ex)
-        {
-            var response = req.CreateResponse(System.Net.HttpStatusCode.BadRequest);
-            await response.WriteAsJsonAsync(new { error = ex.Message });
             return response;
         }
         catch (Exception ex)
@@ -150,7 +136,7 @@ public class AgentRunsApi
         }
     }
 
-    /// <summary>Get all Substitution Chain runs for a specific date.</summary>
+    /// <summary>Get Substitution Chain runs. If ?date is provided, returns runs for that date. Otherwise returns the latest available (up to 7 days back).</summary>
     [Function("GetSubstitutionChainRuns")]
     public async Task<HttpResponseData> GetSubstitutionChainRuns(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "runs/substitution-chains")] HttpRequestData req)
@@ -158,21 +144,14 @@ public class AgentRunsApi
         try
         {
             var runDate = req.Query["date"];
-            if (string.IsNullOrEmpty(runDate))
-                throw new ArgumentException("date query parameter is required (format: yyyy-MM-dd)");
+            var runs = string.IsNullOrEmpty(runDate)
+                ? await FindLatestAsync(_repository.GetSubstitutionChainRunsByDateAsync)
+                : await _repository.GetSubstitutionChainRunsByDateAsync(runDate);
 
-            _logger.LogInformation("Fetching Substitution Chain runs for date {Date}", runDate);
-
-            var runs = await _repository.GetSubstitutionChainRunsByDateAsync(runDate);
+            _logger.LogInformation("Fetched {Count} Substitution Chain runs (date={Date})", runs.Count, runDate ?? "latest");
 
             var response = req.CreateResponse(System.Net.HttpStatusCode.OK);
             await response.WriteAsJsonAsync(runs);
-            return response;
-        }
-        catch (ArgumentException ex)
-        {
-            var response = req.CreateResponse(System.Net.HttpStatusCode.BadRequest);
-            await response.WriteAsJsonAsync(new { error = ex.Message });
             return response;
         }
         catch (Exception ex)
@@ -212,7 +191,7 @@ public class AgentRunsApi
         }
     }
 
-    /// <summary>Get all Opportunity Scan runs for a specific date.</summary>
+    /// <summary>Get Opportunity Scan runs. If ?date is provided, returns runs for that date. Otherwise returns the latest available (up to 7 days back).</summary>
     [Function("GetOpportunityScanRuns")]
     public async Task<HttpResponseData> GetOpportunityScanRuns(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "runs/opportunity-scans")] HttpRequestData req)
@@ -220,21 +199,14 @@ public class AgentRunsApi
         try
         {
             var runDate = req.Query["date"];
-            if (string.IsNullOrEmpty(runDate))
-                throw new ArgumentException("date query parameter is required (format: yyyy-MM-dd)");
+            var runs = string.IsNullOrEmpty(runDate)
+                ? await FindLatestAsync(_repository.GetOpportunityScanRunsByDateAsync)
+                : await _repository.GetOpportunityScanRunsByDateAsync(runDate);
 
-            _logger.LogInformation("Fetching Opportunity Scan runs for date {Date}", runDate);
-
-            var runs = await _repository.GetOpportunityScanRunsByDateAsync(runDate);
+            _logger.LogInformation("Fetched {Count} Opportunity Scan runs (date={Date})", runs.Count, runDate ?? "latest");
 
             var response = req.CreateResponse(System.Net.HttpStatusCode.OK);
             await response.WriteAsJsonAsync(runs);
-            return response;
-        }
-        catch (ArgumentException ex)
-        {
-            var response = req.CreateResponse(System.Net.HttpStatusCode.BadRequest);
-            await response.WriteAsJsonAsync(new { error = ex.Message });
             return response;
         }
         catch (Exception ex)
@@ -272,5 +244,19 @@ public class AgentRunsApi
             await response.WriteAsJsonAsync(new { error = ex.Message });
             return response;
         }
+    }
+
+    /// <summary>Scan backwards from today up to 7 days to find the latest available runs.</summary>
+    private static async Task<List<T>> FindLatestAsync<T>(Func<string, Task<List<T>>> getByDate)
+    {
+        var today = DateTimeOffset.UtcNow;
+        for (var i = 0; i < 7; i++)
+        {
+            var date = today.AddDays(-i).ToString("yyyy-MM-dd");
+            var runs = await getByDate(date);
+            if (runs.Count > 0)
+                return runs;
+        }
+        return [];
     }
 }
