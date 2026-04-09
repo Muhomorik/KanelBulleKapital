@@ -184,19 +184,3 @@ Return a JSON object with this exact structure:
             .ToList();
     }
 }
-
-/// <summary>Input model for news articles.</summary>
-public class NewsArticle
-{
-    public string Title { get; set; } = string.Empty;
-    public string Content { get; set; } = string.Empty;
-    public string Category { get; set; } = string.Empty;
-}
-
-/// <summary>Agent analysis result structure matching agent instructions.</summary>
-internal class NewsBriefAnalysisResult
-{
-    public string Mood { get; set; } = MarketSentiment.Mixed.ToString();
-    public string Summary { get; set; } = string.Empty;
-    public List<CategoryAssessment> Assessments { get; set; } = [];
-}

@@ -155,15 +155,3 @@ Return a JSON object with this exact structure:
         };
     }
 }
-
-/// <summary>Input request for Substitution Chain agent.</summary>
-public class SubstitutionChainRequest
-{
-    public string WeeklySummaryRunId { get; set; } = string.Empty;
-}
-
-/// <summary>Agent analysis result structure matching agent instructions.</summary>
-internal class SubstitutionChainAnalysisResult
-{
-    public List<RotationChain> Chains { get; set; } = [];
-}

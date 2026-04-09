@@ -167,15 +167,3 @@ Return a JSON object with this exact structure:
         };
     }
 }
-
-/// <summary>Input request for Opportunity Scan agent.</summary>
-public class OpportunityScanRequest
-{
-    public string SubstitutionChainRunId { get; set; } = string.Empty;
-}
-
-/// <summary>Agent analysis result structure matching agent instructions.</summary>
-internal class OpportunityScanAnalysisResult
-{
-    public List<RotationTarget> Targets { get; set; } = [];
-}
