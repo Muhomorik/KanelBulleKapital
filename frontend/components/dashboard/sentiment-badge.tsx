@@ -28,7 +28,8 @@ interface SentimentBadgeProps {
 }
 
 export function SentimentBadge({ sentiment, size = "md" }: SentimentBadgeProps) {
-  const { label, className, icon: Icon } = config[sentiment];
+  const entry = config[sentiment] ?? config.Mixed;
+  const { label, className, icon: Icon } = entry;
 
   const sizeClasses = {
     sm: "px-2 py-0.5 text-xs gap-1",

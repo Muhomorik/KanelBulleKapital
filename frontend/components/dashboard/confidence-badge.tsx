@@ -11,7 +11,7 @@ interface ConfidenceBadgeProps {
 }
 
 export function ConfidenceBadge({ level }: ConfidenceBadgeProps) {
-  const { label, dots } = config[level];
+  const { label, dots } = config[level] ?? config.Medium;
 
   return (
     <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
