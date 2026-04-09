@@ -2,6 +2,8 @@
 
 🤪 Coffee-fueled, sugar-coated, financially doomed
 
+**[Live Demo — SmorgasBoard Dashboard](https://lemon-bush-08a967d03.4.azurestaticapps.net/)**
+
 **Goal:** Build an event-driven multi-agent system that forms, tests, and acts on market hypotheses autonomously — using Microsoft Agent Framework and Azure AI Foundry.
 
 > Continuation of [SemanticKernel-FundDocsQnA-dotnet-nextjs](https://github.com/Muhomorik/SemanticKernel-FundDocsQnA-dotnet-nextjs) — shares the same backend (ASP.NET Core Web API, RAG over fund documents, function calling against Azure SQL).
@@ -45,8 +47,12 @@ Continuous hypothesis evaluation using event-driven multi-agent architecture on 
   - [ ] Paper-trading engine to test agent recommendations with simulated capital
   - [ ] Portfolio state persisted in Azure Table Storage
   - [ ] Automatic weekly evaluation of portfolio performance
-- [ ] **Step 7 — Deploy as frontend to Azure**
-  - [ ] Web frontend on Azure Static Web Apps
+- [x] **Step 7 — [SmorgasBoard Dashboard](https://lemon-bush-08a967d03.4.azurestaticapps.net/)**
+  - [x] KanelBrief backend — Azure Functions (Flex Consumption) with 4 AI agents
+  - [x] Daily timer (8 UTC) → News Brief agent, Weekly timer (Monday 9 UTC) → Summary → Substitution Chain → Opportunity Scan
+  - [x] Azure Tables persistence, Managed Identity auth, CI/CD via GitHub Actions
+  - [x] Next.js frontend on Azure Static Web Apps (free tier)
+  - [x] Date picker for browsing historical runs
 
 
 **Features:** model comparison, batch scheduler (automated daily runs at 4-hour intervals), run history, evaluation agent, configurable prompts and models

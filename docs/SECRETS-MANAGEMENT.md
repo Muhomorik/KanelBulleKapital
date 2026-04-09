@@ -24,7 +24,7 @@
 | --- | --- | --- |
 | `AzureAIFoundry:BingConnectionName` | Bing Grounding connection name | `<your-bing-connection>` |
 
-### Authenticationn
+### Authentication
 
 FikaForecast uses **DefaultAzureCredential** — no API key needed.
 

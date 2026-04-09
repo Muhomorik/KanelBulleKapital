@@ -68,7 +68,7 @@ In the Foundry portal → **Model catalog** → search and deploy:
 | Model | Deployment Name | Deployment Type | Status |
 | --- | --- | --- | --- |
 | gpt-4.1 | gpt-4.1 | Global Standard | Deployed |
-| gpt-5.4-mini | gpt-5.4-mini | Global Standard | TODO (needs SDK migration to Azure.AI.Projects for Bing Grounding) |
+| gpt-5.4-mini | gpt-5.4-mini | Global Standard | Deployed (used by KanelBrief agents) |
 | gpt-5.4 | gpt-5.4 | Global Standard | TODO |
 | gpt-5.4-nano | gpt-5.4-nano | Global Standard | TODO |
 | DeepSeek | deepseek | Serverless | TODO |

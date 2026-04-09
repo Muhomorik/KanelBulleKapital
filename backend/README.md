@@ -132,23 +132,30 @@ All agents are HTTP-triggered with identical structure:
 ### 4. Pipeline Orchestration
 **DailyPipelineOrchestrator** with timer triggers:
 - **DailyNewsBriefTimer** (`0 8 * * *`): Executes daily at 8 UTC
+  - Creates AI agent autonomously (no article input needed) — analyzes current market conditions
+  - Saves `NewsBriefRun` with mood, summary, and sector assessments
 - **WeeklyAggregationTimer** (`0 9 * * 1`): Executes Mondays at 9 UTC
-  - Fetches all NewsBriefRuns from previous week
-  - TODO: Chain agents (Weekly Summary → Substitution Chain → Opportunity Scan)
+  - Fetches all `NewsBriefRun`s from the previous week (Monday–Sunday)
+  - Chains 3 agents sequentially: Weekly Summary → Substitution Chain → Opportunity Scan
+  - Each agent receives context from the previous step
+  - Skips gracefully if no daily briefs exist for the week
 
 ### 5. Read API
-**AgentRunsApi** with 8 GET endpoints:
-- `/runs/news-briefs?date=yyyy-MM-dd` → List all runs for date
+**AgentRunsApi** with 8 GET endpoints (`AuthorizationLevel.Anonymous`):
+
+- `/runs/news-briefs?date=yyyy-MM-dd` → List runs for date (date optional — omit for latest)
 - `/runs/news-briefs/{runDate}/{runId}` → Get specific run
-- `/runs/weekly-summaries?date=yyyy-MM-dd` → List weekly summaries
+- `/runs/weekly-summaries?date=yyyy-MM-dd` → List weekly summaries (date optional)
 - `/runs/weekly-summaries/{runDate}/{runId}` → Get specific summary
-- `/runs/substitution-chains?date=yyyy-MM-dd` → List substitution chains
+- `/runs/substitution-chains?date=yyyy-MM-dd` → List substitution chains (date optional)
 - `/runs/substitution-chains/{runDate}/{runId}` → Get specific chain
-- `/runs/opportunity-scans?date=yyyy-MM-dd` → List opportunity scans
+- `/runs/opportunity-scans?date=yyyy-MM-dd` → List opportunity scans (date optional)
 - `/runs/opportunity-scans/{runDate}/{runId}` → Get specific scan
 
+When `?date` is omitted, the API scans backwards from today (up to 7 days) and returns the latest available data.
+
 Returns:
-- **400 Bad Request** if date query parameter missing
+
 - **404 Not Found** if run doesn't exist
 - **200 OK** with JSON run data (CamelCase serialization)
 
@@ -198,7 +205,11 @@ Returns:
 - [x] Deploy frontend to Azure Static Web Apps (free tier)
 - [x] Create deploy-frontend.yml GitHub Action (auto-deploy on push to main)
 - [x] Configure CORS on Function App for SWA domain
-- [ ] Add date picker for browsing historical runs
+- [x] Add date picker for browsing historical runs
+- [x] Make `?date` optional on list endpoints — returns latest when omitted
+- [x] Set GET endpoints to `AuthorizationLevel.Anonymous` (read-only, public)
+- [x] Wire timer triggers to call AI agents (no more TODO stubs)
+- [x] Move shared types (requests, analysis results) to Core project
 - [x] ~~Link SWA to Function App backend~~ — not needed; free tier uses direct API calls with CORS
 
 ## 🔧 Local Development
@@ -248,10 +259,11 @@ dotnet user-secrets set "AzureWebJobsStorage" "UseDevelopmentStorage=true"
 ```
 
 ### Environment Variables (Azure Functions)
-Set in Azure Portal → Function App → Configuration:
-- `AzureWebJobsStorage`: Connection string to Azure Tables
-- `AI_FOUNDRY_API_KEY`: Azure AI Foundry API key
-- `AI_FOUNDRY_ENDPOINT`: Azure AI Foundry endpoint
+Set in Azure Portal → Function App → Environment variables:
+
+- `AzureWebJobsStorage`: Storage connection string (Functions runtime)
+- `TableStorageUri`: Storage Table endpoint for Managed Identity auth
+- `FOUNDRY_PROJECT_ENDPOINT`: AI Foundry project endpoint
 
 ## 🎯 Key Design Decisions
 
@@ -259,9 +271,10 @@ Set in Azure Portal → Function App → Configuration:
 
 2. **Repository Abstraction**: IAgentRunRepository interface shields agents from storage implementation details. Easy to swap Azure Tables for Cosmos DB, SQL, or in-memory storage.
 
-3. **Placeholder LLM Logic**: Agent functions currently return hardcoded data with clear TODO markers. This compiles and demonstrates the pattern while deferring LLM integration (which requires Agent Framework API stabilization).
+3. **Agent Framework Integration**: All agents use `AIProjectClient.AsAIAgent()` with gpt-5.4-mini. Fallback to placeholder data if LLM call fails — ensures pipeline never crashes.
 
-4. **Timer-Based Orchestration**: Azure Functions TimerTrigger schedules daily briefs and weekly aggregation. Weekly timer orchestrator fetches daily runs and chains remaining agents.
+4. **Timer-Based Orchestration**: Azure Functions TimerTrigger schedules daily briefs (8 UTC) and weekly aggregation (Monday 9 UTC).
+   Weekly timer chains 3 agents sequentially, passing context from each to the next.
 
 5. **Composite Keys**: Azure Tables uses RunDate (PartitionKey) + RunId (RowKey) for efficient date-based queries.
 
@@ -277,8 +290,6 @@ Set in Azure Portal → Function App → Configuration:
 
 ## 🚀 Next Steps
 
-1. **Run tests locally** to verify repository & agent logic
-2. **Integrate Agent Framework** with Azure AI Foundry (after API stabilizes)
-3. **Deploy to Azure** and configure Key Vault secrets
-4. **Connect frontend** to read API endpoints
-5. **Monitor & iterate** via Application Insights
+1. **Expand unit tests** — repository, agent functions, model validation
+2. **Add Bing Grounding** to News Brief agent for real-time news search
+3. **Monitor & iterate** via Application Insights
