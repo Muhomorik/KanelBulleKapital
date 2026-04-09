@@ -190,19 +190,3 @@ Return a JSON object with this exact structure:
         };
     }
 }
-
-/// <summary>Input request for Weekly Summary agent.</summary>
-public class WeeklySummaryRequest
-{
-    public DateTimeOffset WeekStart { get; set; }
-    public DateTimeOffset WeekEnd { get; set; }
-    public List<string> DailyBriefRunIds { get; set; } = [];
-}
-
-/// <summary>Agent analysis result structure matching agent instructions.</summary>
-internal class WeeklySummaryAnalysisResult
-{
-    public string Mood { get; set; } = MarketSentiment.Mixed.ToString();
-    public string Summary { get; set; } = string.Empty;
-    public List<WeeklySummaryTheme> Themes { get; set; } = [];
-}
