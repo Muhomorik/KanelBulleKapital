@@ -28,7 +28,8 @@ interface SignalBadgeProps {
 }
 
 export function SignalBadge({ strength }: SignalBadgeProps) {
-  const { label, className, icon: Icon } = config[strength];
+  const entry = config[strength] ?? config.Moderate;
+  const { label, className, icon: Icon } = entry;
 
   return (
     <span
