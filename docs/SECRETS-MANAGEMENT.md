@@ -100,6 +100,15 @@ Stored in GitHub → Repository → Settings → Secrets and variables → Actio
 | --- | --- | --- |
 | `AZURE_FUNCTIONAPP_NAME` | Function App name | Azure Portal → Function App → Overview → Name |
 | `AZURE_FUNCTION_PUBLISH_PROFILE` | XML publish profile for deployment | Azure Portal → Function App → Overview → **Get publish profile** (downloads XML file) |
+| `AZURE_STATIC_WEB_APPS_API_TOKEN` | SWA deployment token | Azure Portal → Static Web App → Overview → **Manage deployment token** |
+
+### GitHub Actions Variables
+
+Stored in GitHub → Repository → Settings → Secrets and variables → Actions → **Variables** tab.
+
+| Variable | Description | Example |
+| --- | --- | --- |
+| `NEXT_PUBLIC_API_URL` | Function App URL for frontend API calls | `https://<your-function-app>.azurewebsites.net` |
 
 ### How to Add a GitHub Secret
 
