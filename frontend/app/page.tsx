@@ -21,9 +21,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false);
   const [coldStart, setColdStart] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const today = new Date().toISOString().slice(0, 10);
+  const [today] = useState(() => new Date().toISOString().slice(0, 10));
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [dataDate, setDataDate] = useState<string>(today);
+  const [dataDate, setDataDate] = useState<string>("");
 
   const fetchData = useCallback(
     async (date?: string) => {
