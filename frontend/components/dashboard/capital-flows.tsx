@@ -26,7 +26,7 @@ export function CapitalFlows({ data }: CapitalFlowsProps) {
       <SectionHeader />
 
       <div className="space-y-3">
-        {data.chains.map((chain, i) => (
+        {(data.chains ?? []).map((chain, i) => (
           <Card key={i} className={`animate-fade-up stagger-${i + 4}`}>
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2 text-sm">

@@ -28,7 +28,7 @@ export function Opportunities({ data }: OpportunitiesProps) {
       <SectionHeader />
 
       <div className="space-y-3">
-        {data.targets.map((target, i) => (
+        {(data.targets ?? []).map((target, i) => (
           <Card key={i} className={`animate-fade-up stagger-${i + 5}`}>
             <CardHeader className="pb-2">
               <div className="flex items-start justify-between gap-2">
