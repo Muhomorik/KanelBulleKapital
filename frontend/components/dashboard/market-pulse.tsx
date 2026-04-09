@@ -53,7 +53,7 @@ export function MarketPulse({ data }: MarketPulseProps) {
               <Clock className="h-3 w-3" />
               {(data.durationSeconds ?? 0).toFixed(1)}s
             </span>
-            <span>{(data.totalTokens ?? 0).toLocaleString()} tokens</span>
+            <span>{(data.totalTokens ?? 0).toLocaleString("en-US")} tokens</span>
           </CardDescription>
         </CardHeader>
         <CardContent>
