@@ -199,7 +199,7 @@ Returns:
 - [x] Create deploy-frontend.yml GitHub Action (auto-deploy on push to main)
 - [x] Configure CORS on Function App for SWA domain
 - [ ] Add date picker for browsing historical runs
-- [ ] Link SWA to Function App backend (requires Standard tier — deferred)
+- [x] ~~Link SWA to Function App backend~~ — not needed; free tier uses direct API calls with CORS
 
 ## 🔧 Local Development
 
