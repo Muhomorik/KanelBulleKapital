@@ -65,7 +65,7 @@ export function MarketPulse({ data }: MarketPulseProps) {
 
       {/* Category Assessments */}
       <div className="grid gap-3 sm:grid-cols-2">
-        {data.assessments.map((assessment, i) => (
+        {(data.assessments ?? []).map((assessment, i) => (
           <Card key={assessment.category} className={`animate-fade-up stagger-${i + 2}`}>
             <CardHeader className="pb-2">
               <div className="flex items-start justify-between gap-2">

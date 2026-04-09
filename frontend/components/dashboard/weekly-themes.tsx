@@ -44,7 +44,7 @@ export function WeeklyThemes({ data }: WeeklyThemesProps) {
       </Card>
 
       <div className="space-y-3">
-        {data.themes.map((theme, i) => (
+        {(data.themes ?? []).map((theme, i) => (
           <Card key={theme.theme} className={`animate-fade-up stagger-${i + 3}`}>
             <CardHeader className="pb-2">
               <div className="flex items-start justify-between gap-2">
