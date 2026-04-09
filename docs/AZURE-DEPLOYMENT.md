@@ -314,6 +314,17 @@ az staticwebapp create \
   --sku Free
 ```
 
+### SWA — CORS
+
+The Function App must allow cross-origin requests from the SWA domain.
+
+Azure Portal → Function App → **API → CORS** → add:
+
+- `https://<your-static-web-app>.azurestaticapps.net`
+
+> **Note:** The free SWA tier does not support linked backends.
+> The frontend calls the Function App directly via `NEXT_PUBLIC_API_URL`.
+
 ### SWA — Cost
 
 Free tier: $0.
@@ -328,6 +339,7 @@ Automated build, test, and deployment via GitHub Actions.
 | --- | --- | --- |
 | `pr-checks.yml` | PR to `main` or `develop` | Build + test backend |
 | `deploy-backend.yml` | Push to `main` (PR merge) | Build + test + deploy to Azure Functions |
+| `deploy-frontend.yml` | Push to `main` (paths: `frontend/**`) | Build Next.js + deploy to Azure Static Web Apps |
 
 ### Branch Protection (main)
 

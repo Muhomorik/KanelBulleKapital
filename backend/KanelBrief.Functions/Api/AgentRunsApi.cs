@@ -29,7 +29,7 @@ public class AgentRunsApi
     /// <summary>Get all News Brief runs for a specific date.</summary>
     [Function("GetNewsBriefRuns")]
     public async Task<HttpResponseData> GetNewsBriefRuns(
-        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "runs/news-briefs")] HttpRequestData req)
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "runs/news-briefs")] HttpRequestData req)
     {
         try
         {
@@ -63,7 +63,7 @@ public class AgentRunsApi
     /// <summary>Get a specific News Brief run by date and ID.</summary>
     [Function("GetNewsBriefRun")]
     public async Task<HttpResponseData> GetNewsBriefRun(
-        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "runs/news-briefs/{runDate}/{runId}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "runs/news-briefs/{runDate}/{runId}")] HttpRequestData req,
         string runDate,
         string runId)
     {
@@ -91,7 +91,7 @@ public class AgentRunsApi
     /// <summary>Get all Weekly Summary runs for a specific date.</summary>
     [Function("GetWeeklySummaryRuns")]
     public async Task<HttpResponseData> GetWeeklySummaryRuns(
-        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "runs/weekly-summaries")] HttpRequestData req)
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "runs/weekly-summaries")] HttpRequestData req)
     {
         try
         {
@@ -125,7 +125,7 @@ public class AgentRunsApi
     /// <summary>Get a specific Weekly Summary run by date and ID.</summary>
     [Function("GetWeeklySummaryRun")]
     public async Task<HttpResponseData> GetWeeklySummaryRun(
-        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "runs/weekly-summaries/{runDate}/{runId}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "runs/weekly-summaries/{runDate}/{runId}")] HttpRequestData req,
         string runDate,
         string runId)
     {
@@ -153,7 +153,7 @@ public class AgentRunsApi
     /// <summary>Get all Substitution Chain runs for a specific date.</summary>
     [Function("GetSubstitutionChainRuns")]
     public async Task<HttpResponseData> GetSubstitutionChainRuns(
-        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "runs/substitution-chains")] HttpRequestData req)
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "runs/substitution-chains")] HttpRequestData req)
     {
         try
         {
@@ -187,7 +187,7 @@ public class AgentRunsApi
     /// <summary>Get a specific Substitution Chain run by date and ID.</summary>
     [Function("GetSubstitutionChainRun")]
     public async Task<HttpResponseData> GetSubstitutionChainRun(
-        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "runs/substitution-chains/{runDate}/{runId}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "runs/substitution-chains/{runDate}/{runId}")] HttpRequestData req,
         string runDate,
         string runId)
     {
@@ -215,7 +215,7 @@ public class AgentRunsApi
     /// <summary>Get all Opportunity Scan runs for a specific date.</summary>
     [Function("GetOpportunityScanRuns")]
     public async Task<HttpResponseData> GetOpportunityScanRuns(
-        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "runs/opportunity-scans")] HttpRequestData req)
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "runs/opportunity-scans")] HttpRequestData req)
     {
         try
         {
@@ -249,7 +249,7 @@ public class AgentRunsApi
     /// <summary>Get a specific Opportunity Scan run by date and ID.</summary>
     [Function("GetOpportunityScanRun")]
     public async Task<HttpResponseData> GetOpportunityScanRun(
-        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "runs/opportunity-scans/{runDate}/{runId}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "runs/opportunity-scans/{runDate}/{runId}")] HttpRequestData req,
         string runDate,
         string runId)
     {

@@ -171,8 +171,8 @@ Returns:
 - [x] **Deploy Backend** (deploy-backend.yml): Run on push to main
   - Build + test backend
   - Publish to Azure Functions (Flex Consumption via One Deploy)
-- [ ] **Deploy Frontend** (deploy-frontend.yml): Run on push to main (deferred — no frontend yet)
-  - Build + test frontend
+- [x] **Deploy Frontend** (deploy-frontend.yml): Run on push to main (paths: frontend/**)
+  - Build Next.js static export
   - Deploy to Azure Static Web Apps
 - [x] **Branch Protection**: Protect `main` branch (require PR, CI/CD checks pass, restrict push)
 
@@ -193,11 +193,13 @@ Returns:
 - [x] Add demo mode with realistic sample data (graceful fallback when API unavailable)
 - [x] Add demo banner and cold-start warning banner (~30s Azure Functions free tier)
 - [x] Configure static export for Azure Static Web Apps deployment
-- [ ] Add CORS to Function App for local dev
-- [ ] Create `staticwebapp.config.json` for SWA linked backend routing
-- [ ] Deploy frontend to Azure Static Web Apps
-- [ ] Create deploy-frontend.yml GitHub Action
+- [x] Add CORS to Function App for local dev (`local.settings.json`)
+- [x] Create `staticwebapp.config.json` (SPA fallback + security headers)
+- [x] Deploy frontend to Azure Static Web Apps (free tier)
+- [x] Create deploy-frontend.yml GitHub Action (auto-deploy on push to main)
+- [x] Configure CORS on Function App for SWA domain
 - [ ] Add date picker for browsing historical runs
+- [x] ~~Link SWA to Function App backend~~ — not needed; free tier uses direct API calls with CORS
 
 ## 🔧 Local Development
 
