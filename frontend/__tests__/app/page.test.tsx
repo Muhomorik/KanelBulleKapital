@@ -70,6 +70,31 @@ async function renderAndWait() {
 }
 
 describe("DashboardPage date picker", () => {
+  it("shows today's date in the input immediately, before API responds", () => {
+    // API never resolves — simulates slow cold start
+    mockGetDashboard.mockReturnValue(new Promise(() => {}));
+
+    render(<DashboardPage />);
+
+    // The date input must have a valid date, never the locale placeholder
+    const input = document.querySelector(
+      'input[type="date"]',
+    ) as HTMLInputElement;
+    expect(input).not.toBeNull();
+    expect(input.value).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(input.value).toBe("2026-04-10");
+  });
+
+  it("shows today's date in the time element immediately, before API responds", () => {
+    mockGetDashboard.mockReturnValue(new Promise(() => {}));
+
+    render(<DashboardPage />);
+
+    const timeEl = document.querySelector("time");
+    expect(timeEl).not.toBeNull();
+    expect(timeEl!.textContent).toBe("2026-04-10");
+  });
+
   it("displays an actual date value, not a placeholder", async () => {
     await renderAndWait();
 

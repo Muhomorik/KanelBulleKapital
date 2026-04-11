@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useSyncExternalStore } from "react";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { DemoBanner } from "@/components/demo-banner";
@@ -19,15 +19,20 @@ function toLocalDateString(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+// Returns "" during SSR, today's date on the client — avoids hydration mismatch
+const noopSubscribe = () => () => {};
+const getClientDate = () => toLocalDateString(new Date());
+const getServerDate = () => "";
+
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData>(demoDashboard);
   const [isDemo, setIsDemo] = useState(true);
   const [loading, setLoading] = useState(false);
   const [coldStart, setColdStart] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [today] = useState(() => toLocalDateString(new Date()));
+  const today = useSyncExternalStore(noopSubscribe, getClientDate, getServerDate);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [dataDate, setDataDate] = useState(today);
+  const [dataDate, setDataDate] = useState("");
 
   const fetchData = useCallback(
     async (date?: string) => {
@@ -102,7 +107,7 @@ export default function DashboardPage() {
           </h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
             AI-generated analysis for{" "}
-            <time className="font-medium text-foreground">{dataDate}</time>
+            <time className="font-medium text-foreground">{dataDate || today}</time>
             {isDemo && (
               <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                 Demo data
@@ -123,7 +128,7 @@ export default function DashboardPage() {
               </button>
               <input
                 type="date"
-                value={selectedDate ?? dataDate}
+                value={selectedDate ?? (dataDate || today)}
                 max={today}
                 onChange={(e) => handleDateChange(e.target.value)}
                 disabled={loading}
