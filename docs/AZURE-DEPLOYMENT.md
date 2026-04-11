@@ -99,10 +99,21 @@ The News Brief Agent uses Bing Grounding to search for real-time news. LLMs have
 
 **Step 3 — Save connection name:**
 
+**FikaForecast** — save as user secret:
+
 ```bash
 cd FikaForecast/FikaForecast.Wpf
 dotnet user-secrets set "AzureAIFoundry:BingConnectionName" "<connection-name>"
 ```
+
+**KanelBrief** — set as Function App environment variable:
+
+Azure Portal → Function App → **Environment variables** → add:
+
+- **Name:** `BING_CONNECTION_NAME`
+- **Value:** `<connection-name>`
+
+> Without this setting, the News Brief agent still works but uses LLM training data only (no real-time news search).
 
 ### Authentication and Endpoints
 
@@ -132,12 +143,12 @@ dotnet user-secrets set "AzureAIFoundry:ProjectEndpoint" "https://<your-ai-resou
 dotnet user-secrets set "AzureAIFoundry:BingConnectionName" "<your-bing-connection>"
 ```
 
-**KanelBrief** — set as Function App environment variable:
+**KanelBrief** — set as Function App environment variables:
 
 Azure Portal → Function App → **Environment variables** → add:
 
-- **Name:** `FOUNDRY_PROJECT_ENDPOINT`
-- **Value:** `https://<your-ai-resource>.services.ai.azure.com/api/projects/<your-project>`
+- `FOUNDRY_PROJECT_ENDPOINT` = `https://<your-ai-resource>.services.ai.azure.com/api/projects/<your-project>`
+- `BING_CONNECTION_NAME` = `<your-bing-connection>` (optional — enables real-time news search)
 
 ### Foundry — Security (Managed Identity + RBAC)
 
