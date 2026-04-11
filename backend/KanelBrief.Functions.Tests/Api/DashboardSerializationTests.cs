@@ -1,0 +1,117 @@
+using System.Text.Json;
+using KanelBrief.Core.Models;
+
+namespace KanelBrief.Functions.Tests.Api;
+
+/// <summary>
+/// The frontend expects camelCase JSON (runDate, hasData, newsBrief, ...).
+/// Azure Functions' WriteAsJsonAsync uses the default .NET serializer which outputs PascalCase.
+/// These tests ensure the dashboard response is always serialized as camelCase.
+/// </summary>
+[TestFixture]
+public class DashboardSerializationTests
+{
+    private static readonly JsonSerializerOptions CamelCase = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
+    [Test]
+    public void DashboardResponse_SerializedWithCamelCase_HasCorrectPropertyNames()
+    {
+        var dashboard = new DashboardResponse
+        {
+            RunDate = "2026-04-10",
+            HasData = true,
+            NewsBrief = new NewsBriefRun
+            {
+                RunDate = "2026-04-10",
+                RunId = "run-1",
+                ModelId = "gpt-5.4-mini",
+                Mood = "Mixed",
+                Summary = "Test summary",
+                Assessments = []
+            }
+        };
+
+        var json = JsonSerializer.Serialize(dashboard, CamelCase);
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+
+        Assert.That(root.TryGetProperty("runDate", out _), Is.True);
+        Assert.That(root.TryGetProperty("hasData", out _), Is.True);
+        Assert.That(root.TryGetProperty("newsBrief", out _), Is.True);
+        Assert.That(root.TryGetProperty("weeklySummary", out _), Is.True);
+        Assert.That(root.TryGetProperty("substitutionChain", out _), Is.True);
+        Assert.That(root.TryGetProperty("opportunityScan", out _), Is.True);
+
+        Assert.That(root.TryGetProperty("RunDate", out _), Is.False);
+        Assert.That(root.TryGetProperty("HasData", out _), Is.False);
+        Assert.That(root.TryGetProperty("NewsBrief", out _), Is.False);
+    }
+
+    [Test]
+    public void DashboardResponse_NestedRunProperties_AreCamelCase()
+    {
+        var dashboard = new DashboardResponse
+        {
+            RunDate = "2026-04-10",
+            HasData = true,
+            NewsBrief = new NewsBriefRun
+            {
+                RunDate = "2026-04-10",
+                RunId = "run-1",
+                ModelId = "gpt-5.4-mini",
+                DurationSeconds = 11.2,
+                InputTokens = 1840,
+                OutputTokens = 920,
+                TotalTokens = 2760,
+                Mood = "Mixed",
+                Summary = "Test summary",
+                Assessments =
+                [
+                    new CategoryAssessment
+                    {
+                        Category = "Technology",
+                        Headline = "AI drives growth",
+                        Summary = "Tech is up",
+                        Sentiment = MarketSentiment.RiskOn
+                    }
+                ]
+            }
+        };
+
+        var json = JsonSerializer.Serialize(dashboard, CamelCase);
+        using var doc = JsonDocument.Parse(json);
+        var brief = doc.RootElement.GetProperty("newsBrief");
+
+        Assert.That(brief.TryGetProperty("runDate", out _), Is.True);
+        Assert.That(brief.TryGetProperty("runId", out _), Is.True);
+        Assert.That(brief.TryGetProperty("modelId", out _), Is.True);
+        Assert.That(brief.TryGetProperty("durationSeconds", out _), Is.True);
+        Assert.That(brief.TryGetProperty("totalTokens", out _), Is.True);
+
+        var assessment = brief.GetProperty("assessments")[0];
+        Assert.That(assessment.TryGetProperty("category", out _), Is.True);
+        Assert.That(assessment.TryGetProperty("headline", out _), Is.True);
+        Assert.That(assessment.TryGetProperty("sentiment", out _), Is.True);
+    }
+
+    [Test]
+    public void DashboardResponse_DefaultSerializer_ProducesPascalCase()
+    {
+        var dashboard = new DashboardResponse
+        {
+            RunDate = "2026-04-10",
+            HasData = true
+        };
+
+        // This is what WriteAsJsonAsync uses — proves the bug
+        var json = JsonSerializer.Serialize(dashboard);
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+
+        Assert.That(root.TryGetProperty("RunDate", out _), Is.True);
+        Assert.That(root.TryGetProperty("runDate", out _), Is.False);
+    }
+}
