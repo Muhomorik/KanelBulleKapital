@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Azure.AI.Projects;
 using KanelBrief.Core.Models;
+using KanelBrief.Core.Parsers;
 using KanelBrief.Core.Repositories;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
@@ -70,7 +71,7 @@ public class WeeklySummaryAgent
             {
                 // Use Microsoft Agent Framework for analysis
                 var analysis = await AnalyzeWeekWithAgentAsync(request);
-                run.NetMood = ParseMarketSentiment(analysis.Mood);
+                run.NetMood = AgentResponseParser.ParseSentiment(analysis.Mood);
                 run.MoodSummary = analysis.Summary;
                 run.Themes = analysis.Themes;
 
@@ -137,46 +138,14 @@ Return a JSON object with this exact structure:
         var agentResponse = await agent.RunAsync(prompt);
         var responseText = agentResponse.ToString() ?? string.Empty;
 
-        var analysisJson = ExtractJson(responseText);
+        var analysisJson = AgentResponseParser.ExtractJson(responseText);
         var analysis = JsonSerializer.Deserialize<WeeklySummaryAnalysisResult>(analysisJson, _jsonOptions)
             ?? throw new InvalidOperationException("Failed to parse agent response");
 
         return analysis;
     }
 
-    private string ExtractJson(string text)
-    {
-        var startIndex = text.IndexOf('{');
-        var endIndex = text.LastIndexOf('}');
-
-        if (startIndex < 0 || endIndex < 0)
-            throw new InvalidOperationException("No JSON found in agent response");
-
-        return text[startIndex..(endIndex + 1)];
-    }
-
-    private MarketSentiment ParseMarketSentiment(string sentiment)
-    {
-        return sentiment.ToLowerInvariant() switch
-        {
-            "riskon" => MarketSentiment.RiskOn,
-            "riskoff" => MarketSentiment.RiskOff,
-            _ => MarketSentiment.Mixed
-        };
-    }
-
-    private ConfidenceLevel ParseConfidenceLevel(string confidence)
-    {
-        return confidence.ToLowerInvariant() switch
-        {
-            "high" => ConfidenceLevel.High,
-            "medium" => ConfidenceLevel.Medium,
-            "low" => ConfidenceLevel.Low,
-            _ => ConfidenceLevel.Medium
-        };
-    }
-
-    private List<WeeklySummaryTheme> GenerateFallbackThemes()
+    internal static List<WeeklySummaryTheme> GenerateFallbackThemes()
     {
         return new List<WeeklySummaryTheme>
         {

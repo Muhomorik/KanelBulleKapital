@@ -1,6 +1,8 @@
 import type { DashboardData } from "./types";
 
 export const demoDashboard: DashboardData = {
+  runDate: "2026-04-08",
+  hasData: false,
   newsBrief: {
     runId: "demo-news-001",
     runDate: "2026-04-08",

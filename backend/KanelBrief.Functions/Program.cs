@@ -1,12 +1,15 @@
 using Azure.AI.Projects;
 using Azure.Data.Tables;
 using Azure.Identity;
+using Azure.AI.Projects.Agents;
 using KanelBrief.Core.Repositories;
+using KanelBrief.Functions.Orchestration;
 using KanelBrief.Functions.Repositories;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
@@ -59,15 +62,28 @@ builder.Services.AddScoped<IAgentRunRepository>(sp =>
     );
 });
 
+// Foundry endpoint and credential — shared by AIProjectClient + AgentAdministrationClient + Orchestrator
+var foundryEndpoint = new Uri(builder.Configuration["FOUNDRY_PROJECT_ENDPOINT"]
+    ?? throw new InvalidOperationException("FOUNDRY_PROJECT_ENDPOINT not configured"));
+var azureCredential = new DefaultAzureCredential();
+
 // Register AIProjectClient for Agent Framework
+builder.Services.AddSingleton(_ => new AIProjectClient(foundryEndpoint, azureCredential));
+
+// Register AgentAdministrationClient for Foundry Agent Service
+builder.Services.AddSingleton(_ => new AgentAdministrationClient(foundryEndpoint, azureCredential));
+
+// Register orchestrator with Bing connection (optional — works without it, but no real-time news)
 builder.Services.AddSingleton(sp =>
 {
-    var foundryEndpoint = builder.Configuration["FOUNDRY_PROJECT_ENDPOINT"]
-        ?? throw new InvalidOperationException("FOUNDRY_PROJECT_ENDPOINT not configured");
-
-    return new AIProjectClient(
-        new Uri(foundryEndpoint),
-        new DefaultAzureCredential());
+    return new DailyPipelineOrchestrator(
+        sp.GetRequiredService<ILogger<DailyPipelineOrchestrator>>(),
+        sp.GetRequiredService<IAgentRunRepository>(),
+        sp.GetRequiredService<AIProjectClient>(),
+        sp.GetRequiredService<AgentAdministrationClient>(),
+        foundryEndpoint,
+        azureCredential,
+        builder.Configuration["BING_CONNECTION_NAME"]);
 });
 
 builder.Build().Run();

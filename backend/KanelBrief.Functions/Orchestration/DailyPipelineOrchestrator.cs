@@ -1,7 +1,11 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Azure.AI.Extensions.OpenAI;
 using Azure.AI.Projects;
+using Azure.AI.Projects.Agents;
+using Azure.Identity;
 using KanelBrief.Core.Models;
+using KanelBrief.Core.Parsers;
 using KanelBrief.Core.Repositories;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
@@ -23,16 +27,28 @@ public class DailyPipelineOrchestrator
     private readonly ILogger<DailyPipelineOrchestrator> _logger;
     private readonly IAgentRunRepository _repository;
     private readonly AIProjectClient _aiProjectClient;
+    private readonly AgentAdministrationClient _agentAdmin;
+    private readonly Uri _foundryEndpoint;
+    private readonly DefaultAzureCredential _credential;
+    private readonly string? _bingConnectionName;
     private readonly JsonSerializerOptions _jsonOptions;
 
     public DailyPipelineOrchestrator(
         ILogger<DailyPipelineOrchestrator> logger,
         IAgentRunRepository repository,
-        AIProjectClient aiProjectClient)
+        AIProjectClient aiProjectClient,
+        AgentAdministrationClient agentAdmin,
+        Uri foundryEndpoint,
+        DefaultAzureCredential credential,
+        string? bingConnectionName = null)
     {
         _logger = logger;
         _repository = repository;
         _aiProjectClient = aiProjectClient;
+        _agentAdmin = agentAdmin;
+        _foundryEndpoint = foundryEndpoint;
+        _credential = credential;
+        _bingConnectionName = bingConnectionName;
         _jsonOptions = new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -68,10 +84,9 @@ public class DailyPipelineOrchestrator
 
             try
             {
-                var agent = _aiProjectClient.AsAIAgent(
-                    model: "gpt-5.4-mini",
-                    name: "DailyNewsBriefAnalyzer",
-                    instructions: @"You are a financial market analyst. Analyze today's global financial market conditions and produce a morning market brief.
+                var agentDefinition = new DeclarativeAgentDefinition(model: "gpt-5.4-mini")
+                {
+                    Instructions = @"You are a financial market analyst. Analyze today's global financial market conditions and produce a morning market brief.
 
 Cover these sectors: Technology, Energy, Financials, Healthcare, Consumer Discretionary, Industrials.
 Focus on the most significant market-moving events and trends.
@@ -92,22 +107,69 @@ Return ONLY a JSON object with this exact structure:
       ""sentiment"": ""RiskOn|RiskOff|Mixed""
     }
   ]
-}");
+}"
+                };
 
-                var prompt = $"Produce today's morning market brief for {startTime:yyyy-MM-dd}. Analyze the most significant global financial market developments and sector-level sentiment.";
+                // Add Bing Grounding for real-time news search
+                if (!string.IsNullOrEmpty(_bingConnectionName))
+                {
+                    try
+                    {
+                        var bingConnection = await _aiProjectClient.Connections
+                            .GetConnectionAsync(connectionName: _bingConnectionName);
+                        var bingTool = new BingGroundingTool(
+                            new BingGroundingSearchToolOptions(
+                                searchConfigurations: [new BingGroundingSearchConfiguration(
+                                    projectConnectionId: bingConnection.Value.Id)]));
+                        agentDefinition.Tools.Add(bingTool);
+                        _logger.LogInformation("Bing Grounding tool enabled");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to resolve Bing connection '{Name}' — continuing without Bing Grounding",
+                            _bingConnectionName);
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning("Bing Grounding not configured — agent will use training data only");
+                }
 
-                var agentResponse = await agent.RunAsync(prompt);
-                var responseText = agentResponse.ToString() ?? string.Empty;
-                var analysisJson = ExtractJson(responseText);
-                var analysis = JsonSerializer.Deserialize<NewsBriefAnalysisResult>(analysisJson, _jsonOptions)
-                    ?? throw new InvalidOperationException("Failed to parse agent response");
+                // Create ephemeral agent version
+                var agentVersionResult = await _agentAdmin.CreateAgentVersionAsync(
+                    agentName: "kanelbrief-news-brief",
+                    options: new(agentDefinition));
+                var agentVersionValue = agentVersionResult.Value;
 
-                run.Mood = analysis.Mood;
-                run.Summary = analysis.Summary;
-                run.Assessments = analysis.Assessments;
+                try
+                {
+                    var responsesClient = new ProjectResponsesClient(
+                        _foundryEndpoint,
+                        _credential,
+                        new AgentReference(agentVersionValue.Name, agentVersionValue.Version));
 
-                _logger.LogInformation("Daily News Brief completed: Mood={Mood}, Assessments={Count}",
-                    run.Mood, run.Assessments.Count);
+                    var userMessage = $"Produce today's morning market brief for {startTime:yyyy-MM-dd}. Analyze the most significant global financial market developments and sector-level sentiment.";
+
+                    var clientResult = await responsesClient.CreateResponseAsync(userMessage);
+                    var responseText = clientResult.Value.GetOutputText();
+
+                    var analysisJson = AgentResponseParser.ExtractJson(responseText);
+                    var analysis = JsonSerializer.Deserialize<NewsBriefAnalysisResult>(analysisJson, _jsonOptions)
+                        ?? throw new InvalidOperationException("Failed to parse agent response");
+
+                    run.Mood = analysis.Mood;
+                    run.Summary = analysis.Summary;
+                    run.Assessments = analysis.Assessments;
+
+                    _logger.LogInformation("Daily News Brief completed: Mood={Mood}, Assessments={Count}",
+                        run.Mood, run.Assessments.Count);
+                }
+                finally
+                {
+                    // Clean up ephemeral agent version
+                    await _agentAdmin.DeleteAgentVersionAsync(
+                        agentName: agentVersionValue.Name, agentVersion: agentVersionValue.Version);
+                }
             }
             catch (Exception ex)
             {
@@ -140,11 +202,7 @@ Return ONLY a JSON object with this exact structure:
                 _logger.LogWarning("Weekly aggregation execution is behind schedule");
 
             // Calculate previous week boundaries (Monday to Sunday)
-            var now = DateTimeOffset.UtcNow;
-            var daysFromMonday = ((int)now.DayOfWeek + 6) % 7; // Monday = 0
-            var thisMonday = now.AddDays(-daysFromMonday).Date;
-            var prevMonday = thisMonday.AddDays(-7);
-            var prevSunday = thisMonday;
+            var (prevMonday, prevSunday) = CalculateWeekBoundaries(DateTimeOffset.UtcNow);
 
             _logger.LogInformation("Processing week from {WeekStart} to {WeekEnd}",
                 prevMonday.ToString("yyyy-MM-dd"), prevSunday.ToString("yyyy-MM-dd"));
@@ -230,11 +288,11 @@ Return ONLY a JSON object with this exact structure:
 
             var prompt = $"Analyze this week's market briefs ({weekStart:yyyy-MM-dd} to {weekEnd:yyyy-MM-dd}):\n\n{briefsContext}";
             var response = await agent.RunAsync(prompt);
-            var json = ExtractJson(response.ToString() ?? string.Empty);
+            var json = AgentResponseParser.ExtractJson(response.ToString() ?? string.Empty);
             var analysis = JsonSerializer.Deserialize<WeeklySummaryAnalysisResult>(json, _jsonOptions)
                 ?? throw new InvalidOperationException("Failed to parse weekly summary");
 
-            run.NetMood = ParseSentiment(analysis.Mood);
+            run.NetMood = AgentResponseParser.ParseSentiment(analysis.Mood);
             run.MoodSummary = analysis.Summary;
             run.Themes = analysis.Themes;
 
@@ -291,7 +349,7 @@ Return ONLY a JSON object with this exact structure:
 
             var prompt = $"Based on this weekly summary, identify capital rotation chains:\n\n{summaryContext}";
             var response = await agent.RunAsync(prompt);
-            var json = ExtractJson(response.ToString() ?? string.Empty);
+            var json = AgentResponseParser.ExtractJson(response.ToString() ?? string.Empty);
             var analysis = JsonSerializer.Deserialize<SubstitutionChainAnalysisResult>(json, _jsonOptions)
                 ?? throw new InvalidOperationException("Failed to parse substitution chains");
 
@@ -349,7 +407,7 @@ Return ONLY a JSON object with this exact structure:
 
             var prompt = $"Based on these capital rotation chains, identify investment opportunities:\n\n{chainsContext}";
             var response = await agent.RunAsync(prompt);
-            var json = ExtractJson(response.ToString() ?? string.Empty);
+            var json = AgentResponseParser.ExtractJson(response.ToString() ?? string.Empty);
             var analysis = JsonSerializer.Deserialize<OpportunityScanAnalysisResult>(json, _jsonOptions)
                 ?? throw new InvalidOperationException("Failed to parse opportunities");
 
@@ -368,24 +426,15 @@ Return ONLY a JSON object with this exact structure:
         _logger.LogInformation("Opportunity Scan saved: {RunId}", run.RunId);
     }
 
-    private static string ExtractJson(string text)
+    /// <summary>
+    /// Calculates the previous week's Monday-to-Sunday boundaries relative to the given timestamp.
+    /// </summary>
+    internal static (DateTime prevMonday, DateTime prevSunday) CalculateWeekBoundaries(DateTimeOffset now)
     {
-        var startIndex = text.IndexOf('{');
-        var endIndex = text.LastIndexOf('}');
-
-        if (startIndex < 0 || endIndex < 0)
-            throw new InvalidOperationException("No JSON found in agent response");
-
-        return text[startIndex..(endIndex + 1)];
-    }
-
-    private static MarketSentiment ParseSentiment(string sentiment)
-    {
-        return sentiment.ToLowerInvariant() switch
-        {
-            "riskon" => MarketSentiment.RiskOn,
-            "riskoff" => MarketSentiment.RiskOff,
-            _ => MarketSentiment.Mixed
-        };
+        var daysFromMonday = ((int)now.DayOfWeek + 6) % 7; // Monday = 0
+        var thisMonday = now.AddDays(-daysFromMonday).Date;
+        var prevMonday = thisMonday.AddDays(-7);
+        var prevSunday = thisMonday;
+        return (prevMonday, prevSunday);
     }
 }

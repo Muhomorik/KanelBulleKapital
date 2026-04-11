@@ -11,6 +11,45 @@ namespace KanelBrief.Functions.Repositories;
 /// </summary>
 public class AgentRunRepository : IAgentRunRepository
 {
+    internal static class BaseColumns
+    {
+        public const string ModelId = "ModelId";
+        public const string Status = "Status";
+        public const string DurationSeconds = "DurationSeconds";
+        public const string InputTokens = "InputTokens";
+        public const string OutputTokens = "OutputTokens";
+        public const string TotalTokens = "TotalTokens";
+    }
+
+    internal static class NewsBriefColumns
+    {
+        public const string DeploymentName = "DeploymentName";
+        public const string Mood = "Mood";
+        public const string Summary = "Summary";
+        public const string Assessments = "Assessments";
+    }
+
+    internal static class WeeklySummaryColumns
+    {
+        public const string WeekStart = "WeekStart";
+        public const string WeekEnd = "WeekEnd";
+        public const string NetMood = "NetMood";
+        public const string MoodSummary = "MoodSummary";
+        public const string Themes = "Themes";
+    }
+
+    internal static class SubstitutionChainColumns
+    {
+        public const string WeeklySummaryRunId = "WeeklySummaryRunId";
+        public const string Chains = "Chains";
+    }
+
+    internal static class OpportunityScanColumns
+    {
+        public const string SubstitutionChainRunId = "SubstitutionChainRunId";
+        public const string Targets = "Targets";
+    }
+
     private readonly TableClient _newsBriefRunsTable;
     private readonly TableClient _weeklySummaryRunsTable;
     private readonly TableClient _substitutionChainRunsTable;
@@ -41,16 +80,16 @@ public class AgentRunRepository : IAgentRunRepository
     {
         var entity = new TableEntity(run.RunDate, run.RunId)
         {
-            { "ModelId", run.ModelId },
-            { "Status", run.Status.ToString() },
-            { "DurationSeconds", run.DurationSeconds },
-            { "InputTokens", run.InputTokens },
-            { "OutputTokens", run.OutputTokens },
-            { "TotalTokens", run.TotalTokens },
-            { "DeploymentName", run.DeploymentName },
-            { "Mood", run.Mood },
-            { "Summary", run.Summary },
-            { "Assessments", JsonSerializer.Serialize(run.Assessments, _jsonOptions) }
+            { BaseColumns.ModelId, run.ModelId },
+            { BaseColumns.Status, run.Status.ToString() },
+            { BaseColumns.DurationSeconds, run.DurationSeconds },
+            { BaseColumns.InputTokens, run.InputTokens },
+            { BaseColumns.OutputTokens, run.OutputTokens },
+            { BaseColumns.TotalTokens, run.TotalTokens },
+            { NewsBriefColumns.DeploymentName, run.DeploymentName },
+            { NewsBriefColumns.Mood, run.Mood },
+            { NewsBriefColumns.Summary, run.Summary },
+            { NewsBriefColumns.Assessments, JsonSerializer.Serialize(run.Assessments, _jsonOptions) }
         };
 
         await _newsBriefRunsTable.UpsertEntityAsync(entity);
@@ -88,17 +127,17 @@ public class AgentRunRepository : IAgentRunRepository
     {
         var entity = new TableEntity(run.RunDate, run.RunId)
         {
-            { "ModelId", run.ModelId },
-            { "Status", run.Status.ToString() },
-            { "DurationSeconds", run.DurationSeconds },
-            { "InputTokens", run.InputTokens },
-            { "OutputTokens", run.OutputTokens },
-            { "TotalTokens", run.TotalTokens },
-            { "WeekStart", run.WeekStart },
-            { "WeekEnd", run.WeekEnd },
-            { "NetMood", run.NetMood.ToString() },
-            { "MoodSummary", run.MoodSummary },
-            { "Themes", JsonSerializer.Serialize(run.Themes, _jsonOptions) }
+            { BaseColumns.ModelId, run.ModelId },
+            { BaseColumns.Status, run.Status.ToString() },
+            { BaseColumns.DurationSeconds, run.DurationSeconds },
+            { BaseColumns.InputTokens, run.InputTokens },
+            { BaseColumns.OutputTokens, run.OutputTokens },
+            { BaseColumns.TotalTokens, run.TotalTokens },
+            { WeeklySummaryColumns.WeekStart, run.WeekStart },
+            { WeeklySummaryColumns.WeekEnd, run.WeekEnd },
+            { WeeklySummaryColumns.NetMood, run.NetMood.ToString() },
+            { WeeklySummaryColumns.MoodSummary, run.MoodSummary },
+            { WeeklySummaryColumns.Themes, JsonSerializer.Serialize(run.Themes, _jsonOptions) }
         };
 
         await _weeklySummaryRunsTable.UpsertEntityAsync(entity);
@@ -136,14 +175,14 @@ public class AgentRunRepository : IAgentRunRepository
     {
         var entity = new TableEntity(run.RunDate, run.RunId)
         {
-            { "ModelId", run.ModelId },
-            { "Status", run.Status.ToString() },
-            { "DurationSeconds", run.DurationSeconds },
-            { "InputTokens", run.InputTokens },
-            { "OutputTokens", run.OutputTokens },
-            { "TotalTokens", run.TotalTokens },
-            { "WeeklySummaryRunId", run.WeeklySummaryRunId },
-            { "Chains", JsonSerializer.Serialize(run.Chains, _jsonOptions) }
+            { BaseColumns.ModelId, run.ModelId },
+            { BaseColumns.Status, run.Status.ToString() },
+            { BaseColumns.DurationSeconds, run.DurationSeconds },
+            { BaseColumns.InputTokens, run.InputTokens },
+            { BaseColumns.OutputTokens, run.OutputTokens },
+            { BaseColumns.TotalTokens, run.TotalTokens },
+            { SubstitutionChainColumns.WeeklySummaryRunId, run.WeeklySummaryRunId },
+            { SubstitutionChainColumns.Chains, JsonSerializer.Serialize(run.Chains, _jsonOptions) }
         };
 
         await _substitutionChainRunsTable.UpsertEntityAsync(entity);
@@ -181,14 +220,14 @@ public class AgentRunRepository : IAgentRunRepository
     {
         var entity = new TableEntity(run.RunDate, run.RunId)
         {
-            { "ModelId", run.ModelId },
-            { "Status", run.Status.ToString() },
-            { "DurationSeconds", run.DurationSeconds },
-            { "InputTokens", run.InputTokens },
-            { "OutputTokens", run.OutputTokens },
-            { "TotalTokens", run.TotalTokens },
-            { "SubstitutionChainRunId", run.SubstitutionChainRunId },
-            { "Targets", JsonSerializer.Serialize(run.Targets, _jsonOptions) }
+            { BaseColumns.ModelId, run.ModelId },
+            { BaseColumns.Status, run.Status.ToString() },
+            { BaseColumns.DurationSeconds, run.DurationSeconds },
+            { BaseColumns.InputTokens, run.InputTokens },
+            { BaseColumns.OutputTokens, run.OutputTokens },
+            { BaseColumns.TotalTokens, run.TotalTokens },
+            { OpportunityScanColumns.SubstitutionChainRunId, run.SubstitutionChainRunId },
+            { OpportunityScanColumns.Targets, JsonSerializer.Serialize(run.Targets, _jsonOptions) }
         };
 
         await _opportunityScanRunsTable.UpsertEntityAsync(entity);
@@ -222,91 +261,91 @@ public class AgentRunRepository : IAgentRunRepository
 
     // Mapping Helpers
 
-    private NewsBriefRun MapToNewsBriefRun(TableEntity entity)
+    internal NewsBriefRun MapToNewsBriefRun(TableEntity entity)
     {
-        var assessments = string.IsNullOrEmpty(entity["Assessments"]?.ToString())
+        var assessments = string.IsNullOrEmpty(entity[NewsBriefColumns.Assessments]?.ToString())
             ? []
-            : JsonSerializer.Deserialize<List<CategoryAssessment>>(entity["Assessments"]!.ToString()!, _jsonOptions) ?? [];
+            : JsonSerializer.Deserialize<List<CategoryAssessment>>(entity[NewsBriefColumns.Assessments]!.ToString()!, _jsonOptions) ?? [];
 
         return new NewsBriefRun
         {
             RunDate = entity.PartitionKey,
             RunId = entity.RowKey,
-            ModelId = entity["ModelId"]?.ToString() ?? string.Empty,
-            Status = Enum.Parse<RunStatus>(entity["Status"]?.ToString() ?? "Failed"),
-            DurationSeconds = (double)(entity["DurationSeconds"] ?? 0.0),
-            InputTokens = (int)(entity["InputTokens"] ?? 0),
-            OutputTokens = (int)(entity["OutputTokens"] ?? 0),
-            TotalTokens = (int)(entity["TotalTokens"] ?? 0),
-            DeploymentName = entity["DeploymentName"]?.ToString() ?? string.Empty,
-            Mood = entity["Mood"]?.ToString() ?? string.Empty,
-            Summary = entity["Summary"]?.ToString() ?? string.Empty,
+            ModelId = entity[BaseColumns.ModelId]?.ToString() ?? string.Empty,
+            Status = Enum.Parse<RunStatus>(entity[BaseColumns.Status]?.ToString() ?? "Failed"),
+            DurationSeconds = (double)(entity[BaseColumns.DurationSeconds] ?? 0.0),
+            InputTokens = (int)(entity[BaseColumns.InputTokens] ?? 0),
+            OutputTokens = (int)(entity[BaseColumns.OutputTokens] ?? 0),
+            TotalTokens = (int)(entity[BaseColumns.TotalTokens] ?? 0),
+            DeploymentName = entity[NewsBriefColumns.DeploymentName]?.ToString() ?? string.Empty,
+            Mood = entity[NewsBriefColumns.Mood]?.ToString() ?? string.Empty,
+            Summary = entity[NewsBriefColumns.Summary]?.ToString() ?? string.Empty,
             Assessments = assessments
         };
     }
 
-    private WeeklySummaryRun MapToWeeklySummaryRun(TableEntity entity)
+    internal WeeklySummaryRun MapToWeeklySummaryRun(TableEntity entity)
     {
-        var themes = string.IsNullOrEmpty(entity["Themes"]?.ToString())
+        var themes = string.IsNullOrEmpty(entity[WeeklySummaryColumns.Themes]?.ToString())
             ? []
-            : JsonSerializer.Deserialize<List<WeeklySummaryTheme>>(entity["Themes"]!.ToString()!, _jsonOptions) ?? [];
+            : JsonSerializer.Deserialize<List<WeeklySummaryTheme>>(entity[WeeklySummaryColumns.Themes]!.ToString()!, _jsonOptions) ?? [];
 
         return new WeeklySummaryRun
         {
             RunDate = entity.PartitionKey,
             RunId = entity.RowKey,
-            ModelId = entity["ModelId"]?.ToString() ?? string.Empty,
-            Status = Enum.Parse<RunStatus>(entity["Status"]?.ToString() ?? "Failed"),
-            DurationSeconds = (double)(entity["DurationSeconds"] ?? 0.0),
-            InputTokens = (int)(entity["InputTokens"] ?? 0),
-            OutputTokens = (int)(entity["OutputTokens"] ?? 0),
-            TotalTokens = (int)(entity["TotalTokens"] ?? 0),
-            WeekStart = (DateTimeOffset)(entity["WeekStart"] ?? DateTimeOffset.MinValue),
-            WeekEnd = (DateTimeOffset)(entity["WeekEnd"] ?? DateTimeOffset.MinValue),
-            NetMood = Enum.Parse<MarketSentiment>(entity["NetMood"]?.ToString() ?? "Mixed"),
-            MoodSummary = entity["MoodSummary"]?.ToString() ?? string.Empty,
+            ModelId = entity[BaseColumns.ModelId]?.ToString() ?? string.Empty,
+            Status = Enum.Parse<RunStatus>(entity[BaseColumns.Status]?.ToString() ?? "Failed"),
+            DurationSeconds = (double)(entity[BaseColumns.DurationSeconds] ?? 0.0),
+            InputTokens = (int)(entity[BaseColumns.InputTokens] ?? 0),
+            OutputTokens = (int)(entity[BaseColumns.OutputTokens] ?? 0),
+            TotalTokens = (int)(entity[BaseColumns.TotalTokens] ?? 0),
+            WeekStart = (DateTimeOffset)(entity[WeeklySummaryColumns.WeekStart] ?? DateTimeOffset.MinValue),
+            WeekEnd = (DateTimeOffset)(entity[WeeklySummaryColumns.WeekEnd] ?? DateTimeOffset.MinValue),
+            NetMood = Enum.Parse<MarketSentiment>(entity[WeeklySummaryColumns.NetMood]?.ToString() ?? "Mixed"),
+            MoodSummary = entity[WeeklySummaryColumns.MoodSummary]?.ToString() ?? string.Empty,
             Themes = themes
         };
     }
 
-    private SubstitutionChainRun MapToSubstitutionChainRun(TableEntity entity)
+    internal SubstitutionChainRun MapToSubstitutionChainRun(TableEntity entity)
     {
-        var chains = string.IsNullOrEmpty(entity["Chains"]?.ToString())
+        var chains = string.IsNullOrEmpty(entity[SubstitutionChainColumns.Chains]?.ToString())
             ? []
-            : JsonSerializer.Deserialize<List<RotationChain>>(entity["Chains"]!.ToString()!, _jsonOptions) ?? [];
+            : JsonSerializer.Deserialize<List<RotationChain>>(entity[SubstitutionChainColumns.Chains]!.ToString()!, _jsonOptions) ?? [];
 
         return new SubstitutionChainRun
         {
             RunDate = entity.PartitionKey,
             RunId = entity.RowKey,
-            ModelId = entity["ModelId"]?.ToString() ?? string.Empty,
-            Status = Enum.Parse<RunStatus>(entity["Status"]?.ToString() ?? "Failed"),
-            DurationSeconds = (double)(entity["DurationSeconds"] ?? 0.0),
-            InputTokens = (int)(entity["InputTokens"] ?? 0),
-            OutputTokens = (int)(entity["OutputTokens"] ?? 0),
-            TotalTokens = (int)(entity["TotalTokens"] ?? 0),
-            WeeklySummaryRunId = entity["WeeklySummaryRunId"]?.ToString() ?? string.Empty,
+            ModelId = entity[BaseColumns.ModelId]?.ToString() ?? string.Empty,
+            Status = Enum.Parse<RunStatus>(entity[BaseColumns.Status]?.ToString() ?? "Failed"),
+            DurationSeconds = (double)(entity[BaseColumns.DurationSeconds] ?? 0.0),
+            InputTokens = (int)(entity[BaseColumns.InputTokens] ?? 0),
+            OutputTokens = (int)(entity[BaseColumns.OutputTokens] ?? 0),
+            TotalTokens = (int)(entity[BaseColumns.TotalTokens] ?? 0),
+            WeeklySummaryRunId = entity[SubstitutionChainColumns.WeeklySummaryRunId]?.ToString() ?? string.Empty,
             Chains = chains
         };
     }
 
-    private OpportunityScanRun MapToOpportunityScanRun(TableEntity entity)
+    internal OpportunityScanRun MapToOpportunityScanRun(TableEntity entity)
     {
-        var targets = string.IsNullOrEmpty(entity["Targets"]?.ToString())
+        var targets = string.IsNullOrEmpty(entity[OpportunityScanColumns.Targets]?.ToString())
             ? []
-            : JsonSerializer.Deserialize<List<RotationTarget>>(entity["Targets"]!.ToString()!, _jsonOptions) ?? [];
+            : JsonSerializer.Deserialize<List<RotationTarget>>(entity[OpportunityScanColumns.Targets]!.ToString()!, _jsonOptions) ?? [];
 
         return new OpportunityScanRun
         {
             RunDate = entity.PartitionKey,
             RunId = entity.RowKey,
-            ModelId = entity["ModelId"]?.ToString() ?? string.Empty,
-            Status = Enum.Parse<RunStatus>(entity["Status"]?.ToString() ?? "Failed"),
-            DurationSeconds = (double)(entity["DurationSeconds"] ?? 0.0),
-            InputTokens = (int)(entity["InputTokens"] ?? 0),
-            OutputTokens = (int)(entity["OutputTokens"] ?? 0),
-            TotalTokens = (int)(entity["TotalTokens"] ?? 0),
-            SubstitutionChainRunId = entity["SubstitutionChainRunId"]?.ToString() ?? string.Empty,
+            ModelId = entity[BaseColumns.ModelId]?.ToString() ?? string.Empty,
+            Status = Enum.Parse<RunStatus>(entity[BaseColumns.Status]?.ToString() ?? "Failed"),
+            DurationSeconds = (double)(entity[BaseColumns.DurationSeconds] ?? 0.0),
+            InputTokens = (int)(entity[BaseColumns.InputTokens] ?? 0),
+            OutputTokens = (int)(entity[BaseColumns.OutputTokens] ?? 0),
+            TotalTokens = (int)(entity[BaseColumns.TotalTokens] ?? 0),
+            SubstitutionChainRunId = entity[OpportunityScanColumns.SubstitutionChainRunId]?.ToString() ?? string.Empty,
             Targets = targets
         };
     }

@@ -94,6 +94,10 @@ export interface OpportunityScanRun {
 }
 
 export interface DashboardData {
+  /** Date of the most recent run found, or null if no data available. */
+  runDate: string | null;
+  /** True if at least one agent run was found. */
+  hasData: boolean;
   newsBrief: NewsBriefRun | null;
   weeklySummary: WeeklySummaryRun | null;
   substitutionChain: SubstitutionChainRun | null;

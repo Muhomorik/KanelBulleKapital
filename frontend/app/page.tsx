@@ -15,15 +15,19 @@ import type { DashboardData } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 
+function toLocalDateString(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData>(demoDashboard);
   const [isDemo, setIsDemo] = useState(true);
   const [loading, setLoading] = useState(false);
   const [coldStart, setColdStart] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [today] = useState(() => new Date().toISOString().slice(0, 10));
+  const [today] = useState(() => toLocalDateString(new Date()));
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [dataDate, setDataDate] = useState<string>("");
+  const [dataDate, setDataDate] = useState(today);
 
   const fetchData = useCallback(
     async (date?: string) => {
@@ -34,26 +38,14 @@ export default function DashboardPage() {
       const coldStartTimer = setTimeout(() => setColdStart(true), 5000);
 
       try {
-        // If date provided, fetch that specific date; otherwise backend returns latest
         const result = await getDashboard(date);
         clearTimeout(coldStartTimer);
         setColdStart(false);
 
-        const hasAnyData =
-          result.newsBrief ||
-          result.weeklySummary ||
-          result.substitutionChain ||
-          result.opportunityScan;
-
-        if (hasAnyData) {
+        if (result.hasData) {
           setData(result);
           setIsDemo(false);
-          const runDate =
-            result.newsBrief?.runDate ??
-            result.weeklySummary?.runDate ??
-            result.substitutionChain?.runDate ??
-            result.opportunityScan?.runDate;
-          if (runDate) setDataDate(runDate);
+          if (result.runDate) setDataDate(result.runDate);
         } else {
           setData(demoDashboard);
           setIsDemo(true);
@@ -80,7 +72,7 @@ export default function DashboardPage() {
     const base = selectedDate ?? dataDate;
     const d = new Date(base + "T00:00:00");
     d.setDate(d.getDate() + offset);
-    const newDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const newDate = toLocalDateString(d);
     if (newDate > today) return;
     setSelectedDate(newDate);
     fetchData(newDate);

@@ -1,0 +1,198 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - img [ref=e4]
+    - paragraph [ref=e6]: Demo mode — This is a portfolio project showing sample data. The AI pipeline runs on Azure Functions with ~30s cold start.
+    - button "Dismiss" [ref=e7]:
+      - img [ref=e8]
+  - banner [ref=e11]:
+    - generic [ref=e12]:
+      - generic [ref=e13]:
+        - img [ref=e15]
+        - generic [ref=e18]:
+          - generic [ref=e19]: SmorgasBoard
+          - generic [ref=e20]: by KanelBrief
+      - link "GitHub" [ref=e22] [cursor=pointer]:
+        - /url: https://github.com/Muhomorik/KanelBulleKapital
+  - main [ref=e24]:
+    - generic [ref=e25]:
+      - heading "Market Intelligence" [level=1] [ref=e26]
+      - paragraph [ref=e27]:
+        - text: AI-generated analysis for
+        - time [ref=e28]: 2026-04-09
+        - text: Demo data
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - button "Previous day" [ref=e31]:
+            - img [ref=e32]
+          - textbox [ref=e34]: 2026-04-09
+          - button "Next day" [disabled] [ref=e35]:
+            - img [ref=e36]
+        - button "Refresh" [ref=e38]:
+          - img [ref=e39]
+          - text: Refresh
+    - generic [ref=e44]:
+      - generic [ref=e45]:
+        - generic [ref=e46]:
+          - img [ref=e48]
+          - generic [ref=e51]:
+            - heading "Market Pulse" [level=2] [ref=e52]
+            - paragraph [ref=e53]: Daily news brief
+        - generic [ref=e54]:
+          - generic [ref=e55]:
+            - generic [ref=e56]:
+              - generic [ref=e57]: Today's Mood
+              - generic [ref=e58]:
+                - img [ref=e59]
+                - text: Risk-Off
+            - generic [ref=e62]:
+              - generic [ref=e63]:
+                - img [ref=e64]
+                - text: gpt-5.4-mini
+              - generic [ref=e67]:
+                - img [ref=e68]
+                - text: 11.2s
+              - generic [ref=e71]: 2 760 tokens
+          - paragraph [ref=e73]: Markets turned cautious as tariff escalation fears gripped global trade. Energy stocks fell on demand concerns while tech showed resilience on AI infrastructure spending. Safe-haven flows boosted gold and short-duration bonds.
+        - generic [ref=e74]:
+          - generic [ref=e75]:
+            - generic [ref=e76]:
+              - generic [ref=e77]:
+                - generic [ref=e78]: Technology
+                - generic [ref=e79]:
+                  - img [ref=e80]
+                  - text: Risk-On
+              - generic [ref=e83]: AI capex shields tech from broader selloff
+            - paragraph [ref=e85]: Hyperscaler spending plans remain intact despite macro headwinds. Semiconductor names held steady as cloud demand forecasts were reaffirmed.
+          - generic [ref=e86]:
+            - generic [ref=e87]:
+              - generic [ref=e88]:
+                - generic [ref=e89]: Energy
+                - generic [ref=e90]:
+                  - img [ref=e91]
+                  - text: Risk-Off
+              - generic [ref=e94]: Crude slides on global demand downgrade
+            - paragraph [ref=e96]: IEA cut 2026 demand forecasts citing trade friction. European natural gas softened on mild weather and strong LNG arrivals.
+          - generic [ref=e97]:
+            - generic [ref=e98]:
+              - generic [ref=e99]:
+                - generic [ref=e100]: Financials
+                - generic [ref=e101]:
+                  - img [ref=e102]
+                  - text: Mixed
+              - generic [ref=e105]: Bank earnings mixed amid yield curve uncertainty
+            - paragraph [ref=e107]: Net interest margins compressed for regional banks. Large-cap financials guided cautiously on loan growth outlook.
+          - generic [ref=e108]:
+            - generic [ref=e109]:
+              - generic [ref=e110]:
+                - generic [ref=e111]: Healthcare
+                - generic [ref=e112]:
+                  - img [ref=e113]
+                  - text: Risk-On
+              - generic [ref=e116]: Pharma rallies on defensive rotation
+            - paragraph [ref=e118]: Large-cap pharma outperformed as investors sought safety. Biotech M&A speculation lifted mid-caps.
+      - separator [ref=e119]
+      - generic [ref=e120]:
+        - generic [ref=e121]:
+          - img [ref=e123]
+          - generic [ref=e127]:
+            - heading "Weekly Themes" [level=2] [ref=e128]
+            - paragraph [ref=e129]: Aggregated market themes
+        - generic [ref=e131]:
+          - generic [ref=e132]:
+            - generic [ref=e133]: Weekly Mood
+            - generic [ref=e134]:
+              - img [ref=e135]
+              - text: Mixed
+          - generic [ref=e138]:
+            - img [ref=e139]
+            - text: Mar 31 — Apr 4
+        - generic [ref=e141]:
+          - generic [ref=e142]:
+            - generic [ref=e144]:
+              - generic [ref=e145]: Trade War Escalation
+              - generic [ref=e146]: High
+            - paragraph [ref=e152]: Tariff rhetoric intensified between US and China, with new 25% duties on semiconductor equipment. Markets priced in extended supply chain disruption.
+          - generic [ref=e153]:
+            - generic [ref=e155]:
+              - generic [ref=e156]: AI Infrastructure Boom
+              - generic [ref=e157]: High
+            - paragraph [ref=e163]: Hyperscaler capex guidance exceeded expectations. Data center REITs and power utilities benefited from the buildout narrative.
+          - generic [ref=e164]:
+            - generic [ref=e166]:
+              - generic [ref=e167]: Defensive Rotation
+              - generic [ref=e168]: Med
+            - paragraph [ref=e174]: Capital shifted from cyclicals to healthcare and utilities. Gold ETFs saw largest weekly inflows since 2024.
+      - separator [ref=e175]
+      - generic [ref=e176]:
+        - generic [ref=e177]:
+          - img [ref=e179]
+          - generic [ref=e183]:
+            - heading "Capital Flows" [level=2] [ref=e184]
+            - paragraph [ref=e185]: Substitution chain rotation paths
+        - generic [ref=e186]:
+          - generic [ref=e187]:
+            - generic [ref=e189]:
+              - generic [ref=e190]: Energy (Oil & Gas)
+              - img [ref=e191]
+              - generic [ref=e193]: Technology (AI Infrastructure)
+            - paragraph [ref=e195]: ESG-driven reallocation combined with demand downgrade driving capital toward secular growth themes
+          - generic [ref=e196]:
+            - generic [ref=e198]:
+              - generic [ref=e199]: Consumer Discretionary
+              - img [ref=e200]
+              - generic [ref=e202]: Healthcare & Utilities
+            - paragraph [ref=e204]: Risk-off sentiment pushing investors from cyclical exposure toward defensive sectors with stable cash flows
+          - generic [ref=e205]:
+            - generic [ref=e207]:
+              - generic [ref=e208]: Emerging Market Equities
+              - img [ref=e209]
+              - generic [ref=e211]: Gold & Short-Duration Bonds
+            - paragraph [ref=e213]: Trade friction increasing EM risk premium; safe-haven demand accelerating on geopolitical uncertainty
+      - separator [ref=e214]
+      - generic [ref=e215]:
+        - generic [ref=e216]:
+          - img [ref=e218]
+          - generic [ref=e222]:
+            - heading "Opportunities" [level=2] [ref=e223]
+            - paragraph [ref=e224]: Actionable rotation targets
+        - generic [ref=e225]:
+          - generic [ref=e226]:
+            - generic [ref=e227]:
+              - generic [ref=e228]:
+                - generic [ref=e229]: Data Center REITs
+                - generic [ref=e230]:
+                  - img [ref=e231]
+                  - text: Strong
+              - generic [ref=e233]: AI infrastructure buildout creating sustained demand for data center capacity. Power availability becoming key differentiator.
+            - generic [ref=e235]:
+              - img [ref=e236]
+              - generic [ref=e238]: Valuations stretched at 30x FFO; rising interest rates could compress cap rates
+          - generic [ref=e239]:
+            - generic [ref=e240]:
+              - generic [ref=e241]:
+                - generic [ref=e242]: Large-Cap Pharma
+                - generic [ref=e243]:
+                  - img [ref=e244]
+                  - text: Moderate
+              - generic [ref=e245]: Defensive rotation inflows plus robust pipeline catalysts in H2 2026. Dividend yields attractive relative to compressed bond yields.
+            - generic [ref=e247]:
+              - img [ref=e248]
+              - generic [ref=e250]: Medicare price negotiation risk; patent cliffs in 2027-2028 for key drugs
+          - generic [ref=e251]:
+            - generic [ref=e252]:
+              - generic [ref=e253]:
+                - generic [ref=e254]: Gold Miners
+                - generic [ref=e255]:
+                  - img [ref=e256]
+                  - text: Moderate
+              - generic [ref=e257]: Gold price breakout above $2,800 combined with historically low miner valuations. Operating leverage to gold price significant.
+            - generic [ref=e259]:
+              - img [ref=e260]
+              - generic [ref=e262]: If trade tensions de-escalate, safe-haven flows could reverse rapidly
+  - contentinfo [ref=e263]:
+    - generic [ref=e265]:
+      - paragraph [ref=e266]:
+        - text: SmorgasBoard — AI-powered market intelligence by
+        - link "KanelBulleKapital" [ref=e267] [cursor=pointer]:
+          - /url: https://github.com/Muhomorik/KanelBulleKapital
+      - paragraph [ref=e268]: Built with Azure AI Foundry + Microsoft Agent Framework

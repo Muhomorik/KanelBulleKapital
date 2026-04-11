@@ -86,35 +86,8 @@ export async function getOpportunityScan(
 }
 
 export async function getDashboard(date?: string): Promise<DashboardData> {
-  const [newsBriefs, weeklySummaries, substitutionChains, opportunityScans] =
-    await Promise.allSettled([
-      getNewsBriefs(date),
-      getWeeklySummaries(date),
-      getSubstitutionChains(date),
-      getOpportunityScans(date),
-    ]);
-
-  return {
-    newsBrief:
-      newsBriefs.status === "fulfilled" && newsBriefs.value.length > 0
-        ? newsBriefs.value[0]
-        : null,
-    weeklySummary:
-      weeklySummaries.status === "fulfilled" &&
-      weeklySummaries.value.length > 0
-        ? weeklySummaries.value[0]
-        : null,
-    substitutionChain:
-      substitutionChains.status === "fulfilled" &&
-      substitutionChains.value.length > 0
-        ? substitutionChains.value[0]
-        : null,
-    opportunityScan:
-      opportunityScans.status === "fulfilled" &&
-      opportunityScans.value.length > 0
-        ? opportunityScans.value[0]
-        : null,
-  };
+  const query = date ? `?date=${date}` : "";
+  return fetchJson<DashboardData>(`/api/dashboard${query}`);
 }
 
 export { ApiError };

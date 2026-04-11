@@ -10,4 +10,8 @@
     <PackageReference Include="System.Text.Json" Version="10.0.5" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="KanelBrief.Core.Tests" />
+  </ItemGroup>
+
 </Project>
