@@ -77,7 +77,9 @@ public class AgentRunsApi
                 dashboard.HasData, dashboard.RunDate ?? "none");
 
             var response = req.CreateResponse(System.Net.HttpStatusCode.OK);
-            await response.WriteAsJsonAsync(dashboard);
+            response.Headers.Add("Content-Type", "application/json; charset=utf-8");
+            var json = JsonSerializer.Serialize(dashboard, _jsonOptions);
+            await response.WriteStringAsync(json);
             return response;
         }
         catch (Exception ex)
