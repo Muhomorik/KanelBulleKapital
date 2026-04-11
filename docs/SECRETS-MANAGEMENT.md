@@ -129,6 +129,7 @@ Settings configured in Azure Portal → Function App → **Environment variables
 | `AzureWebJobsStorage` | Storage connection string (Functions runtime) | Yes — set by Azure at creation |
 | `TableStorageUri` | Storage Table endpoint for Managed Identity auth | No — just a URL |
 | `FOUNDRY_PROJECT_ENDPOINT` | AI Foundry project endpoint | No — just a URL |
+| `BING_CONNECTION_NAME` | Bing Grounding connection name (optional — enables real-time news) | No — just a name |
 
 > **Managed Identity:** Both Table data access and AI Foundry use
 > `DefaultAzureCredential` with the Function App's system-assigned managed

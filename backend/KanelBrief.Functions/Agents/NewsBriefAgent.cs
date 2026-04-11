@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Azure.AI.Projects;
 using KanelBrief.Core.Models;
+using KanelBrief.Core.Parsers;
 using KanelBrief.Core.Repositories;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
@@ -145,32 +146,20 @@ Return a JSON object with this exact structure:
         var responseText = agentResponse.ToString() ?? string.Empty;
 
         // Parse JSON response
-        var analysisJson = ExtractJson(responseText);
+        var analysisJson = AgentResponseParser.ExtractJson(responseText);
         var analysis = JsonSerializer.Deserialize<NewsBriefAnalysisResult>(analysisJson, _jsonOptions)
             ?? throw new InvalidOperationException("Failed to parse agent response");
 
         return analysis;
     }
 
-    private string ExtractJson(string text)
-    {
-        // Extract JSON from response (agent might include extra text)
-        var startIndex = text.IndexOf('{');
-        var endIndex = text.LastIndexOf('}');
-
-        if (startIndex < 0 || endIndex < 0)
-            throw new InvalidOperationException("No JSON found in agent response");
-
-        return text[startIndex..(endIndex + 1)];
-    }
-
-    private string GenerateFallbackSummary(List<NewsArticle> articles)
+    internal string GenerateFallbackSummary(List<NewsArticle> articles)
     {
         var categories = articles.Select(a => a.Category).Distinct();
         return $"Market briefing covering {categories.Count()} sectors: {string.Join(", ", categories)}.";
     }
 
-    private List<CategoryAssessment> GenerateFallbackAssessments(List<NewsArticle> articles)
+    internal List<CategoryAssessment> GenerateFallbackAssessments(List<NewsArticle> articles)
     {
         return articles
             .GroupBy(a => a.Category)

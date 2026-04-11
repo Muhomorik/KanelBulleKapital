@@ -48,10 +48,12 @@ AgentRunsApi (GET endpoints) → retrieve runs by date/ID
 
 ### 1. Microsoft Agent Framework Integration (Phase 1)
 
-- **NewsBriefAgent**: Uses `AIProjectClient.AsAIAgent()` to analyze news articles with gpt-5.4-mini
+- **NewsBriefAgent**: Uses `DeclarativeAgentDefinition` + `AgentAdministrationClient` + Responses API with gpt-5.4-mini
+  - **Bing Grounding** for real-time news search (when `BING_CONNECTION_NAME` configured)
+  - Creates ephemeral agent version, runs via `ProjectResponsesClient`, cleans up afterward
   - Agent generates mood assessment and category-level sentiment analysis
   - Parses JSON response and populates structured run data
-  - Fallback mechanism if LLM call fails
+  - Fallback mechanism if LLM call fails or Bing connection unavailable
 - **WeeklySummaryAgent**: Aggregates daily briefs into weekly themes
   - Analyzes week's sentiment trends via agent
   - Extracts recurring market themes with confidence levels
@@ -61,8 +63,9 @@ AgentRunsApi (GET endpoints) → retrieve runs by date/ID
 - **OpportunityScanAgent**: Evaluates rotation opportunities
   - Scores opportunities by signal strength (Strong/Moderate/Weak)
   - Includes risk caveats and rationale
-- **DI Setup**: `AIProjectClient` registered in Program.cs (singleton)
+- **DI Setup**: `AIProjectClient` + `AgentAdministrationClient` registered in Program.cs (singletons)
   - Configured with Foundry project endpoint (from `FOUNDRY_PROJECT_ENDPOINT` config)
+  - `BING_CONNECTION_NAME` (optional) — enables Bing Grounding for News Brief agent
   - Uses `DefaultAzureCredential` for Azure authentication
 - **Error Handling**: Each agent has fallback placeholder data if LLM call fails
 - **Model**: gpt-5.4-mini (from available Foundry models)
@@ -264,6 +267,7 @@ Set in Azure Portal → Function App → Environment variables:
 - `AzureWebJobsStorage`: Storage connection string (Functions runtime)
 - `TableStorageUri`: Storage Table endpoint for Managed Identity auth
 - `FOUNDRY_PROJECT_ENDPOINT`: AI Foundry project endpoint
+- `BING_CONNECTION_NAME`: (optional) Bing Grounding connection name — enables real-time news search in News Brief agent
 
 ## 🎯 Key Design Decisions
 

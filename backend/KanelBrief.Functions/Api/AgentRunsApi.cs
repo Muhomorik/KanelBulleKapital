@@ -26,7 +26,76 @@ public class AgentRunsApi
         _jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     }
 
-    /// <summary>Get News Brief runs. If ?date is provided, returns runs for that date. Otherwise returns the latest available (up to 7 days back).</summary>
+    /// <summary>
+    /// Composite dashboard endpoint: returns all run types with pre-computed metadata.
+    /// Eliminates the need for clients to make 4 separate calls and null-coalesce across them.
+    /// </summary>
+    [Function("GetDashboard")]
+    public async Task<HttpResponseData> GetDashboard(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "dashboard")] HttpRequestData req)
+    {
+        try
+        {
+            var runDate = req.Query["date"];
+
+            // Fetch all run types in parallel
+            var newsBriefTask = string.IsNullOrEmpty(runDate)
+                ? FindLatestAsync(_repository.GetNewsBriefRunsByDateAsync)
+                : _repository.GetNewsBriefRunsByDateAsync(runDate);
+            var weeklySummaryTask = string.IsNullOrEmpty(runDate)
+                ? FindLatestAsync(_repository.GetWeeklySummaryRunsByDateAsync)
+                : _repository.GetWeeklySummaryRunsByDateAsync(runDate);
+            var substitutionChainTask = string.IsNullOrEmpty(runDate)
+                ? FindLatestAsync(_repository.GetSubstitutionChainRunsByDateAsync)
+                : _repository.GetSubstitutionChainRunsByDateAsync(runDate);
+            var opportunityScanTask = string.IsNullOrEmpty(runDate)
+                ? FindLatestAsync(_repository.GetOpportunityScanRunsByDateAsync)
+                : _repository.GetOpportunityScanRunsByDateAsync(runDate);
+
+            await Task.WhenAll(newsBriefTask, weeklySummaryTask, substitutionChainTask, opportunityScanTask);
+
+            var newsBrief = newsBriefTask.Result.FirstOrDefault();
+            var weeklySummary = weeklySummaryTask.Result.FirstOrDefault();
+            var substitutionChain = substitutionChainTask.Result.FirstOrDefault();
+            var opportunityScan = opportunityScanTask.Result.FirstOrDefault();
+
+            var dashboard = new DashboardResponse
+            {
+                RunDate = newsBrief?.RunDate
+                    ?? weeklySummary?.RunDate
+                    ?? substitutionChain?.RunDate
+                    ?? opportunityScan?.RunDate,
+                HasData = newsBrief != null || weeklySummary != null
+                    || substitutionChain != null || opportunityScan != null,
+                NewsBrief = newsBrief,
+                WeeklySummary = weeklySummary,
+                SubstitutionChain = substitutionChain,
+                OpportunityScan = opportunityScan
+            };
+
+            _logger.LogInformation("Dashboard fetched: HasData={HasData}, RunDate={RunDate}",
+                dashboard.HasData, dashboard.RunDate ?? "none");
+
+            var response = req.CreateResponse(System.Net.HttpStatusCode.OK);
+            await response.WriteAsJsonAsync(dashboard);
+            return response;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "GetDashboard failed");
+            var response = req.CreateResponse(System.Net.HttpStatusCode.InternalServerError);
+            await response.WriteAsJsonAsync(new { error = ex.Message });
+            return response;
+        }
+    }
+
+    /// <summary>
+    /// Get News Brief runs.
+    /// If ?date is provided, returns runs for that date.
+    /// Otherwise, returns the latest available (up to 7 days back).
+    /// </summary>
+    /// <param name="req"></param>
+    /// <returns></returns>
     [Function("GetNewsBriefRuns")]
     public async Task<HttpResponseData> GetNewsBriefRuns(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "runs/news-briefs")] HttpRequestData req)
@@ -247,7 +316,7 @@ public class AgentRunsApi
     }
 
     /// <summary>Scan backwards from today up to 7 days to find the latest available runs.</summary>
-    private static async Task<List<T>> FindLatestAsync<T>(Func<string, Task<List<T>>> getByDate)
+    internal static async Task<List<T>> FindLatestAsync<T>(Func<string, Task<List<T>>> getByDate)
     {
         var today = DateTimeOffset.UtcNow;
         for (var i = 0; i < 7; i++)

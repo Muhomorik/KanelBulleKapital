@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Azure.AI.Extensions.OpenAI" Version="2.0.0" />
     <PackageReference Include="Azure.AI.Projects" Version="2.0.0" />
     <PackageReference Include="Azure.Data.Tables" Version="12.11.0" />
     <PackageReference Include="Azure.Identity" Version="1.20.0" />
@@ -28,6 +29,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\KanelBrief.Core\KanelBrief.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="KanelBrief.Functions.Tests" />
   </ItemGroup>
 
 </Project>

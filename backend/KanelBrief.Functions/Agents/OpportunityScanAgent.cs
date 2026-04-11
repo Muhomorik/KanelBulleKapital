@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Azure.AI.Projects;
 using KanelBrief.Core.Models;
+using KanelBrief.Core.Parsers;
 using KanelBrief.Core.Repositories;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
@@ -124,36 +125,14 @@ Return a JSON object with this exact structure:
         var agentResponse = await agent.RunAsync(prompt);
         var responseText = agentResponse.ToString() ?? string.Empty;
 
-        var analysisJson = ExtractJson(responseText);
+        var analysisJson = AgentResponseParser.ExtractJson(responseText);
         var analysis = JsonSerializer.Deserialize<OpportunityScanAnalysisResult>(analysisJson, _jsonOptions)
             ?? throw new InvalidOperationException("Failed to parse agent response");
 
         return analysis;
     }
 
-    private string ExtractJson(string text)
-    {
-        var startIndex = text.IndexOf('{');
-        var endIndex = text.LastIndexOf('}');
-
-        if (startIndex < 0 || endIndex < 0)
-            throw new InvalidOperationException("No JSON found in agent response");
-
-        return text[startIndex..(endIndex + 1)];
-    }
-
-    private SignalStrength ParseSignalStrength(string strength)
-    {
-        return strength.ToLowerInvariant() switch
-        {
-            "strong" => SignalStrength.Strong,
-            "moderate" => SignalStrength.Moderate,
-            "weak" => SignalStrength.Weak,
-            _ => SignalStrength.Moderate
-        };
-    }
-
-    private List<RotationTarget> GenerateFallbackTargets()
+    internal static List<RotationTarget> GenerateFallbackTargets()
     {
         return new List<RotationTarget>
         {
