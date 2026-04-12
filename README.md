@@ -2,6 +2,14 @@
 
 🤪 Coffee-fueled, sugar-coated, financially doomed
 
+> **Naming convention — welcome to the KCU (Kanelbulle Cinematic Universe).**
+> *Kanel* is Swedish for "cinnamon", and a *kanelbulle* is a cinnamon bun — the classic Swedish fika pastry.
+> *Fika* is the Swedish coffee-break ritual — pause work, grab coffee and something sweet, chat with colleagues. It's practically a national institution.
+> *Smörgåsbord* (literally "sandwich table") is a buffet-style spread of many small dishes — the dashboard serves up a little of everything the agents produced.
+> Everything in this repo leans into that theme: *KanelBulleKapital* (the universe itself — "Cinnamon Bun Capital"),
+> *FikaForecast* (the WPF app), *SmorgasBoard* (the dashboard), *KanelBrief* (the backend).
+> If you spot a pastry-themed name, that's on purpose.
+
 **[Live Demo — SmorgasBoard Dashboard](https://lemon-bush-08a967d03.4.azurestaticapps.net/)**
 
 **Goal:** Build an event-driven multi-agent system that forms, tests, and acts on market hypotheses autonomously — using Microsoft Agent Framework and Azure AI Foundry.
@@ -13,6 +21,13 @@
 A WPF desktop app that runs AI agents to analyze financial markets. Compares how different LLMs perform on the same market analysis task using Microsoft Agent Framework and Azure AI Foundry.
 
 ![FikaForecast in action](FikaForecast/docs/ANIMATION_OVERVIEW.gif)
+
+### SmorgasBoard Dashboard
+
+A web dashboard for browsing daily and weekly market briefs produced by the [KanelBrief backend](backend/README.md).
+Built with a [Next.js frontend](frontend/README.md) on Azure Static Web Apps, backed by Azure Functions running four AI agents on schedule.
+
+![SmorgasBoard Dashboard](frontend/public/docs/dashboard.png)
 
 ## Roadmap
 
@@ -26,11 +41,12 @@ Continuous hypothesis evaluation using event-driven multi-agent architecture on 
   - [x] Batch scheduler — automated runs at 4-hour intervals, `--auto-schedule` CLI flag
   - [x] Run history — all runs persisted to SQLite, filterable by model
   - [x] Configurable models and prompts
-- [ ] **Step 2 — Event-driven trigger**
-  - [ ] Fund data → Service Bus queue → EventGrid trigger → Foundry Agent workflow
-  - [ ] Agent wakes on data arrival, not on schedule
-  - [ ] Ingress Agent loads session state and routes to active hypotheses
-  - [ ] Agent pipeline: Ingress → RAG Retrieval → Hypothesis Evaluation → Signal Consolidation → Session State Writer
+- [x] **Step 2 — Timer-driven agent pipelines**
+  - [x] Azure Functions host with `TimerTrigger` bindings — no Service Bus, no EventGrid, just cron
+  - [x] `DailyPipelineOrchestrator` routes timer events to pipeline services, zero business logic in the trigger
+  - [x] Daily News Brief pipeline — fires at `0 8 * * *` UTC
+  - [x] Weekly Aggregation pipeline — fires at `0 9 * * 1` UTC (Monday mornings)
+  - [x] `IsPastDue` detection logs a warning when a run is behind schedule
 - [ ] **Step 3 — The RAG problem**
   - [ ] Semantic retrieval over fund descriptions to separate specific exposures from coarse category labels
   - [ ] Peer group assembled from meaning, not from provider-assigned categories
@@ -53,7 +69,6 @@ Continuous hypothesis evaluation using event-driven multi-agent architecture on 
   - [x] Azure Tables persistence, Managed Identity auth, CI/CD via GitHub Actions
   - [x] Next.js frontend on Azure Static Web Apps (free tier)
   - [x] Date picker for browsing historical runs
-
 
 **Features:** model comparison, batch scheduler (automated daily runs at 4-hour intervals), run history, evaluation agent, configurable prompts and models
 
