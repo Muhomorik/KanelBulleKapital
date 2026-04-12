@@ -1,6 +1,10 @@
 using System.Text.Json;
 using KanelBrief.Core.Models;
 
+// These tests intentionally exercise RunStatus.Partial — it is [Obsolete] but kept to
+// deserialize historical Azure Tables rows. Suppress the deprecation warning here only.
+#pragma warning disable CS0618
+
 namespace KanelBrief.Core.Tests.Models;
 
 [TestFixture]
@@ -11,7 +15,13 @@ public class EnumSerializationTests
     [TestCase(RunStatus.Partial, "\"Partial\"")]
     public void RunStatus_Serialize_ProducesStringNotInteger(RunStatus value, string expected)
     {
+        // Arrange
+        // (value + expected provided by TestCase)
+
+        // Act
         var json = JsonSerializer.Serialize(value);
+
+        // Assert
         Assert.That(json, Is.EqualTo(expected));
     }
 
@@ -20,7 +30,13 @@ public class EnumSerializationTests
     [TestCase("\"Partial\"", RunStatus.Partial)]
     public void RunStatus_DeserializeFromString_ReturnsCorrectValue(string json, RunStatus expected)
     {
+        // Arrange
+        // (json + expected provided by TestCase)
+
+        // Act
         var result = JsonSerializer.Deserialize<RunStatus>(json);
+
+        // Assert
         Assert.That(result, Is.EqualTo(expected));
     }
 

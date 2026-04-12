@@ -1,7 +1,7 @@
+using System.Net;
 using System.Text.Json;
-using Azure.AI.Projects;
+using KanelBrief.Core.Agents;
 using KanelBrief.Core.Models;
-using KanelBrief.Core.Parsers;
 using KanelBrief.Core.Repositories;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
@@ -10,139 +10,90 @@ using Microsoft.Extensions.Logging;
 namespace KanelBrief.Functions.Agents;
 
 /// <summary>
-/// Opportunity Scan agent: identifies actionable rotation opportunities from capital chains.
-/// Evaluates rotation paths for investment potential and associated risks.
-/// Integrates with Microsoft Agent Framework for LLM-powered analysis.
+/// HTTP coordinator for the Opportunity Scan agent. Business logic lives in
+/// <see cref="ExecuteAsync"/> for direct unit testing. Loads the referenced substitution chain
+/// from the repository and delegates analysis to <see cref="IOpportunityScanAnalyzer"/>.
+/// Returns 500 on failure — nothing is persisted.
 /// </summary>
-public class OpportunityScanAgent
+public sealed class OpportunityScanAgent(
+    ILogger<OpportunityScanAgent> logger,
+    IOpportunityScanAnalyzer analyzer,
+    IAgentRunRepository repository,
+    TimeProvider timeProvider)
 {
-    private readonly ILogger<OpportunityScanAgent> _logger;
-    private readonly AIProjectClient _aiProjectClient;
-    private readonly IAgentRunRepository _repository;
-    private readonly JsonSerializerOptions _jsonOptions;
+    private const string ModelId = "gpt-5.4-mini";
 
-    public OpportunityScanAgent(
-        ILogger<OpportunityScanAgent> logger,
-        AIProjectClient aiProjectClient,
-        IAgentRunRepository repository)
+    private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        _logger = logger;
-        _aiProjectClient = aiProjectClient;
-        _repository = repository;
-        _jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-    }
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
 
     [Function("OpportunityScan")]
     public async Task<HttpResponseData> RunAsync(
-        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "opportunity-scan")] HttpRequestData req)
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "opportunity-scan")] HttpRequestData req,
+        CancellationToken ct)
     {
         try
         {
-            // Parse input: substitution chain run ID
-            var requestBody = await req.ReadAsStringAsync();
-            var request = JsonSerializer.Deserialize<OpportunityScanRequest>(requestBody ?? string.Empty, _jsonOptions)
+            var body = await req.ReadAsStringAsync();
+            var request = JsonSerializer.Deserialize<OpportunityScanRequest>(body ?? string.Empty, JsonOptions)
                 ?? throw new ArgumentException("Invalid request body");
 
-            _logger.LogInformation("Processing opportunities from substitution chain {RunId}", request.SubstitutionChainRunId);
+            var run = await ExecuteAsync(request, ct);
 
-            var startTime = DateTimeOffset.UtcNow;
-            var runId = Guid.NewGuid().ToString();
-
-            // Create the Opportunity Scan run
-            var run = new OpportunityScanRun
-            {
-                RunDate = startTime.ToString("yyyy-MM-dd"),
-                RunId = runId,
-                CreatedAt = startTime,
-                ModelId = "gpt-5.4-mini",
-                Status = RunStatus.Success,
-                DurationSeconds = 0,
-                InputTokens = 0,
-                OutputTokens = 0,
-                TotalTokens = 0,
-                SubstitutionChainRunId = request.SubstitutionChainRunId,
-                Targets = []
-            };
-
-            try
-            {
-                // Use Microsoft Agent Framework for analysis
-                var analysis = await AnalyzeOpportunitiesWithAgentAsync(request.SubstitutionChainRunId);
-                run.Targets = analysis.Targets;
-
-                _logger.LogInformation("Opportunity Scan completed: {TargetCount} opportunities", run.Targets.Count);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Analysis processing failed, using fallback");
-                run.Status = RunStatus.Partial;
-                run.Targets = GenerateFallbackTargets();
-            }
-
-            run.DurationSeconds = (DateTimeOffset.UtcNow - startTime).TotalSeconds;
-
-            // Save to repository
-            await _repository.SaveOpportunityScanRunAsync(run);
-            _logger.LogInformation("Opportunity Scan run saved: {RunId}", run.RunId);
-
-            // Return success response
-            var response = req.CreateResponse(System.Net.HttpStatusCode.OK);
+            var response = req.CreateResponse(HttpStatusCode.OK);
             await response.WriteAsJsonAsync(new { runId = run.RunId, status = run.Status });
             return response;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "OpportunityScan function failed");
-            var errorResponse = req.CreateResponse(System.Net.HttpStatusCode.InternalServerError);
+            logger.LogError(ex, "Opportunity Scan agent failed");
+            var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
             await errorResponse.WriteAsJsonAsync(new { error = ex.Message });
             return errorResponse;
         }
     }
 
-    private async Task<OpportunityScanAnalysisResult> AnalyzeOpportunitiesWithAgentAsync(string substitutionChainRunId)
+    /// <summary>
+    /// Business logic: loads the referenced substitution chain, runs it through the analyzer,
+    /// persists the opportunity scan. Throws if the chain isn't found or any step fails.
+    /// </summary>
+    internal async Task<OpportunityScanRun> ExecuteAsync(OpportunityScanRequest request, CancellationToken ct = default)
     {
-        // Create agent for opportunity analysis
-        var agent = _aiProjectClient.AsAIAgent(
-            model: "gpt-5.4-mini",
-            name: "OpportunityScanAnalyzer",
-            instructions: @"You are a financial investment analyst. Evaluate capital rotation opportunities and identify actionable targets.
+        if (string.IsNullOrWhiteSpace(request.SubstitutionChainRunDate)
+            || string.IsNullOrWhiteSpace(request.SubstitutionChainRunId))
+            throw new ArgumentException("SubstitutionChainRunDate and SubstitutionChainRunId are required", nameof(request));
 
-Return a JSON object with this exact structure:
-{
-  ""targets"": [
-    {
-      ""category"": ""Asset or sector to invest in"",
-      ""signalStrength"": ""Strong|Medium|Weak"",
-      ""rationale"": ""Why this is a good opportunity"",
-      ""riskCaveat"": ""Key risks or conditions to watch""
-    }
-  ]
-}"
-        );
+        logger.LogInformation(
+            "Processing opportunity scan for substitution chain {RunDate}/{RunId}",
+            request.SubstitutionChainRunDate, request.SubstitutionChainRunId);
 
-        var prompt = $"Based on the substitution chain analysis (ID: {substitutionChainRunId}), identify investment opportunities.\nEvaluate each rotation path for signal strength, entry points, and risks.";
+        var startTime = timeProvider.GetUtcNow();
 
-        var agentResponse = await agent.RunAsync(prompt);
-        var responseText = agentResponse.ToString() ?? string.Empty;
+        var substitutionChain = await repository.GetSubstitutionChainRunAsync(
+            request.SubstitutionChainRunDate, request.SubstitutionChainRunId);
 
-        var analysisJson = AgentResponseParser.ExtractJson(responseText);
-        var analysis = JsonSerializer.Deserialize<OpportunityScanAnalysisResult>(analysisJson, _jsonOptions)
-            ?? throw new InvalidOperationException("Failed to parse agent response");
+        if (substitutionChain is null)
+            throw new InvalidOperationException(
+                $"Substitution chain not found: {request.SubstitutionChainRunDate}/{request.SubstitutionChainRunId}");
 
-        return analysis;
-    }
+        var analysis = await analyzer.AnalyzeAsync(substitutionChain, ct);
 
-    internal static List<RotationTarget> GenerateFallbackTargets()
-    {
-        return new List<RotationTarget>
+        var run = new OpportunityScanRun
         {
-            new()
-            {
-                Category = "Technology - Cloud Infrastructure",
-                SignalStrength = SignalStrength.Strong,
-                Rationale = "Sustained capital inflow from energy sector reallocation",
-                RiskCaveat = "Valuation at historical highs; watch for sentiment reversal"
-            }
+            RunDate = startTime.ToString("yyyy-MM-dd"),
+            RunId = Guid.NewGuid().ToString(),
+            CreatedAt = startTime,
+            ModelId = ModelId,
+            Status = RunStatus.Success,
+            SubstitutionChainRunId = substitutionChain.RunId,
+            Targets = analysis.Targets,
+            DurationSeconds = (timeProvider.GetUtcNow() - startTime).TotalSeconds
         };
+
+        await repository.SaveOpportunityScanRunAsync(run);
+        logger.LogInformation("Opportunity Scan run saved: {RunId} ({TargetCount} targets)",
+            run.RunId, run.Targets.Count);
+        return run;
     }
 }
