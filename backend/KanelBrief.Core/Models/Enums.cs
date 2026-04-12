@@ -6,8 +6,22 @@ namespace KanelBrief.Core.Models;
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum RunStatus
 {
+    /// <summary>The run completed end-to-end and its result was persisted.</summary>
     Success,
+
+    /// <summary>The run failed. Reserved for future use — current code does not write this value;
+    /// failures are logged and propagated without persisting anything.</summary>
     Failed,
+
+    /// <summary>
+    /// Historically used when an LLM call failed and the agent saved a row with fabricated
+    /// fallback data.
+    /// <b>Do not write this value in new code.</b>
+    /// The enum member is kept so historical Azure Tables rows with <c>Status = "Partial"</c>
+    /// still deserialize; it will be removed after those rows are cleaned up.
+    /// </summary>
+    [Obsolete("Partial runs are no longer written. Failures propagate without persisting. " +
+              "Retained only to deserialize historical rows.")]
     Partial
 }
 

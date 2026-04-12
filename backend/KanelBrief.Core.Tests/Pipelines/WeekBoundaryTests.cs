@@ -1,9 +1,9 @@
-using KanelBrief.Functions.Orchestration;
+using KanelBrief.Core.Pipelines;
 
-namespace KanelBrief.Functions.Tests.Orchestration;
+namespace KanelBrief.Core.Tests.Pipelines;
 
 [TestFixture]
-[TestOf(typeof(DailyPipelineOrchestrator))]
+[TestOf(typeof(WeeklyAggregationPipeline))]
 public class WeekBoundaryTests
 {
     [TestCase(DayOfWeek.Monday, 0)]
@@ -16,12 +16,15 @@ public class WeekBoundaryTests
     public void CalculateWeekBoundaries_AnyDay_PrevMondayIsMondayOfPreviousWeek(
         DayOfWeek dayOfWeek, int expectedDaysFromMonday)
     {
+        // Arrange
         // Find an actual date with this DayOfWeek (week of April 6-12, 2026: Mon=6, Sun=12)
         var monday = new DateTime(2026, 4, 6);
         var testDate = new DateTimeOffset(monday.AddDays(expectedDaysFromMonday), TimeSpan.Zero);
 
-        var (prevMonday, prevSunday) = DailyPipelineOrchestrator.CalculateWeekBoundaries(testDate);
+        // Act
+        var (prevMonday, prevSunday) = WeeklyAggregationPipeline.CalculateWeekBoundaries(testDate);
 
+        // Assert
         Assert.That(prevMonday.DayOfWeek, Is.EqualTo(DayOfWeek.Monday), "prevMonday should be a Monday");
         Assert.That(prevSunday.DayOfWeek, Is.EqualTo(DayOfWeek.Monday), "prevSunday boundary should be next Monday (exclusive)");
         Assert.That((prevSunday - prevMonday).Days, Is.EqualTo(7), "Should span exactly 7 days");
@@ -30,11 +33,13 @@ public class WeekBoundaryTests
     [Test]
     public void CalculateWeekBoundaries_MondayExecution_PreviousWeekRange()
     {
-        // Monday April 6, 2026
+        // Arrange
         var monday = new DateTimeOffset(2026, 4, 6, 9, 0, 0, TimeSpan.Zero);
 
-        var (prevMonday, prevSunday) = DailyPipelineOrchestrator.CalculateWeekBoundaries(monday);
+        // Act
+        var (prevMonday, prevSunday) = WeeklyAggregationPipeline.CalculateWeekBoundaries(monday);
 
+        // Assert
         Assert.That(prevMonday, Is.EqualTo(new DateTime(2026, 3, 30)));
         Assert.That(prevSunday, Is.EqualTo(new DateTime(2026, 4, 6)));
     }
@@ -42,11 +47,13 @@ public class WeekBoundaryTests
     [Test]
     public void CalculateWeekBoundaries_WednesdayExecution_PreviousWeekRange()
     {
-        // Wednesday April 8, 2026
+        // Arrange
         var wednesday = new DateTimeOffset(2026, 4, 8, 9, 0, 0, TimeSpan.Zero);
 
-        var (prevMonday, prevSunday) = DailyPipelineOrchestrator.CalculateWeekBoundaries(wednesday);
+        // Act
+        var (prevMonday, prevSunday) = WeeklyAggregationPipeline.CalculateWeekBoundaries(wednesday);
 
+        // Assert
         Assert.That(prevMonday, Is.EqualTo(new DateTime(2026, 3, 30)));
         Assert.That(prevSunday, Is.EqualTo(new DateTime(2026, 4, 6)));
     }
@@ -54,13 +61,14 @@ public class WeekBoundaryTests
     [Test]
     public void CalculateWeekBoundaries_SundayExecution_PreviousWeekRange()
     {
+        // Arrange
         // Sunday April 12, 2026 — tricky case (DayOfWeek=0)
         var sunday = new DateTimeOffset(2026, 4, 12, 9, 0, 0, TimeSpan.Zero);
 
-        var (prevMonday, prevSunday) = DailyPipelineOrchestrator.CalculateWeekBoundaries(sunday);
+        // Act
+        var (prevMonday, prevSunday) = WeeklyAggregationPipeline.CalculateWeekBoundaries(sunday);
 
-        // Sunday belongs to the week Mon Apr 6 - Sun Apr 12
-        // So previous week is Mon Mar 30 - Sun Apr 5
+        // Assert
         Assert.That(prevMonday, Is.EqualTo(new DateTime(2026, 3, 30)));
         Assert.That(prevSunday, Is.EqualTo(new DateTime(2026, 4, 6)));
     }
@@ -68,11 +76,13 @@ public class WeekBoundaryTests
     [Test]
     public void CalculateWeekBoundaries_CrossingYearBoundary_HandlesCorrectly()
     {
-        // Monday January 5, 2026
+        // Arrange
         var monday = new DateTimeOffset(2026, 1, 5, 9, 0, 0, TimeSpan.Zero);
 
-        var (prevMonday, prevSunday) = DailyPipelineOrchestrator.CalculateWeekBoundaries(monday);
+        // Act
+        var (prevMonday, prevSunday) = WeeklyAggregationPipeline.CalculateWeekBoundaries(monday);
 
+        // Assert
         Assert.That(prevMonday, Is.EqualTo(new DateTime(2025, 12, 29)));
         Assert.That(prevSunday, Is.EqualTo(new DateTime(2026, 1, 5)));
     }

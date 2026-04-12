@@ -1,7 +1,7 @@
+using System.Net;
 using System.Text.Json;
-using Azure.AI.Projects;
+using KanelBrief.Core.Agents;
 using KanelBrief.Core.Models;
-using KanelBrief.Core.Parsers;
 using KanelBrief.Core.Repositories;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
@@ -10,138 +10,90 @@ using Microsoft.Extensions.Logging;
 namespace KanelBrief.Functions.Agents;
 
 /// <summary>
-/// Substitution Chain agent: identifies capital rotation paths from weekly market themes.
-/// Analyzes where capital is flowing from and to based on market sentiment patterns.
-/// Integrates with Microsoft Agent Framework for LLM-powered analysis.
+/// HTTP coordinator for the Substitution Chain agent. Business logic lives in
+/// <see cref="ExecuteAsync"/> for direct unit testing. Loads the referenced weekly summary
+/// from the repository and delegates analysis to <see cref="ISubstitutionChainAnalyzer"/>.
+/// Returns 500 on failure — nothing is persisted.
 /// </summary>
-public class SubstitutionChainAgent
+public sealed class SubstitutionChainAgent(
+    ILogger<SubstitutionChainAgent> logger,
+    ISubstitutionChainAnalyzer analyzer,
+    IAgentRunRepository repository,
+    TimeProvider timeProvider)
 {
-    private readonly ILogger<SubstitutionChainAgent> _logger;
-    private readonly AIProjectClient _aiProjectClient;
-    private readonly IAgentRunRepository _repository;
-    private readonly JsonSerializerOptions _jsonOptions;
+    private const string ModelId = "gpt-5.4-mini";
 
-    public SubstitutionChainAgent(
-        ILogger<SubstitutionChainAgent> logger,
-        AIProjectClient aiProjectClient,
-        IAgentRunRepository repository)
+    private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        _logger = logger;
-        _aiProjectClient = aiProjectClient;
-        _repository = repository;
-        _jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-    }
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
 
     [Function("SubstitutionChain")]
     public async Task<HttpResponseData> RunAsync(
-        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "substitution-chain")] HttpRequestData req)
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "substitution-chain")] HttpRequestData req,
+        CancellationToken ct)
     {
         try
         {
-            // Parse input: weekly summary run ID
-            var requestBody = await req.ReadAsStringAsync();
-            var request = JsonSerializer.Deserialize<SubstitutionChainRequest>(requestBody ?? string.Empty, _jsonOptions)
+            var body = await req.ReadAsStringAsync();
+            var request = JsonSerializer.Deserialize<SubstitutionChainRequest>(body ?? string.Empty, JsonOptions)
                 ?? throw new ArgumentException("Invalid request body");
 
-            _logger.LogInformation("Processing substitution chains from weekly summary {RunId}", request.WeeklySummaryRunId);
+            var run = await ExecuteAsync(request, ct);
 
-            var startTime = DateTimeOffset.UtcNow;
-            var runId = Guid.NewGuid().ToString();
-
-            // Create the Substitution Chain run
-            var run = new SubstitutionChainRun
-            {
-                RunDate = startTime.ToString("yyyy-MM-dd"),
-                RunId = runId,
-                CreatedAt = startTime,
-                ModelId = "gpt-5.4-mini",
-                Status = RunStatus.Success,
-                DurationSeconds = 0,
-                InputTokens = 0,
-                OutputTokens = 0,
-                TotalTokens = 0,
-                WeeklySummaryRunId = request.WeeklySummaryRunId,
-                Chains = []
-            };
-
-            try
-            {
-                // Use Microsoft Agent Framework for analysis
-                var analysis = await AnalyzeChainsWithAgentAsync(request.WeeklySummaryRunId);
-                run.Chains = analysis.Chains;
-
-                _logger.LogInformation("Substitution Chain analysis completed: {ChainCount} chains", run.Chains.Count);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Analysis processing failed, using fallback");
-                run.Status = RunStatus.Partial;
-                run.Chains = GenerateFallbackChains();
-            }
-
-            run.DurationSeconds = (DateTimeOffset.UtcNow - startTime).TotalSeconds;
-
-            // Save to repository
-            await _repository.SaveSubstitutionChainRunAsync(run);
-            _logger.LogInformation("Substitution Chain run saved: {RunId}", run.RunId);
-
-            // Return success response
-            var response = req.CreateResponse(System.Net.HttpStatusCode.OK);
+            var response = req.CreateResponse(HttpStatusCode.OK);
             await response.WriteAsJsonAsync(new { runId = run.RunId, status = run.Status });
             return response;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "SubstitutionChain function failed");
-            var errorResponse = req.CreateResponse(System.Net.HttpStatusCode.InternalServerError);
+            logger.LogError(ex, "Substitution Chain agent failed");
+            var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
             await errorResponse.WriteAsJsonAsync(new { error = ex.Message });
             return errorResponse;
         }
     }
 
-    private async Task<SubstitutionChainAnalysisResult> AnalyzeChainsWithAgentAsync(string weeklySummaryRunId)
+    /// <summary>
+    /// Business logic: loads the referenced weekly summary, runs it through the analyzer,
+    /// persists the chain. Throws if the summary isn't found or any step fails.
+    /// </summary>
+    internal async Task<SubstitutionChainRun> ExecuteAsync(SubstitutionChainRequest request, CancellationToken ct = default)
     {
-        // Create agent for rotation analysis
-        var agent = _aiProjectClient.AsAIAgent(
-            model: "gpt-5.4-mini",
-            name: "SubstitutionChainAnalyzer",
-            instructions: @"You are a financial market rotation analyst. Analyze capital rotation patterns and identify substitution chains.
-A substitution chain shows where capital is fleeing from and flowing toward based on market sentiment.
+        if (string.IsNullOrWhiteSpace(request.WeeklySummaryRunDate)
+            || string.IsNullOrWhiteSpace(request.WeeklySummaryRunId))
+            throw new ArgumentException("WeeklySummaryRunDate and WeeklySummaryRunId are required", nameof(request));
 
-Return a JSON object with this exact structure:
-{
-  ""chains"": [
-    {
-      ""capitalFleeing"": ""Sector or asset class losing capital"",
-      ""flowsToward"": ""Sector or asset class gaining capital"",
-      ""mechanism"": ""Why capital is rotating (e.g., ESG-driven, valuation, growth expectations)""
-    }
-  ]
-}"
-        );
+        logger.LogInformation(
+            "Processing substitution chain for weekly summary {RunDate}/{RunId}",
+            request.WeeklySummaryRunDate, request.WeeklySummaryRunId);
 
-        var prompt = $"Based on the weekly market summary (ID: {weeklySummaryRunId}), identify capital rotation chains.\nAnalyze sentiment trends to determine which sectors are losing capital and which are gaining it.";
+        var startTime = timeProvider.GetUtcNow();
 
-        var agentResponse = await agent.RunAsync(prompt);
-        var responseText = agentResponse.ToString() ?? string.Empty;
+        var weeklySummary = await repository.GetWeeklySummaryRunAsync(
+            request.WeeklySummaryRunDate, request.WeeklySummaryRunId);
 
-        var analysisJson = AgentResponseParser.ExtractJson(responseText);
-        var analysis = JsonSerializer.Deserialize<SubstitutionChainAnalysisResult>(analysisJson, _jsonOptions)
-            ?? throw new InvalidOperationException("Failed to parse agent response");
+        if (weeklySummary is null)
+            throw new InvalidOperationException(
+                $"Weekly summary not found: {request.WeeklySummaryRunDate}/{request.WeeklySummaryRunId}");
 
-        return analysis;
-    }
+        var analysis = await analyzer.AnalyzeAsync(weeklySummary, ct);
 
-    internal static List<RotationChain> GenerateFallbackChains()
-    {
-        return new List<RotationChain>
+        var run = new SubstitutionChainRun
         {
-            new()
-            {
-                CapitalFleeing = "Energy",
-                FlowsToward = "Technology",
-                Mechanism = "ESG-driven reallocation and tech sector outperformance"
-            }
+            RunDate = startTime.ToString("yyyy-MM-dd"),
+            RunId = Guid.NewGuid().ToString(),
+            CreatedAt = startTime,
+            ModelId = ModelId,
+            Status = RunStatus.Success,
+            WeeklySummaryRunId = weeklySummary.RunId,
+            Chains = analysis.Chains,
+            DurationSeconds = (timeProvider.GetUtcNow() - startTime).TotalSeconds
         };
+
+        await repository.SaveSubstitutionChainRunAsync(run);
+        logger.LogInformation("Substitution Chain run saved: {RunId} ({ChainCount} chains)",
+            run.RunId, run.Chains.Count);
+        return run;
     }
 }

@@ -6,6 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <!-- Shared with KanelBrief.Core.Tests so integration-test secrets live in one file. -->
+    <UserSecretsId>7b8b387d-2e5d-4671-a340-7c173f8fc3fe</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,6 +15,7 @@
     <PackageReference Include="AutoFixture.AutoMoq" Version="4.18.1" />
     <PackageReference Include="coverlet.collector" Version="6.0.2" />
     <PackageReference Include="Cronos" Version="0.8.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.5" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageReference Include="Moq" Version="4.20.72" />
     <PackageReference Include="NUnit" Version="4.2.2" />

@@ -1,7 +1,7 @@
+using System.Net;
 using System.Text.Json;
-using Azure.AI.Projects;
+using KanelBrief.Core.Agents;
 using KanelBrief.Core.Models;
-using KanelBrief.Core.Parsers;
 using KanelBrief.Core.Repositories;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
@@ -10,166 +10,82 @@ using Microsoft.Extensions.Logging;
 namespace KanelBrief.Functions.Agents;
 
 /// <summary>
-/// News Brief agent: analyzes daily news and produces market sentiment briefing.
-/// Accepts news articles as input and produces structured market sentiment assessment.
-/// Integrates with Microsoft Agent Framework for LLM-powered analysis.
+/// HTTP coordinator for the News Brief agent. The <see cref="RunAsync"/> method is the Function
+/// entry point and handles only HTTP parsing/writing. All business logic lives in
+/// <see cref="ExecuteAsync"/>, which takes domain inputs and is directly unit-testable.
+/// On failure the exception is logged (captured by App Insights) — nothing is persisted.
 /// </summary>
-public class NewsBriefAgent
+public sealed class NewsBriefAgent(
+    ILogger<NewsBriefAgent> logger,
+    INewsBriefAnalyzer analyzer,
+    IAgentRunRepository repository,
+    TimeProvider timeProvider)
 {
-    private readonly ILogger<NewsBriefAgent> _logger;
-    private readonly AIProjectClient _aiProjectClient;
-    private readonly IAgentRunRepository _repository;
-    private readonly JsonSerializerOptions _jsonOptions;
+    private const string ModelId = "gpt-5.4-mini";
 
-    public NewsBriefAgent(
-        ILogger<NewsBriefAgent> logger,
-        AIProjectClient aiProjectClient,
-        IAgentRunRepository repository)
+    private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        _logger = logger;
-        _aiProjectClient = aiProjectClient;
-        _repository = repository;
-        _jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-    }
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
 
     [Function("NewsBrief")]
     public async Task<HttpResponseData> RunAsync(
-        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "news-brief")] HttpRequestData req)
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "news-brief")] HttpRequestData req,
+        CancellationToken ct)
     {
         try
         {
-            // Parse input: list of news articles
-            var requestBody = await req.ReadAsStringAsync();
-            var newsArticles = JsonSerializer.Deserialize<List<NewsArticle>>(requestBody ?? string.Empty, _jsonOptions)
+            var body = await req.ReadAsStringAsync();
+            var articles = JsonSerializer.Deserialize<List<NewsArticle>>(body ?? string.Empty, JsonOptions)
                 ?? throw new ArgumentException("Invalid request body");
 
-            if (newsArticles.Count == 0)
-                throw new ArgumentException("At least one news article is required");
+            var run = await ExecuteAsync(articles, ct);
 
-            _logger.LogInformation("Processing {ArticleCount} news articles", newsArticles.Count);
-
-            var startTime = DateTimeOffset.UtcNow;
-            var runId = Guid.NewGuid().ToString();
-
-            // Create the News Brief run
-            var run = new NewsBriefRun
-            {
-                RunDate = startTime.ToString("yyyy-MM-dd"),
-                RunId = runId,
-                CreatedAt = startTime,
-                ModelId = "gpt-5.4-mini",
-                Status = RunStatus.Success,
-                DurationSeconds = 0,
-                InputTokens = 0,
-                OutputTokens = 0,
-                TotalTokens = 0,
-                DeploymentName = "gpt-5.4-mini",
-                Mood = MarketSentiment.Mixed.ToString(),
-                Summary = string.Empty,
-                Assessments = []
-            };
-
-            try
-            {
-                // Use Microsoft Agent Framework for analysis
-                var analysis = await AnalyzeNewsWithAgentAsync(newsArticles);
-                run.Mood = analysis.Mood;
-                run.Summary = analysis.Summary;
-                run.Assessments = analysis.Assessments;
-
-                _logger.LogInformation("News Brief analysis completed: Mood={Mood}, Assessments={Count}",
-                    run.Mood, run.Assessments.Count);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Analysis processing failed, using fallback");
-                run.Status = RunStatus.Partial;
-                // Use fallback assessment from article structure
-                run.Summary = GenerateFallbackSummary(newsArticles);
-                run.Assessments = GenerateFallbackAssessments(newsArticles);
-            }
-
-            run.DurationSeconds = (DateTimeOffset.UtcNow - startTime).TotalSeconds;
-
-            // Save to repository
-            await _repository.SaveNewsBriefRunAsync(run);
-            _logger.LogInformation("News Brief run saved: {RunId}", run.RunId);
-
-            // Return success response
-            var response = req.CreateResponse(System.Net.HttpStatusCode.OK);
+            var response = req.CreateResponse(HttpStatusCode.OK);
             await response.WriteAsJsonAsync(new { runId = run.RunId, status = run.Status });
             return response;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "NewsBrief function failed");
-            var errorResponse = req.CreateResponse(System.Net.HttpStatusCode.InternalServerError);
+            logger.LogError(ex, "News Brief agent failed");
+            var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
             await errorResponse.WriteAsJsonAsync(new { error = ex.Message });
             return errorResponse;
         }
     }
 
-    private async Task<NewsBriefAnalysisResult> AnalyzeNewsWithAgentAsync(List<NewsArticle> articles)
+    /// <summary>
+    /// Business logic for the News Brief HTTP agent. Takes the parsed article list,
+    /// invokes the analyzer, persists the run, and returns the saved entity.
+    /// Throws on any failure (caller is responsible for logging and HTTP conversion).
+    /// </summary>
+    internal async Task<NewsBriefRun> ExecuteAsync(IReadOnlyList<NewsArticle> articles, CancellationToken ct = default)
     {
-        // Create agent for news analysis
-        var agent = _aiProjectClient.AsAIAgent(
-            model: "gpt-5.4-mini",
-            name: "NewsBriefAnalyzer",
-            instructions: @"You are a financial market analyst. Analyze the provided news articles and:
-1. Determine the overall market mood (RiskOn, RiskOff, or Mixed)
-2. Generate a brief market summary (1-2 sentences)
-3. For each category/sector, provide sentiment assessment
+        if (articles.Count == 0)
+            throw new ArgumentException("At least one news article is required", nameof(articles));
 
-Return a JSON object with this exact structure:
-{
-  ""mood"": ""RiskOn|RiskOff|Mixed"",
-  ""summary"": ""Your analysis summary"",
-  ""assessments"": [
-    {
-      ""category"": ""Sector name"",
-      ""headline"": ""Key headline"",
-      ""summary"": ""Analysis summary"",
-      ""sentiment"": ""RiskOn|RiskOff|Mixed""
-    }
-  ]
-}"
-        );
+        logger.LogInformation("Processing {ArticleCount} news articles", articles.Count);
 
-        // Format articles for the agent
-        var articlesText = string.Join("\n\n", articles.Select((a, i) =>
-            $"[Article {i + 1}]\nCategory: {a.Category}\nTitle: {a.Title}\nContent: {a.Content}"));
+        var startTime = timeProvider.GetUtcNow();
+        var analysis = await analyzer.AnalyzeAsync(articles, ct);
 
-        var prompt = $"Analyze these market news articles:\n\n{articlesText}";
+        var run = new NewsBriefRun
+        {
+            RunDate = startTime.ToString("yyyy-MM-dd"),
+            RunId = Guid.NewGuid().ToString(),
+            CreatedAt = startTime,
+            ModelId = ModelId,
+            DeploymentName = ModelId,
+            Status = RunStatus.Success,
+            Mood = analysis.Mood,
+            Summary = analysis.Summary,
+            Assessments = analysis.Assessments,
+            DurationSeconds = (timeProvider.GetUtcNow() - startTime).TotalSeconds
+        };
 
-        // Run agent and get response
-        var agentResponse = await agent.RunAsync(prompt);
-        var responseText = agentResponse.ToString() ?? string.Empty;
-
-        // Parse JSON response
-        var analysisJson = AgentResponseParser.ExtractJson(responseText);
-        var analysis = JsonSerializer.Deserialize<NewsBriefAnalysisResult>(analysisJson, _jsonOptions)
-            ?? throw new InvalidOperationException("Failed to parse agent response");
-
-        return analysis;
-    }
-
-    internal string GenerateFallbackSummary(List<NewsArticle> articles)
-    {
-        var categories = articles.Select(a => a.Category).Distinct();
-        return $"Market briefing covering {categories.Count()} sectors: {string.Join(", ", categories)}.";
-    }
-
-    internal List<CategoryAssessment> GenerateFallbackAssessments(List<NewsArticle> articles)
-    {
-        return articles
-            .GroupBy(a => a.Category)
-            .Select(g => new CategoryAssessment
-            {
-                Category = g.Key,
-                Headline = g.First().Title,
-                Summary = g.First().Content[..Math.Min(100, g.First().Content.Length)],
-                Sentiment = MarketSentiment.Mixed
-            })
-            .ToList();
+        await repository.SaveNewsBriefRunAsync(run);
+        logger.LogInformation("News Brief run saved: {RunId} ({AssessmentCount} assessments)",
+            run.RunId, run.Assessments.Count);
+        return run;
     }
 }

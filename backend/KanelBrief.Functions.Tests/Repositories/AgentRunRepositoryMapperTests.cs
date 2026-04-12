@@ -4,6 +4,10 @@ using KanelBrief.Core.Models;
 using KanelBrief.Functions.Repositories;
 using static KanelBrief.Functions.Repositories.AgentRunRepository;
 
+// RunStatus.Partial is [Obsolete] but still read from historical rows — these parser
+// tests intentionally exercise that path. Suppress the deprecation warning for the file.
+#pragma warning disable CS0618
+
 namespace KanelBrief.Functions.Tests.Repositories;
 
 [TestFixture]
