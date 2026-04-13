@@ -31,9 +31,10 @@ export interface NewsBriefRun {
 }
 
 export interface MarketTheme {
-  theme: string;
-  description: string;
+  category: string;
+  summary: string;
   confidence: ConfidenceLevel;
+  sentiment: MarketSentiment;
 }
 
 export interface WeeklySummaryRun {
@@ -49,6 +50,7 @@ export interface WeeklySummaryRun {
   weekStart: string;
   weekEnd: string;
   netMood: MarketSentiment;
+  moodSummary: string;
   themes: MarketTheme[];
 }
 

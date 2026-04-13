@@ -58,27 +58,32 @@ export const demoDashboard: DashboardData = {
     inputTokens: 3200,
     outputTokens: 1100,
     totalTokens: 4300,
-    weekStart: "2026-03-31",
-    weekEnd: "2026-04-04",
+    weekStart: "2026-03-31T00:00:00+00:00",
+    weekEnd: "2026-04-04T00:00:00+00:00",
     netMood: "Mixed",
+    moodSummary:
+      "Markets oscillated between trade-war anxiety and AI-led optimism, with capital rotating defensively into healthcare and gold while hyperscaler capex kept secular growth themes intact.",
     themes: [
       {
-        theme: "Trade War Escalation",
-        description:
+        category: "Trade War Escalation",
+        summary:
           "Tariff rhetoric intensified between US and China, with new 25% duties on semiconductor equipment. Markets priced in extended supply chain disruption.",
         confidence: "High",
+        sentiment: "RiskOff",
       },
       {
-        theme: "AI Infrastructure Boom",
-        description:
+        category: "AI Infrastructure Boom",
+        summary:
           "Hyperscaler capex guidance exceeded expectations. Data center REITs and power utilities benefited from the buildout narrative.",
         confidence: "High",
+        sentiment: "RiskOn",
       },
       {
-        theme: "Defensive Rotation",
-        description:
+        category: "Defensive Rotation",
+        summary:
           "Capital shifted from cyclicals to healthcare and utilities. Gold ETFs saw largest weekly inflows since 2024.",
         confidence: "Medium",
+        sentiment: "Mixed",
       },
     ],
   },

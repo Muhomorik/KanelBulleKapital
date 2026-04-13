@@ -54,6 +54,9 @@ public class AgentRunsApi
 
             await Task.WhenAll(newsBriefTask, weeklySummaryTask, substitutionChainTask, opportunityScanTask);
 
+            // News briefs run every 4 hours, so a single date can contain multiple runs.
+            // AgentRunRepository.GetNewsBriefRunsByDateAsync guarantees descending-by-CreatedAt order,
+            // so FirstOrDefault() yields the latest brief of the day.
             var newsBrief = newsBriefTask.Result.FirstOrDefault();
             var weeklySummary = weeklySummaryTask.Result.FirstOrDefault();
             var substitutionChain = substitutionChainTask.Result.FirstOrDefault();
@@ -95,6 +98,7 @@ public class AgentRunsApi
     /// Get News Brief runs.
     /// If ?date is provided, returns runs for that date.
     /// Otherwise, returns the latest available (up to 7 days back).
+    /// Results are ordered newest-first by <c>CreatedAt</c> (see <see cref="Repositories.AgentRunRepository.GetNewsBriefRunsByDateAsync"/>).
     /// </summary>
     /// <param name="req"></param>
     /// <returns></returns>

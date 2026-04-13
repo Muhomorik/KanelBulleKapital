@@ -8,6 +8,7 @@ namespace KanelBrief.Functions.Tests.Orchestration;
 /// Verifies that timer triggers fire at the correct times.
 /// </summary>
 [TestFixture]
+[TestOf(typeof(DailyPipelineOrchestrator))]
 public class DailyPipelineOrchestratorTests
 {
     [Test]
@@ -15,38 +16,58 @@ public class DailyPipelineOrchestratorTests
     {
         var schedule = DailyPipelineOrchestrator.DAILY_BRIEF_SCHEDULE;
 
-        
         // Should not throw; valid cron format
         var cron = CronExpression.Parse(schedule);
         Assert.That(cron, Is.Not.Null);
     }
 
     [Test]
-    public void DailyBriefSchedule_RunsEveryDayAt8Utc()
+    public void DailyBriefSchedule_FromMidnight_RunsAt00Utc()
     {
         var cron = CronExpression.Parse(DailyPipelineOrchestrator.DAILY_BRIEF_SCHEDULE);
 
-        // Test: Tuesday, April 7, 2026, 7:59 AM UTC (before trigger)
-        var beforeTrigger = new DateTime(2026, 4, 7, 7, 59, 0, DateTimeKind.Utc);
-        var nextRun = cron.GetNextOccurrence(beforeTrigger);
+        // Tuesday, April 7, 2026, 23:59 UTC — next fire should be the 00 UTC slot the next day.
+        var beforeMidnight = new DateTime(2026, 4, 7, 23, 59, 0, DateTimeKind.Utc);
+        var nextRun = cron.GetNextOccurrence(beforeMidnight);
 
-        Assert.That(nextRun, Is.Not.Null, "Should find next occurrence");
-        Assert.That(nextRun!.Value.Hour, Is.EqualTo(8), "Should run at 8 AM UTC");
-        Assert.That(nextRun.Value.Day, Is.EqualTo(7), "Should run same day");
+        Assert.That(nextRun, Is.Not.Null);
+        Assert.That(nextRun!.Value.Hour, Is.EqualTo(0));
+        Assert.That(nextRun.Value.Minute, Is.EqualTo(0));
+        Assert.That(nextRun.Value.Day, Is.EqualTo(8));
     }
 
     [Test]
-    public void DailyBriefSchedule_RunsAgainNextDay()
+    public void DailyBriefSchedule_RunsEveryFourHours_Produces6SlotsPerDay()
     {
         var cron = CronExpression.Parse(DailyPipelineOrchestrator.DAILY_BRIEF_SCHEDULE);
 
-        // After 8 AM today, next occurrence should be 8 AM tomorrow
-        var after8Am = new DateTime(2026, 4, 7, 8, 1, 0, DateTimeKind.Utc);
-        var nextRun = cron.GetNextOccurrence(after8Am);
+        var expectedHours = new[] { 0, 4, 8, 12, 16, 20 };
+        var start = new DateTime(2026, 4, 7, 0, 0, 0, DateTimeKind.Utc).AddSeconds(-1);
+
+        var actualHours = new List<int>();
+        var cursor = start;
+        for (var i = 0; i < expectedHours.Length; i++)
+        {
+            var next = cron.GetNextOccurrence(cursor);
+            Assert.That(next, Is.Not.Null);
+            actualHours.Add(next!.Value.Hour);
+            cursor = next.Value;
+        }
+
+        Assert.That(actualHours, Is.EqualTo(expectedHours));
+    }
+
+    [Test]
+    public void DailyBriefSchedule_After20Utc_NextRunIs00NextDay()
+    {
+        var cron = CronExpression.Parse(DailyPipelineOrchestrator.DAILY_BRIEF_SCHEDULE);
+
+        var after20 = new DateTime(2026, 4, 7, 20, 1, 0, DateTimeKind.Utc);
+        var nextRun = cron.GetNextOccurrence(after20);
 
         Assert.That(nextRun, Is.Not.Null);
-        Assert.That(nextRun!.Value.Hour, Is.EqualTo(8));
-        Assert.That(nextRun.Value.Day, Is.EqualTo(8), "Should run next day");
+        Assert.That(nextRun!.Value.Hour, Is.EqualTo(0));
+        Assert.That(nextRun.Value.Day, Is.EqualTo(8), "Should roll over to next day");
     }
 
     [Test]
@@ -60,45 +81,46 @@ public class DailyPipelineOrchestratorTests
     }
 
     [Test]
-    public void WeeklyAggregationSchedule_RunsOnMondayAt9Utc()
+    public void WeeklyAggregationSchedule_RunsOnThursdayAt21Utc()
     {
         var cron = CronExpression.Parse(DailyPipelineOrchestrator.WEEKLY_AGGREGATION_SCHEDULE);
 
-        // Test: Tuesday, April 7, 2026 (need to find next Monday)
-        var tuesday = new DateTime(2026, 4, 7, 8, 0, 0, DateTimeKind.Utc);
-        var nextRun = cron.GetNextOccurrence(tuesday);
+        // Monday, April 6, 2026, 08:00 UTC — next Thursday is April 9.
+        var monday = new DateTime(2026, 4, 6, 8, 0, 0, DateTimeKind.Utc);
+        var nextRun = cron.GetNextOccurrence(monday);
 
         Assert.That(nextRun, Is.Not.Null);
-        Assert.That(nextRun!.Value.DayOfWeek, Is.EqualTo(DayOfWeek.Monday), "Should run on Monday");
-        Assert.That(nextRun.Value.Hour, Is.EqualTo(9), "Should run at 9 AM UTC");
+        Assert.That(nextRun!.Value.DayOfWeek, Is.EqualTo(DayOfWeek.Thursday));
+        Assert.That(nextRun.Value.Hour, Is.EqualTo(21));
+        Assert.That(nextRun.Value.Minute, Is.EqualTo(0));
     }
 
     [Test]
-    public void WeeklyAggregationSchedule_SkipsToFollowingMonday()
+    public void WeeklyAggregationSchedule_SkipsToFollowingThursday()
     {
         var cron = CronExpression.Parse(DailyPipelineOrchestrator.WEEKLY_AGGREGATION_SCHEDULE);
 
-        // On Monday after 9 AM, next occurrence is next Monday at 9 AM
-        var mondayAfter9Am = new DateTime(2026, 4, 6, 9, 1, 0, DateTimeKind.Utc); // Monday after 9 AM
-        var nextRun = cron.GetNextOccurrence(mondayAfter9Am);
+        // Thursday, April 9, 2026, 21:01 UTC — next fire is the following Thursday (April 16).
+        var thursdayAfter21 = new DateTime(2026, 4, 9, 21, 1, 0, DateTimeKind.Utc);
+        var nextRun = cron.GetNextOccurrence(thursdayAfter21);
 
         Assert.That(nextRun, Is.Not.Null);
-        Assert.That(nextRun!.Value.DayOfWeek, Is.EqualTo(DayOfWeek.Monday));
-        Assert.That(nextRun.Value.Day, Is.EqualTo(13), "Should jump to following Monday (April 13)");
-        Assert.That(nextRun.Value.Hour, Is.EqualTo(9));
+        Assert.That(nextRun!.Value.DayOfWeek, Is.EqualTo(DayOfWeek.Thursday));
+        Assert.That(nextRun.Value.Day, Is.EqualTo(16));
+        Assert.That(nextRun.Value.Hour, Is.EqualTo(21));
     }
 
     [Test]
-    public void DailyBriefSchedule_ExactValue_Is_0_8_Star_Star_Star()
+    public void DailyBriefSchedule_ExactValue_Is_0_EveryFourHours()
     {
         var schedule = DailyPipelineOrchestrator.DAILY_BRIEF_SCHEDULE;
-        Assert.That(schedule, Is.EqualTo("0 8 * * *"));
+        Assert.That(schedule, Is.EqualTo("0 */4 * * *"));
     }
 
     [Test]
-    public void WeeklyAggregationSchedule_ExactValue_Is_0_9_Star_Star_1()
+    public void WeeklyAggregationSchedule_ExactValue_Is_0_21_Star_Star_4()
     {
         var schedule = DailyPipelineOrchestrator.WEEKLY_AGGREGATION_SCHEDULE;
-        Assert.That(schedule, Is.EqualTo("0 9 * * 1"));
+        Assert.That(schedule, Is.EqualTo("0 21 * * 4"));
     }
 }

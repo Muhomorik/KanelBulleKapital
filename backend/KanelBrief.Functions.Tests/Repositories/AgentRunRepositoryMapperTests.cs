@@ -105,6 +105,82 @@ public class AgentRunRepositoryMapperTests
         Assert.That(run.Assessments, Is.Empty);
     }
 
+    [Test]
+    [Category("NewsBriefRun")]
+    public void MapToNewsBriefRun_EntityWithCreatedAt_MapsCreatedAt()
+    {
+        // Arrange
+        var createdAt = new DateTimeOffset(2026, 4, 8, 12, 34, 56, TimeSpan.Zero);
+        var entity = CreateBaseEntity("2026-04-08", "run-123");
+        entity[BaseColumns.CreatedAt] = createdAt;
+        entity[NewsBriefColumns.DeploymentName] = "gpt-5.4-mini";
+        entity[NewsBriefColumns.Mood] = "Mixed";
+        entity[NewsBriefColumns.Summary] = "";
+        entity[NewsBriefColumns.Assessments] = "[]";
+
+        // Act
+        var run = _sut.MapToNewsBriefRun(entity);
+
+        // Assert
+        Assert.That(run.CreatedAt, Is.EqualTo(createdAt));
+    }
+
+    [Test]
+    [Category("NewsBriefRun")]
+    public void MapToNewsBriefRun_LegacyEntityWithoutCreatedAtButWithTimestamp_FallsBackToTimestamp()
+    {
+        // Arrange
+        // Simulate a row written before the CreatedAt column existed. Azure Tables always
+        // stamps Timestamp on write, so we fall back to it when CreatedAt is absent.
+        var legacyTimestamp = new DateTimeOffset(2026, 4, 1, 8, 0, 0, TimeSpan.Zero);
+        var entity = new TableEntity("2026-04-01", "legacy-run")
+        {
+            { BaseColumns.ModelId, "gpt-5.4-mini" },
+            { BaseColumns.Status, "Success" },
+            { BaseColumns.DurationSeconds, 11.5 },
+            { BaseColumns.InputTokens, 100 },
+            { BaseColumns.OutputTokens, 200 },
+            { BaseColumns.TotalTokens, 300 },
+            { NewsBriefColumns.DeploymentName, "gpt-5.4-mini" },
+            { NewsBriefColumns.Mood, "Mixed" },
+            { NewsBriefColumns.Summary, "" },
+            { NewsBriefColumns.Assessments, "[]" }
+        };
+        entity.Timestamp = legacyTimestamp;
+
+        // Act
+        var run = _sut.MapToNewsBriefRun(entity);
+
+        // Assert
+        Assert.That(run.CreatedAt, Is.EqualTo(legacyTimestamp));
+    }
+
+    [Test]
+    [Category("NewsBriefRun")]
+    public void MapToNewsBriefRun_NoCreatedAtAndNoTimestamp_ReturnsMinValue()
+    {
+        // Arrange
+        var entity = new TableEntity("2026-04-01", "orphan-run")
+        {
+            { BaseColumns.ModelId, "gpt-5.4-mini" },
+            { BaseColumns.Status, "Success" },
+            { BaseColumns.DurationSeconds, 11.5 },
+            { BaseColumns.InputTokens, 100 },
+            { BaseColumns.OutputTokens, 200 },
+            { BaseColumns.TotalTokens, 300 },
+            { NewsBriefColumns.DeploymentName, "gpt-5.4-mini" },
+            { NewsBriefColumns.Mood, "Mixed" },
+            { NewsBriefColumns.Summary, "" },
+            { NewsBriefColumns.Assessments, "[]" }
+        };
+
+        // Act
+        var run = _sut.MapToNewsBriefRun(entity);
+
+        // Assert
+        Assert.That(run.CreatedAt, Is.EqualTo(DateTimeOffset.MinValue));
+    }
+
     [TestCase("Success", RunStatus.Success)]
     [TestCase("Failed", RunStatus.Failed)]
     [TestCase("Partial", RunStatus.Partial)]
