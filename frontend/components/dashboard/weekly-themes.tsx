@@ -24,8 +24,6 @@ export function WeeklyThemes({ data }: WeeklyThemesProps) {
     );
   }
 
-  const weekLabel = `${formatDate(data.weekStart)} — ${formatDate(data.weekEnd)}`;
-
   return (
     <section className="animate-fade-up stagger-2">
       <SectionHeader />
@@ -38,25 +36,38 @@ export function WeeklyThemes({ data }: WeeklyThemesProps) {
           </div>
           <CardDescription className="flex items-center gap-1 text-xs">
             <CalendarDays className="h-3 w-3" />
-            {weekLabel}
+            {`${formatDate(data.weekStart)} — ${formatDate(data.weekEnd)}`}
           </CardDescription>
         </CardHeader>
+        {data.moodSummary && (
+          <CardContent>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              {data.moodSummary}
+            </p>
+          </CardContent>
+        )}
       </Card>
 
       <div className="space-y-3">
         {(data.themes ?? []).map((theme, i) => (
-          <Card key={theme.theme} className={`animate-fade-up stagger-${i + 3}`}>
+          <Card
+            key={theme.category}
+            className={`animate-fade-up stagger-${i + 3}`}
+          >
             <CardHeader className="pb-2">
               <div className="flex items-start justify-between gap-2">
                 <CardTitle className="text-sm font-semibold">
-                  {theme.theme}
+                  {theme.category}
                 </CardTitle>
-                <ConfidenceBadge level={theme.confidence} />
+                <div className="flex items-center gap-1.5">
+                  <SentimentBadge sentiment={theme.sentiment} size="sm" />
+                  <ConfidenceBadge level={theme.confidence} />
+                </div>
               </div>
             </CardHeader>
             <CardContent>
               <p className="text-xs leading-relaxed text-muted-foreground">
-                {theme.description}
+                {theme.summary}
               </p>
             </CardContent>
           </Card>
@@ -95,6 +106,10 @@ function EmptyCard({ message }: { message: string }) {
 }
 
 function formatDate(dateStr: string): string {
-  const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
 }

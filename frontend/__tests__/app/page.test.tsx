@@ -1,12 +1,13 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import DashboardPage from "@/app/page";
-import { getDashboard } from "@/lib/api";
+import { getDashboard, getNewsBriefs } from "@/lib/api";
 import { demoDashboard } from "@/lib/demo-data";
 
 // --- Mock API ---
 jest.mock("@/lib/api", () => ({
   getDashboard: jest.fn(),
+  getNewsBriefs: jest.fn(),
 }));
 
 // --- Mock child components to keep tests focused on the date picker ---
@@ -41,6 +42,9 @@ jest.mock("@/components/ui/separator", () => ({
 const mockGetDashboard = getDashboard as jest.MockedFunction<
   typeof getDashboard
 >;
+const mockGetNewsBriefs = getNewsBriefs as jest.MockedFunction<
+  typeof getNewsBriefs
+>;
 
 // --- Freeze "today" to 2026-04-10 ---
 const FAKE_TODAY = new Date("2026-04-10T12:00:00").getTime();
@@ -55,6 +59,9 @@ beforeEach(() => {
     hasData: true,
     runDate: "2026-04-10",
   });
+  mockGetNewsBriefs.mockResolvedValue(
+    demoDashboard.newsBrief ? [demoDashboard.newsBrief] : [],
+  );
 });
 
 afterEach(() => {

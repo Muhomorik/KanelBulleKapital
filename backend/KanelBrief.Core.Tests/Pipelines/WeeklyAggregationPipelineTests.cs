@@ -289,6 +289,71 @@ public class WeeklyAggregationPipelineTests
     }
 
     [Test]
+    public async Task ExecuteAsync_WithMultipleBriefsPerDay_PassesAllRunsToAnalyzer()
+    {
+        // Arrange
+        // News briefs now run every 4 hours → 6 briefs per day. The weekly aggregator
+        // must pass ALL runs of the week (6 × 7 = 42) to the analyzer; no "latest per day"
+        // filtering. This test locks in that decision.
+        SetupBriefsForPreviousWeek(briefsPerDay: 6);
+        SetupAllAnalyzersSucceed();
+
+        IReadOnlyList<NewsBriefRun>? receivedBriefs = null;
+        _weeklySummaryAnalyzer
+            .Setup(a => a.AnalyzeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(),
+                It.IsAny<IReadOnlyList<NewsBriefRun>>(), It.IsAny<CancellationToken>()))
+            .Callback<DateTime, DateTime, IReadOnlyList<NewsBriefRun>, CancellationToken>(
+                (_, _, briefs, _) => receivedBriefs = briefs)
+            .ReturnsAsync(new WeeklySummaryAnalysisResult { Mood = "Mixed", Summary = "x" });
+
+        // Act
+        await _sut.ExecuteAsync();
+
+        // Assert
+        Assert.That(receivedBriefs, Is.Not.Null);
+        Assert.That(receivedBriefs!, Has.Count.EqualTo(42), "6 briefs × 7 days = 42 runs");
+        var distinctRunIds = receivedBriefs.Select(b => b.RunId).Distinct().Count();
+        Assert.That(distinctRunIds, Is.EqualTo(42), "Every run should be distinct — no dedup/filter");
+    }
+
+    [Test]
+    public async Task ExecuteAsync_WhenTriggeredOnThursday_StillAggregatesPreviousMondayThroughSunday()
+    {
+        // Arrange
+        // Weekly cron now fires Thursday 21:00 UTC. CalculateWeekBoundaries walks back to
+        // "this Monday" then one more week, so the aggregated window must remain the most
+        // recently completed Mon–Sun regardless of which weekday triggered the run.
+        var thursday = new DateTimeOffset(2026, 4, 9, 21, 0, 0, TimeSpan.Zero);
+        var thursdayTime = new FakeTimeProvider(thursday);
+        var thursdayPipeline = new WeeklyAggregationPipeline(
+            NullLogger<WeeklyAggregationPipeline>.Instance,
+            _repository.Object,
+            _weeklySummaryAnalyzer.Object,
+            _substitutionChainAnalyzer.Object,
+            _opportunityScanAnalyzer.Object,
+            thursdayTime);
+
+        SetupBriefsForPreviousWeek();
+        SetupAllAnalyzersSucceed();
+
+        // Act
+        await thursdayPipeline.ExecuteAsync();
+
+        // Assert
+        var expectedDates = new[]
+        {
+            "2026-03-30", "2026-03-31", "2026-04-01",
+            "2026-04-02", "2026-04-03", "2026-04-04", "2026-04-05"
+        };
+        foreach (var d in expectedDates)
+            _repository.Verify(r => r.GetNewsBriefRunsByDateAsync(d), Times.Once);
+
+        // Must not reach into the current (in-progress) week.
+        _repository.Verify(r => r.GetNewsBriefRunsByDateAsync("2026-04-06"), Times.Never);
+        _repository.Verify(r => r.GetNewsBriefRunsByDateAsync("2026-04-09"), Times.Never);
+    }
+
+    [Test]
     public async Task ExecuteAsync_WhenAnalyzerSucceeds_MapsWeeklySummaryNetMoodViaParser()
     {
         // Arrange

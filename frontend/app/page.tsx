@@ -1,17 +1,24 @@
 "use client";
 
-import { useState, useEffect, useCallback, useSyncExternalStore } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useSyncExternalStore,
+  useTransition,
+} from "react";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { DemoBanner } from "@/components/demo-banner";
 import { ColdStartBanner } from "@/components/cold-start-banner";
-import { MarketPulse } from "@/components/dashboard/market-pulse";
+import { MarketPulse, MARKET_PULSE_PANEL_ID } from "@/components/dashboard/market-pulse";
+import { BriefSelector } from "@/components/dashboard/brief-selector";
 import { WeeklyThemes } from "@/components/dashboard/weekly-themes";
 import { CapitalFlows } from "@/components/dashboard/capital-flows";
 import { Opportunities } from "@/components/dashboard/opportunities";
-import { getDashboard } from "@/lib/api";
+import { getDashboard, getNewsBriefs } from "@/lib/api";
 import { demoDashboard } from "@/lib/demo-data";
-import type { DashboardData } from "@/lib/types";
+import type { DashboardData, NewsBriefRun } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -26,6 +33,12 @@ const getServerDate = () => "";
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData>(demoDashboard);
+  const [briefs, setBriefs] = useState<NewsBriefRun[]>(
+    demoDashboard.newsBrief ? [demoDashboard.newsBrief] : [],
+  );
+  const [selectedRunId, setSelectedRunId] = useState<string | null>(
+    demoDashboard.newsBrief?.runId ?? null,
+  );
   const [isDemo, setIsDemo] = useState(true);
   const [loading, setLoading] = useState(false);
   const [coldStart, setColdStart] = useState(false);
@@ -33,6 +46,17 @@ export default function DashboardPage() {
   const today = useSyncExternalStore(noopSubscribe, getClientDate, getServerDate);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [dataDate, setDataDate] = useState("");
+  const [, startSelectionTransition] = useTransition();
+
+  // Derived during render — not via useEffect — per rerender-derived-state-no-effect.
+  const selectedBrief =
+    briefs.find((b) => b.runId === selectedRunId) ?? data.newsBrief ?? null;
+
+  const handleSelectBrief = useCallback((runId: string) => {
+    startSelectionTransition(() => {
+      setSelectedRunId(runId);
+    });
+  }, []);
 
   const fetchData = useCallback(
     async (date?: string) => {
@@ -43,18 +67,29 @@ export default function DashboardPage() {
       const coldStartTimer = setTimeout(() => setColdStart(true), 5000);
 
       try {
-        const result = await getDashboard(date);
+        // Parallel fetch — rule async-parallel. The dashboard endpoint gives us the
+        // composite view (weekly + chains + opportunities), while the news-briefs list
+        // supplies all same-day briefs for the selector.
+        const [dashboardResult, briefList] = await Promise.all([
+          getDashboard(date),
+          getNewsBriefs(date).catch(() => [] as NewsBriefRun[]),
+        ]);
         clearTimeout(coldStartTimer);
         setColdStart(false);
 
-        if (result.hasData) {
-          setData(result);
+        if (dashboardResult.hasData) {
+          setData(dashboardResult);
           setIsDemo(false);
-          if (result.runDate) setDataDate(result.runDate);
+          if (dashboardResult.runDate) setDataDate(dashboardResult.runDate);
+          setBriefs(briefList);
+          setSelectedRunId(briefList[0]?.runId ?? dashboardResult.newsBrief?.runId ?? null);
         } else {
           setData(demoDashboard);
           setIsDemo(true);
           setDataDate(date ?? today);
+          const demoList = demoDashboard.newsBrief ? [demoDashboard.newsBrief] : [];
+          setBriefs(demoList);
+          setSelectedRunId(demoList[0]?.runId ?? null);
         }
       } catch (err) {
         clearTimeout(coldStartTimer);
@@ -62,6 +97,9 @@ export default function DashboardPage() {
         setError(err instanceof Error ? err.message : "Failed to fetch data");
         setData(demoDashboard);
         setIsDemo(true);
+        const demoList = demoDashboard.newsBrief ? [demoDashboard.newsBrief] : [];
+        setBriefs(demoList);
+        setSelectedRunId(demoList[0]?.runId ?? null);
       } finally {
         setLoading(false);
       }
@@ -175,7 +213,17 @@ export default function DashboardPage() {
 
         {/* Dashboard Grid */}
         <div className="space-y-10">
-          <MarketPulse data={data.newsBrief} />
+          <MarketPulse
+            data={selectedBrief}
+            selector={
+              <BriefSelector
+                briefs={briefs}
+                selectedRunId={selectedRunId}
+                onSelect={handleSelectBrief}
+                panelId={MARKET_PULSE_PANEL_ID}
+              />
+            }
+          />
           <Separator className="opacity-50" />
           <WeeklyThemes data={data.weeklySummary} />
           <Separator className="opacity-50" />

@@ -13,13 +13,13 @@ public sealed class DailyPipelineOrchestrator(
     INewsBriefPipeline newsBriefPipeline,
     IWeeklyAggregationPipeline weeklyAggregationPipeline)
 {
-    /// <summary>Cron schedule: every day at 8 UTC (5 fields: minute hour day month day-of-week).</summary>
+    /// <summary>Cron schedule: every 4 hours at minute 0 UTC (5 fields: minute hour day month day-of-week). Fires at 00, 04, 08, 12, 16, 20 UTC.</summary>
     /// <remarks>If changed, also update frontend/components/footer.tsx (schedule display).</remarks>
-    public const string DAILY_BRIEF_SCHEDULE = "0 8 * * *";
+    public const string DAILY_BRIEF_SCHEDULE = "0 */4 * * *";
 
-    /// <summary>Cron schedule: every Monday at 9 UTC.</summary>
+    /// <summary>Cron schedule: every Thursday at 21 UTC.</summary>
     /// <remarks>If changed, also update frontend/components/footer.tsx (schedule display).</remarks>
-    public const string WEEKLY_AGGREGATION_SCHEDULE = "0 9 * * 1";
+    public const string WEEKLY_AGGREGATION_SCHEDULE = "0 21 * * 4";
 
     /// <summary>Daily timer trigger: delegates to <see cref="INewsBriefPipeline"/>.</summary>
     [Function("DailyNewsBriefTimer")]

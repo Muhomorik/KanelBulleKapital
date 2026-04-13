@@ -4,18 +4,26 @@ import { useSyncExternalStore } from "react";
 
 // Schedule times must match backend cron constants in
 // backend/KanelBrief.Functions/Orchestration/DailyPipelineOrchestrator.cs
+// (DAILY_BRIEF_SCHEDULE = "0 */4 * * *", WEEKLY_AGGREGATION_SCHEDULE = "0 21 * * 4")
 
-// Convert a UTC hour to local time string (e.g. "10:00")
-function utcHourToLocal(hour: number, minute = 0): string {
+// Convert a Thursday 21:00 UTC anchor to the user's local weekday + time.
+function weeklyAnchorToLocal(): string {
+  // Pick the next Thursday at 21:00 UTC relative to "now" so the displayed
+  // weekday reflects any day-of-week rollover from the user's timezone.
   const d = new Date();
-  d.setUTCHours(hour, minute, 0, 0);
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const daysUntilThursday = (4 - d.getUTCDay() + 7) % 7;
+  d.setUTCDate(d.getUTCDate() + daysUntilThursday);
+  d.setUTCHours(21, 0, 0, 0);
+  const weekday = d.toLocaleDateString([], { weekday: "short" });
+  const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return `${weekday} ${time}`;
 }
 
 const noopSubscribe = () => () => {};
 const getSchedule = () =>
-  `Daily brief ${utcHourToLocal(8)} · Weekly analysis Mon ${utcHourToLocal(9)}`;
-const getServerSchedule = () => "Daily brief 08:00 UTC · Weekly analysis Mon 09:00 UTC";
+  `Brief every 4 hours · Weekly analysis ${weeklyAnchorToLocal()}`;
+const getServerSchedule = () =>
+  "Brief every 4 hours UTC · Weekly analysis Thu 21:00 UTC";
 
 export function Footer() {
   const schedule = useSyncExternalStore(

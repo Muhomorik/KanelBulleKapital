@@ -1,3 +1,6 @@
+"use client";
+
+import { useSyncExternalStore } from "react";
 import type { NewsBriefRun } from "@/lib/types";
 import {
   Card,
@@ -9,31 +12,42 @@ import {
 import { SentimentBadge } from "./sentiment-badge";
 import { Newspaper, Clock, Cpu } from "lucide-react";
 
+export const MARKET_PULSE_PANEL_ID = "market-pulse-panel";
+
 interface MarketPulseProps {
   data: NewsBriefRun | null;
+  /** Optional toolbar rendered above the brief — typically a <BriefSelector />. */
+  selector?: React.ReactNode;
 }
 
-export function MarketPulse({ data }: MarketPulseProps) {
+export function MarketPulse({ data, selector }: MarketPulseProps) {
   if (!data) {
     return (
-      <section className="animate-fade-up stagger-1">
+      <section className="animate-fade-up stagger-1" id={MARKET_PULSE_PANEL_ID}>
         <SectionHeader
           title="Market Pulse"
-          subtitle="Daily news brief"
+          subtitle="News brief · every 4 hours"
           icon={<Newspaper className="h-4 w-4" />}
         />
+        {selector}
         <EmptyState message="No news brief available for this date." />
       </section>
     );
   }
 
   return (
-    <section className="animate-fade-up stagger-1">
+    <section
+      className="animate-fade-up stagger-1"
+      id={MARKET_PULSE_PANEL_ID}
+      role="tabpanel"
+      aria-labelledby={`${MARKET_PULSE_PANEL_ID}-title`}
+    >
       <SectionHeader
         title="Market Pulse"
-        subtitle="Daily news brief"
+        subtitle="News brief · every 4 hours"
         icon={<Newspaper className="h-4 w-4" />}
       />
+      {selector}
 
       {/* Mood + Summary */}
       <Card className="mb-4">
@@ -44,7 +58,8 @@ export function MarketPulse({ data }: MarketPulseProps) {
             </CardTitle>
             <SentimentBadge sentiment={data.mood} size="lg" />
           </div>
-          <CardDescription className="flex items-center gap-3 text-xs">
+          <CardDescription className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+            <BriefTimestamp iso={data.createdAt} />
             <span className="inline-flex items-center gap-1">
               <Cpu className="h-3 w-3" />
               {data.modelId}
@@ -111,6 +126,29 @@ function SectionHeader({
         <p className="text-xs text-muted-foreground">{subtitle}</p>
       </div>
     </div>
+  );
+}
+
+// SSR renders a UTC-labeled string; client swaps to local time after hydration
+// to avoid mismatch. See frontend/components/footer.tsx for the same pattern.
+const noopSubscribe = () => () => {};
+
+function BriefTimestamp({ iso }: { iso: string }) {
+  const mode = useSyncExternalStore(
+    noopSubscribe,
+    () => "local" as const,
+    () => "utc" as const,
+  );
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  const label =
+    mode === "local"
+      ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      : `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")} UTC`;
+  return (
+    <span className="font-mono uppercase tracking-[0.12em] tabular-nums text-foreground/80">
+      {label}
+    </span>
   );
 }
 

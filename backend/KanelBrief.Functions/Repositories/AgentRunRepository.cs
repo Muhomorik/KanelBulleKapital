@@ -19,6 +19,7 @@ public class AgentRunRepository : IAgentRunRepository
         public const string InputTokens = "InputTokens";
         public const string OutputTokens = "OutputTokens";
         public const string TotalTokens = "TotalTokens";
+        public const string CreatedAt = "CreatedAt";
     }
 
     internal static class NewsBriefColumns
@@ -86,6 +87,7 @@ public class AgentRunRepository : IAgentRunRepository
             { BaseColumns.InputTokens, run.InputTokens },
             { BaseColumns.OutputTokens, run.OutputTokens },
             { BaseColumns.TotalTokens, run.TotalTokens },
+            { BaseColumns.CreatedAt, run.CreatedAt },
             { NewsBriefColumns.DeploymentName, run.DeploymentName },
             { NewsBriefColumns.Mood, run.Mood },
             { NewsBriefColumns.Summary, run.Summary },
@@ -108,6 +110,11 @@ public class AgentRunRepository : IAgentRunRepository
         }
     }
 
+    /// <summary>
+    /// Returns all news brief runs for a given date, sorted newest-first by <see cref="NewsBriefRun.CreatedAt"/>.
+    /// Callers (dashboard API, weekly aggregator, frontend) rely on this ordering contract:
+    /// <c>result[0]</c> is the latest brief of the day.
+    /// </summary>
     public async Task<List<NewsBriefRun>> GetNewsBriefRunsByDateAsync(string runDate)
     {
         var query = _newsBriefRunsTable.QueryAsync<TableEntity>(e => e.PartitionKey == runDate);
@@ -118,6 +125,7 @@ public class AgentRunRepository : IAgentRunRepository
             results.Add(MapToNewsBriefRun(entity));
         }
 
+        results.Sort(static (a, b) => b.CreatedAt.CompareTo(a.CreatedAt));
         return results;
     }
 
@@ -271,6 +279,7 @@ public class AgentRunRepository : IAgentRunRepository
         {
             RunDate = entity.PartitionKey,
             RunId = entity.RowKey,
+            CreatedAt = entity.GetDateTimeOffset(BaseColumns.CreatedAt) ?? entity.Timestamp ?? DateTimeOffset.MinValue,
             ModelId = entity[BaseColumns.ModelId]?.ToString() ?? string.Empty,
             Status = Enum.Parse<RunStatus>(entity[BaseColumns.Status]?.ToString() ?? "Failed"),
             DurationSeconds = (double)(entity[BaseColumns.DurationSeconds] ?? 0.0),
