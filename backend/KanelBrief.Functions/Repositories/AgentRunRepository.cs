@@ -2,6 +2,7 @@ using System.Text.Json;
 using Azure.Data.Tables;
 using KanelBrief.Core.Models;
 using KanelBrief.Core.Repositories;
+using KanelBrief.Core.Serialization;
 
 namespace KanelBrief.Functions.Repositories;
 
@@ -55,7 +56,6 @@ public class AgentRunRepository : IAgentRunRepository
     private readonly TableClient _weeklySummaryRunsTable;
     private readonly TableClient _substitutionChainRunsTable;
     private readonly TableClient _opportunityScanRunsTable;
-    private readonly JsonSerializerOptions _jsonOptions;
 
     public AgentRunRepository(
         TableClient newsBriefRunsTable,
@@ -67,12 +67,6 @@ public class AgentRunRepository : IAgentRunRepository
         _weeklySummaryRunsTable = weeklySummaryRunsTable;
         _substitutionChainRunsTable = substitutionChainRunsTable;
         _opportunityScanRunsTable = opportunityScanRunsTable;
-
-        _jsonOptions = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = false
-        };
     }
 
     // News Brief Runs
@@ -91,7 +85,7 @@ public class AgentRunRepository : IAgentRunRepository
             { NewsBriefColumns.DeploymentName, run.DeploymentName },
             { NewsBriefColumns.Mood, run.Mood },
             { NewsBriefColumns.Summary, run.Summary },
-            { NewsBriefColumns.Assessments, JsonSerializer.Serialize(run.Assessments, _jsonOptions) }
+            { NewsBriefColumns.Assessments, JsonSerializer.Serialize(run.Assessments, KanelJsonOptions.CamelCase) }
         };
 
         await _newsBriefRunsTable.UpsertEntityAsync(entity);
@@ -145,7 +139,7 @@ public class AgentRunRepository : IAgentRunRepository
             { WeeklySummaryColumns.WeekEnd, run.WeekEnd },
             { WeeklySummaryColumns.NetMood, run.NetMood.ToString() },
             { WeeklySummaryColumns.MoodSummary, run.MoodSummary },
-            { WeeklySummaryColumns.Themes, JsonSerializer.Serialize(run.Themes, _jsonOptions) }
+            { WeeklySummaryColumns.Themes, JsonSerializer.Serialize(run.Themes, KanelJsonOptions.CamelCase) }
         };
 
         await _weeklySummaryRunsTable.UpsertEntityAsync(entity);
@@ -190,7 +184,7 @@ public class AgentRunRepository : IAgentRunRepository
             { BaseColumns.OutputTokens, run.OutputTokens },
             { BaseColumns.TotalTokens, run.TotalTokens },
             { SubstitutionChainColumns.WeeklySummaryRunId, run.WeeklySummaryRunId },
-            { SubstitutionChainColumns.Chains, JsonSerializer.Serialize(run.Chains, _jsonOptions) }
+            { SubstitutionChainColumns.Chains, JsonSerializer.Serialize(run.Chains, KanelJsonOptions.CamelCase) }
         };
 
         await _substitutionChainRunsTable.UpsertEntityAsync(entity);
@@ -235,7 +229,7 @@ public class AgentRunRepository : IAgentRunRepository
             { BaseColumns.OutputTokens, run.OutputTokens },
             { BaseColumns.TotalTokens, run.TotalTokens },
             { OpportunityScanColumns.SubstitutionChainRunId, run.SubstitutionChainRunId },
-            { OpportunityScanColumns.Targets, JsonSerializer.Serialize(run.Targets, _jsonOptions) }
+            { OpportunityScanColumns.Targets, JsonSerializer.Serialize(run.Targets, KanelJsonOptions.CamelCase) }
         };
 
         await _opportunityScanRunsTable.UpsertEntityAsync(entity);
@@ -273,7 +267,7 @@ public class AgentRunRepository : IAgentRunRepository
     {
         var assessments = string.IsNullOrEmpty(entity[NewsBriefColumns.Assessments]?.ToString())
             ? []
-            : JsonSerializer.Deserialize<List<CategoryAssessment>>(entity[NewsBriefColumns.Assessments]!.ToString()!, _jsonOptions) ?? [];
+            : JsonSerializer.Deserialize<List<CategoryAssessment>>(entity[NewsBriefColumns.Assessments]!.ToString()!, KanelJsonOptions.CamelCase) ?? [];
 
         return new NewsBriefRun
         {
@@ -297,7 +291,7 @@ public class AgentRunRepository : IAgentRunRepository
     {
         var themes = string.IsNullOrEmpty(entity[WeeklySummaryColumns.Themes]?.ToString())
             ? []
-            : JsonSerializer.Deserialize<List<WeeklySummaryTheme>>(entity[WeeklySummaryColumns.Themes]!.ToString()!, _jsonOptions) ?? [];
+            : JsonSerializer.Deserialize<List<WeeklySummaryTheme>>(entity[WeeklySummaryColumns.Themes]!.ToString()!, KanelJsonOptions.CamelCase) ?? [];
 
         return new WeeklySummaryRun
         {
@@ -321,7 +315,7 @@ public class AgentRunRepository : IAgentRunRepository
     {
         var chains = string.IsNullOrEmpty(entity[SubstitutionChainColumns.Chains]?.ToString())
             ? []
-            : JsonSerializer.Deserialize<List<RotationChain>>(entity[SubstitutionChainColumns.Chains]!.ToString()!, _jsonOptions) ?? [];
+            : JsonSerializer.Deserialize<List<RotationChain>>(entity[SubstitutionChainColumns.Chains]!.ToString()!, KanelJsonOptions.CamelCase) ?? [];
 
         return new SubstitutionChainRun
         {
@@ -342,7 +336,7 @@ public class AgentRunRepository : IAgentRunRepository
     {
         var targets = string.IsNullOrEmpty(entity[OpportunityScanColumns.Targets]?.ToString())
             ? []
-            : JsonSerializer.Deserialize<List<RotationTarget>>(entity[OpportunityScanColumns.Targets]!.ToString()!, _jsonOptions) ?? [];
+            : JsonSerializer.Deserialize<List<RotationTarget>>(entity[OpportunityScanColumns.Targets]!.ToString()!, KanelJsonOptions.CamelCase) ?? [];
 
         return new OpportunityScanRun
         {

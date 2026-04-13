@@ -1,6 +1,7 @@
 using System.Text.Json;
 using KanelBrief.Core.Models;
 using KanelBrief.Core.Repositories;
+using KanelBrief.Core.Serialization;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
@@ -11,11 +12,16 @@ namespace KanelBrief.Functions.Api;
 /// Agent Runs API: retrieve historical agent run results.
 /// Exposes endpoints to fetch runs by date, type, and ID.
 /// </summary>
+/// <remarks>
+/// All responses are serialized with <see cref="KanelJsonOptions.CamelCase"/> to
+/// match the frontend camelCase contract. Never call <c>WriteAsJsonAsync</c>
+/// directly — it falls back to the Functions Worker's PascalCase default and
+/// silently breaks the frontend.
+/// </remarks>
 public class AgentRunsApi
 {
     private readonly ILogger<AgentRunsApi> _logger;
     private readonly IAgentRunRepository _repository;
-    private readonly JsonSerializerOptions _jsonOptions;
 
     public AgentRunsApi(
         ILogger<AgentRunsApi> logger,
@@ -23,7 +29,18 @@ public class AgentRunsApi
     {
         _logger = logger;
         _repository = repository;
-        _jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+    }
+
+    /// <summary>Writes a payload as camelCase JSON with the shared Kanel contract.</summary>
+    private static async Task<HttpResponseData> WriteJsonAsync<T>(
+        HttpRequestData req,
+        T payload,
+        System.Net.HttpStatusCode status = System.Net.HttpStatusCode.OK)
+    {
+        var response = req.CreateResponse(status);
+        response.Headers.Add("Content-Type", "application/json; charset=utf-8");
+        await response.WriteStringAsync(JsonSerializer.Serialize(payload, KanelJsonOptions.CamelCase));
+        return response;
     }
 
     /// <summary>
@@ -79,18 +96,12 @@ public class AgentRunsApi
             _logger.LogInformation("Dashboard fetched: HasData={HasData}, RunDate={RunDate}",
                 dashboard.HasData, dashboard.RunDate ?? "none");
 
-            var response = req.CreateResponse(System.Net.HttpStatusCode.OK);
-            response.Headers.Add("Content-Type", "application/json; charset=utf-8");
-            var json = JsonSerializer.Serialize(dashboard, _jsonOptions);
-            await response.WriteStringAsync(json);
-            return response;
+            return await WriteJsonAsync(req, dashboard);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetDashboard failed");
-            var response = req.CreateResponse(System.Net.HttpStatusCode.InternalServerError);
-            await response.WriteAsJsonAsync(new { error = ex.Message });
-            return response;
+            return await WriteJsonAsync(req, new { error = ex.Message }, System.Net.HttpStatusCode.InternalServerError);
         }
     }
 
@@ -115,16 +126,12 @@ public class AgentRunsApi
 
             _logger.LogInformation("Fetched {Count} News Brief runs (date={Date})", runs.Count, runDate ?? "latest");
 
-            var response = req.CreateResponse(System.Net.HttpStatusCode.OK);
-            await response.WriteAsJsonAsync(runs);
-            return response;
+            return await WriteJsonAsync(req, runs);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetNewsBriefRuns failed");
-            var response = req.CreateResponse(System.Net.HttpStatusCode.InternalServerError);
-            await response.WriteAsJsonAsync(new { error = ex.Message });
-            return response;
+            return await WriteJsonAsync(req, new { error = ex.Message }, System.Net.HttpStatusCode.InternalServerError);
         }
     }
 
@@ -143,16 +150,12 @@ public class AgentRunsApi
             if (run == null)
                 return req.CreateResponse(System.Net.HttpStatusCode.NotFound);
 
-            var response = req.CreateResponse(System.Net.HttpStatusCode.OK);
-            await response.WriteAsJsonAsync(run);
-            return response;
+            return await WriteJsonAsync(req, run);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetNewsBriefRun failed");
-            var response = req.CreateResponse(System.Net.HttpStatusCode.InternalServerError);
-            await response.WriteAsJsonAsync(new { error = ex.Message });
-            return response;
+            return await WriteJsonAsync(req, new { error = ex.Message }, System.Net.HttpStatusCode.InternalServerError);
         }
     }
 
@@ -170,16 +173,12 @@ public class AgentRunsApi
 
             _logger.LogInformation("Fetched {Count} Weekly Summary runs (date={Date})", runs.Count, runDate ?? "latest");
 
-            var response = req.CreateResponse(System.Net.HttpStatusCode.OK);
-            await response.WriteAsJsonAsync(runs);
-            return response;
+            return await WriteJsonAsync(req, runs);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetWeeklySummaryRuns failed");
-            var response = req.CreateResponse(System.Net.HttpStatusCode.InternalServerError);
-            await response.WriteAsJsonAsync(new { error = ex.Message });
-            return response;
+            return await WriteJsonAsync(req, new { error = ex.Message }, System.Net.HttpStatusCode.InternalServerError);
         }
     }
 
@@ -198,16 +197,12 @@ public class AgentRunsApi
             if (run == null)
                 return req.CreateResponse(System.Net.HttpStatusCode.NotFound);
 
-            var response = req.CreateResponse(System.Net.HttpStatusCode.OK);
-            await response.WriteAsJsonAsync(run);
-            return response;
+            return await WriteJsonAsync(req, run);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetWeeklySummaryRun failed");
-            var response = req.CreateResponse(System.Net.HttpStatusCode.InternalServerError);
-            await response.WriteAsJsonAsync(new { error = ex.Message });
-            return response;
+            return await WriteJsonAsync(req, new { error = ex.Message }, System.Net.HttpStatusCode.InternalServerError);
         }
     }
 
@@ -225,16 +220,12 @@ public class AgentRunsApi
 
             _logger.LogInformation("Fetched {Count} Substitution Chain runs (date={Date})", runs.Count, runDate ?? "latest");
 
-            var response = req.CreateResponse(System.Net.HttpStatusCode.OK);
-            await response.WriteAsJsonAsync(runs);
-            return response;
+            return await WriteJsonAsync(req, runs);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetSubstitutionChainRuns failed");
-            var response = req.CreateResponse(System.Net.HttpStatusCode.InternalServerError);
-            await response.WriteAsJsonAsync(new { error = ex.Message });
-            return response;
+            return await WriteJsonAsync(req, new { error = ex.Message }, System.Net.HttpStatusCode.InternalServerError);
         }
     }
 
@@ -253,16 +244,12 @@ public class AgentRunsApi
             if (run == null)
                 return req.CreateResponse(System.Net.HttpStatusCode.NotFound);
 
-            var response = req.CreateResponse(System.Net.HttpStatusCode.OK);
-            await response.WriteAsJsonAsync(run);
-            return response;
+            return await WriteJsonAsync(req, run);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetSubstitutionChainRun failed");
-            var response = req.CreateResponse(System.Net.HttpStatusCode.InternalServerError);
-            await response.WriteAsJsonAsync(new { error = ex.Message });
-            return response;
+            return await WriteJsonAsync(req, new { error = ex.Message }, System.Net.HttpStatusCode.InternalServerError);
         }
     }
 
@@ -280,16 +267,12 @@ public class AgentRunsApi
 
             _logger.LogInformation("Fetched {Count} Opportunity Scan runs (date={Date})", runs.Count, runDate ?? "latest");
 
-            var response = req.CreateResponse(System.Net.HttpStatusCode.OK);
-            await response.WriteAsJsonAsync(runs);
-            return response;
+            return await WriteJsonAsync(req, runs);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetOpportunityScanRuns failed");
-            var response = req.CreateResponse(System.Net.HttpStatusCode.InternalServerError);
-            await response.WriteAsJsonAsync(new { error = ex.Message });
-            return response;
+            return await WriteJsonAsync(req, new { error = ex.Message }, System.Net.HttpStatusCode.InternalServerError);
         }
     }
 
@@ -308,16 +291,12 @@ public class AgentRunsApi
             if (run == null)
                 return req.CreateResponse(System.Net.HttpStatusCode.NotFound);
 
-            var response = req.CreateResponse(System.Net.HttpStatusCode.OK);
-            await response.WriteAsJsonAsync(run);
-            return response;
+            return await WriteJsonAsync(req, run);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetOpportunityScanRun failed");
-            var response = req.CreateResponse(System.Net.HttpStatusCode.InternalServerError);
-            await response.WriteAsJsonAsync(new { error = ex.Message });
-            return response;
+            return await WriteJsonAsync(req, new { error = ex.Message }, System.Net.HttpStatusCode.InternalServerError);
         }
     }
 

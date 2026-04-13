@@ -1,20 +1,19 @@
 using System.Text.Json;
 using KanelBrief.Core.Models;
+using KanelBrief.Core.Serialization;
 
 namespace KanelBrief.Core.Tests.Models;
 
 /// <summary>
 /// The frontend expects camelCase JSON (runDate, hasData, newsBrief, ...).
 /// Azure Functions' WriteAsJsonAsync uses the default .NET serializer which outputs PascalCase.
-/// These tests ensure the dashboard response is always serialized as camelCase.
+/// These tests ensure the dashboard response is always serialized as camelCase using
+/// the shared <see cref="KanelJsonOptions.CamelCase"/> contract.
 /// </summary>
 [TestFixture]
 public class DashboardSerializationTests
 {
-    private static readonly JsonSerializerOptions CamelCase = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    };
+    private static readonly JsonSerializerOptions CamelCase = KanelJsonOptions.CamelCase;
 
     [Test]
     public void DashboardResponse_SerializedWithCamelCase_HasCorrectPropertyNames()

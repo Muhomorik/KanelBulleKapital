@@ -1,10 +1,10 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Azure.AI.Extensions.OpenAI;
 using Azure.AI.Projects;
 using KanelBrief.Core.Agents;
 using KanelBrief.Core.Models;
 using KanelBrief.Core.Parsers;
+using KanelBrief.Core.Serialization;
 using Microsoft.Extensions.Logging;
 
 namespace KanelBrief.Functions.Agents.Analyzers;
@@ -27,11 +27,7 @@ public sealed class AzureOpportunityScanAnalyzer : IOpportunityScanAnalyzer
     {
         _logger = logger;
         _aiProjectClient = aiProjectClient;
-        _jsonOptions = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            Converters = { new JsonStringEnumConverter() }
-        };
+        _jsonOptions = KanelJsonOptions.CamelCase;
     }
 
     public async Task<OpportunityScanAnalysisResult> AnalyzeAsync(

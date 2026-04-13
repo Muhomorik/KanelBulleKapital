@@ -1,10 +1,10 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Azure.AI.Extensions.OpenAI;
 using Azure.AI.Projects;
 using KanelBrief.Core.Agents;
 using KanelBrief.Core.Models;
 using KanelBrief.Core.Parsers;
+using KanelBrief.Core.Serialization;
 using Microsoft.Extensions.Logging;
 
 namespace KanelBrief.Functions.Agents.Analyzers;
@@ -19,7 +19,6 @@ public sealed class AzureWeeklySummaryAnalyzer : IWeeklySummaryAnalyzer
 
     private readonly ILogger<AzureWeeklySummaryAnalyzer> _logger;
     private readonly AIProjectClient _aiProjectClient;
-    private readonly JsonSerializerOptions _jsonOptions;
 
     public AzureWeeklySummaryAnalyzer(
         ILogger<AzureWeeklySummaryAnalyzer> logger,
@@ -27,11 +26,6 @@ public sealed class AzureWeeklySummaryAnalyzer : IWeeklySummaryAnalyzer
     {
         _logger = logger;
         _aiProjectClient = aiProjectClient;
-        _jsonOptions = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            Converters = { new JsonStringEnumConverter() }
-        };
     }
 
     public async Task<WeeklySummaryAnalysisResult> AnalyzeAsync(
@@ -41,7 +35,7 @@ public sealed class AzureWeeklySummaryAnalyzer : IWeeklySummaryAnalyzer
         CancellationToken ct = default)
     {
         var briefsContext = string.Join("\n\n", dailyBriefs.Select(b =>
-            $"[{b.RunDate}] Mood: {b.Mood}\nSummary: {b.Summary}\nAssessments: {JsonSerializer.Serialize(b.Assessments, _jsonOptions)}"));
+            $"[{b.RunDate}] Mood: {b.Mood}\nSummary: {b.Summary}\nAssessments: {JsonSerializer.Serialize(b.Assessments, KanelJsonOptions.CamelCase)}"));
 
         var agent = _aiProjectClient.AsAIAgent(
             model: ModelId,
@@ -68,7 +62,7 @@ Return ONLY a JSON object with this exact structure:
         var prompt = $"Analyze this week's market briefs ({weekStart:yyyy-MM-dd} to {weekEnd:yyyy-MM-dd}):\n\n{briefsContext}";
         var response = await agent.RunAsync(prompt);
         var json = AgentResponseParser.ExtractJson(response.ToString() ?? string.Empty);
-        return JsonSerializer.Deserialize<WeeklySummaryAnalysisResult>(json, _jsonOptions)
+        return JsonSerializer.Deserialize<WeeklySummaryAnalysisResult>(json, KanelJsonOptions.CamelCase)
             ?? throw new InvalidOperationException("Failed to parse weekly summary response");
     }
 }
