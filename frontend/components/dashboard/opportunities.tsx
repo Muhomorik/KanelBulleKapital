@@ -40,23 +40,28 @@ export function Opportunities({ data }: OpportunitiesProps) {
     items: targets.filter((t) => t.signalStrength === strength),
   })).filter((group) => group.items.length > 0);
 
-  let cardIndex = 0;
+  // Flat-index offset for each group — lets us compute per-card stagger classes
+  // as a pure function of (groupI, itemI) without mutating a closure-captured
+  // counter during render (react-hooks/immutability).
+  const groupStartIndices = grouped.map((_, i) =>
+    grouped.slice(0, i).reduce((sum, g) => sum + g.items.length, 0),
+  );
 
   return (
     <section className="animate-fade-up stagger-4">
       <SectionHeader />
 
       <div className="space-y-6">
-        {grouped.map(({ strength, items }) => (
+        {grouped.map(({ strength, items }, groupI) => (
           <div key={strength}>
             <p className="mb-2 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.14em] text-foreground">
               <span>{GROUP_LABEL[strength]}</span>
               <span className="h-px flex-1 bg-border" aria-hidden="true" />
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
-              {items.map((target) => {
-                const stagger = `stagger-${Math.min(cardIndex + 5, 9)}`;
-                cardIndex += 1;
+              {items.map((target, itemI) => {
+                const flatIndex = groupStartIndices[groupI] + itemI;
+                const stagger = `stagger-${Math.min(flatIndex + 5, 9)}`;
                 return (
                   <TargetCard
                     key={target.category}
