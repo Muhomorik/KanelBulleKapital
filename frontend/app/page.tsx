@@ -166,6 +166,7 @@ export default function DashboardPage() {
               </button>
               <input
                 type="date"
+                aria-label="Select date"
                 value={selectedDate ?? (dataDate || today)}
                 max={today}
                 onChange={(e) => handleDateChange(e.target.value)}
