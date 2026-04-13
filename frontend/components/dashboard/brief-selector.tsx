@@ -111,11 +111,11 @@ function BriefSelectorImpl({
             tabIndex={isSelected ? 0 : -1}
             onClick={() => onSelect(brief.runId)}
             className={[
-              "group relative -mb-px inline-flex items-center gap-1.5 px-2.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.14em] tabular-nums transition-colors duration-150",
+              "group relative -mb-px inline-flex items-center gap-1.5 px-2.5 py-1.5 font-mono text-xs uppercase tracking-[0.14em] tabular-nums transition-colors duration-150",
               "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0",
               isSelected
                 ? "text-foreground"
-                : "text-muted-foreground/70 hover:text-foreground",
+                : "text-muted-foreground hover:text-foreground",
             ].join(" ")}
           >
             <span
@@ -137,7 +137,7 @@ function BriefSelectorImpl({
         );
       })}
       {labelMode === "utc" && (
-        <span className="ml-2 pb-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground/50">
+        <span className="ml-2 pb-1.5 font-mono text-xs uppercase tracking-widest text-muted-foreground">
           UTC
         </span>
       )}

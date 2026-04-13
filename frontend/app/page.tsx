@@ -13,13 +13,13 @@ import { DemoBanner } from "@/components/demo-banner";
 import { ColdStartBanner } from "@/components/cold-start-banner";
 import { MarketPulse, MARKET_PULSE_PANEL_ID } from "@/components/dashboard/market-pulse";
 import { BriefSelector } from "@/components/dashboard/brief-selector";
+import { WeeklyMasthead } from "@/components/dashboard/weekly-masthead";
 import { WeeklyThemes } from "@/components/dashboard/weekly-themes";
 import { CapitalFlows } from "@/components/dashboard/capital-flows";
 import { Opportunities } from "@/components/dashboard/opportunities";
 import { getDashboard, getNewsBriefs } from "@/lib/api";
 import { demoDashboard } from "@/lib/demo-data";
 import type { DashboardData, NewsBriefRun } from "@/lib/types";
-import { Separator } from "@/components/ui/separator";
 import { RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 
 function toLocalDateString(d: Date): string {
@@ -224,11 +224,12 @@ export default function DashboardPage() {
               />
             }
           />
-          <Separator className="opacity-50" />
+          <WeeklyMasthead
+            weekStart={data.weeklySummary?.weekStart ?? null}
+            weekEnd={data.weeklySummary?.weekEnd ?? null}
+          />
           <WeeklyThemes data={data.weeklySummary} />
-          <Separator className="opacity-50" />
           <CapitalFlows data={data.substitutionChain} />
-          <Separator className="opacity-50" />
           <Opportunities data={data.opportunityScan} />
         </div>
       </main>

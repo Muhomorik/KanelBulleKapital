@@ -1,4 +1,8 @@
-import type { OpportunityScanRun } from "@/lib/types";
+import type {
+  OpportunityScanRun,
+  RotationTarget,
+  SignalStrength,
+} from "@/lib/types";
 import {
   Card,
   CardContent,
@@ -7,11 +11,18 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { SignalBadge } from "./signal-badge";
-import { Target, AlertTriangle } from "lucide-react";
+import { Target, Gem } from "lucide-react";
 
 interface OpportunitiesProps {
   data: OpportunityScanRun | null;
 }
+
+const GROUP_ORDER: SignalStrength[] = ["Strong", "Moderate", "Weak"];
+const GROUP_LABEL: Record<SignalStrength, string> = {
+  Strong: "Strong conviction",
+  Moderate: "Moderate conviction",
+  Weak: "Weak conviction",
+};
 
 export function Opportunities({ data }: OpportunitiesProps) {
   if (!data) {
@@ -23,50 +34,102 @@ export function Opportunities({ data }: OpportunitiesProps) {
     );
   }
 
+  const targets = data.targets ?? [];
+  const grouped = GROUP_ORDER.map((strength) => ({
+    strength,
+    items: targets.filter((t) => t.signalStrength === strength),
+  })).filter((group) => group.items.length > 0);
+
+  let cardIndex = 0;
+
   return (
     <section className="animate-fade-up stagger-4">
       <SectionHeader />
 
-      <div className="space-y-3">
-        {(data.targets ?? []).map((target, i) => (
-          <Card key={i} className={`animate-fade-up stagger-${i + 5}`}>
-            <CardHeader className="pb-2">
-              <div className="flex items-start justify-between gap-2">
-                <CardTitle className="text-sm font-semibold">
-                  {target.category}
-                </CardTitle>
-                <SignalBadge strength={target.signalStrength} />
-              </div>
-              <CardDescription className="text-xs leading-relaxed">
-                {target.rationale}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-start gap-1.5 rounded-md bg-destructive/5 px-2.5 py-2 text-xs text-muted-foreground">
-                <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-destructive/70" />
-                <span>{target.riskCaveat}</span>
-              </div>
-            </CardContent>
-          </Card>
+      <div className="space-y-6">
+        {grouped.map(({ strength, items }) => (
+          <div key={strength}>
+            <p className="mb-2 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.14em] text-foreground">
+              <span>{GROUP_LABEL[strength]}</span>
+              <span className="h-px flex-1 bg-border" aria-hidden="true" />
+            </p>
+            <div className="space-y-3">
+              {items.map((target) => {
+                const stagger = `stagger-${Math.min(cardIndex + 5, 9)}`;
+                cardIndex += 1;
+                return (
+                  <TargetCard
+                    key={target.category}
+                    target={target}
+                    staggerClass={stagger}
+                  />
+                );
+              })}
+            </div>
+          </div>
         ))}
       </div>
     </section>
   );
 }
 
+function TargetCard({
+  target,
+  staggerClass,
+}: {
+  target: RotationTarget;
+  staggerClass: string;
+}) {
+  return (
+    <Card className={`animate-fade-up ${staggerClass}`}>
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-3">
+          <CardTitle className="flex items-center gap-2.5 font-serif text-2xl font-bold leading-tight tracking-tight text-foreground">
+            <Gem
+              aria-hidden="true"
+              className="h-5 w-5 shrink-0 text-primary"
+            />
+            <span>{target.category}</span>
+          </CardTitle>
+          <SignalBadge strength={target.signalStrength} />
+        </div>
+        <CardDescription className="mt-3 text-sm leading-relaxed text-foreground/85">
+          {target.rationale}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div
+          role="note"
+          aria-label="Risk caveat"
+          className="border-t border-border pt-3"
+        >
+          <p className="mb-1.5 text-xs font-bold uppercase tracking-[0.14em] text-destructive">
+            Risk
+          </p>
+          <p className="text-sm leading-relaxed text-foreground/85">
+            {target.riskCaveat}
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function SectionHeader() {
   return (
-    <div className="mb-4 flex items-center gap-2.5">
-      <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 text-primary">
-        <Target className="h-4 w-4" />
-      </div>
-      <div>
-        <h2 className="font-serif text-xl font-semibold tracking-tight">
-          Opportunities
-        </h2>
-        <p className="text-xs text-muted-foreground">
-          Actionable rotation targets
-        </p>
+    <div className="mb-8 border-t-4 border-foreground pt-8">
+      <div className="flex items-center gap-4">
+        <div className="flex h-12 w-12 items-center justify-center rounded-md bg-primary/15 text-primary">
+          <Target className="h-6 w-6" />
+        </div>
+        <div>
+          <h2 className="font-serif text-4xl font-bold uppercase leading-none tracking-tight">
+            Opportunities
+          </h2>
+          <p className="mt-2 text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            Actionable rotation targets
+          </p>
+        </div>
       </div>
     </div>
   );
