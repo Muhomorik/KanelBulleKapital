@@ -1,10 +1,10 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Azure.AI.Extensions.OpenAI;
 using Azure.AI.Projects;
 using KanelBrief.Core.Agents;
 using KanelBrief.Core.Models;
 using KanelBrief.Core.Parsers;
+using KanelBrief.Core.Serialization;
 using Microsoft.Extensions.Logging;
 
 namespace KanelBrief.Functions.Agents.Analyzers;
@@ -19,7 +19,7 @@ public sealed class AzureSubstitutionChainAnalyzer : ISubstitutionChainAnalyzer
 
     private readonly ILogger<AzureSubstitutionChainAnalyzer> _logger;
     private readonly AIProjectClient _aiProjectClient;
-    private readonly JsonSerializerOptions _jsonOptions;
+    private readonly JsonSerializerOptions _jsonOptions = KanelJsonOptions.CamelCase;
 
     public AzureSubstitutionChainAnalyzer(
         ILogger<AzureSubstitutionChainAnalyzer> logger,
@@ -27,11 +27,6 @@ public sealed class AzureSubstitutionChainAnalyzer : ISubstitutionChainAnalyzer
     {
         _logger = logger;
         _aiProjectClient = aiProjectClient;
-        _jsonOptions = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            Converters = { new JsonStringEnumConverter() }
-        };
     }
 
     public async Task<SubstitutionChainAnalysisResult> AnalyzeAsync(

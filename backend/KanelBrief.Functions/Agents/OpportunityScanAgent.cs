@@ -3,6 +3,7 @@ using System.Text.Json;
 using KanelBrief.Core.Agents;
 using KanelBrief.Core.Models;
 using KanelBrief.Core.Repositories;
+using KanelBrief.Core.Serialization;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
@@ -23,10 +24,7 @@ public sealed class OpportunityScanAgent(
 {
     private const string ModelId = "gpt-5.4-mini";
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    };
+    private static readonly JsonSerializerOptions JsonOptions = KanelJsonOptions.CamelCase;
 
     [Function("OpportunityScan")]
     public async Task<HttpResponseData> RunAsync(

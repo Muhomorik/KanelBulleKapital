@@ -1,11 +1,11 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Azure.AI.Extensions.OpenAI;
 using Azure.AI.Projects;
 using Azure.AI.Projects.Agents;
 using KanelBrief.Core.Agents;
 using KanelBrief.Core.Models;
 using KanelBrief.Core.Parsers;
+using KanelBrief.Core.Serialization;
 using KanelBrief.Functions.Orchestration;
 using Microsoft.Extensions.Logging;
 
@@ -36,11 +36,7 @@ public sealed class AzureNewsBriefAnalyzer : INewsBriefAnalyzer
         _aiProjectClient = aiProjectClient;
         _agentAdmin = agentAdmin;
         _options = options;
-        _jsonOptions = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            Converters = { new JsonStringEnumConverter() }
-        };
+        _jsonOptions = KanelJsonOptions.CamelCase;
     }
 
     public async Task<NewsBriefAnalysisResult> AnalyzeAsync(DateTimeOffset asOf, CancellationToken ct = default)
