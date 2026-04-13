@@ -53,7 +53,7 @@ export function Opportunities({ data }: OpportunitiesProps) {
               <span>{GROUP_LABEL[strength]}</span>
               <span className="h-px flex-1 bg-border" aria-hidden="true" />
             </p>
-            <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               {items.map((target) => {
                 const stagger = `stagger-${Math.min(cardIndex + 5, 9)}`;
                 cardIndex += 1;
@@ -117,7 +117,7 @@ function TargetCard({
 
 function SectionHeader() {
   return (
-    <div className="mb-8 border-t-4 border-foreground pt-8">
+    <div className="mb-8 border-y border-foreground/30 py-6">
       <div className="flex items-center gap-4">
         <div className="flex h-12 w-12 items-center justify-center rounded-md bg-primary/15 text-primary">
           <Target className="h-6 w-6" />

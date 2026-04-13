@@ -24,7 +24,7 @@ export function CapitalFlows({ data }: CapitalFlowsProps) {
     <section className="animate-fade-up stagger-3">
       <SectionHeader />
 
-      <div className="space-y-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         {(data.chains ?? []).map((chain) => (
           <Card
             key={`${chain.capitalFleeing}→${chain.flowsToward}`}
@@ -68,7 +68,7 @@ export function CapitalFlows({ data }: CapitalFlowsProps) {
 
 function SectionHeader() {
   return (
-    <div className="mb-8 border-t-4 border-foreground pt-8">
+    <div className="mb-8 border-y border-foreground/30 py-6">
       <div className="flex items-center gap-4">
         <div className="flex h-12 w-12 items-center justify-center rounded-md bg-primary/15 text-primary">
           <GitBranch className="h-6 w-6" />

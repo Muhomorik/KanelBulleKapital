@@ -205,7 +205,7 @@ export default function DashboardPage() {
             </button>
 
             {error && (
-              <p className="text-xs text-destructive">
+              <p role="alert" className="text-xs text-destructive">
                 {error} — showing demo data
               </p>
             )}

@@ -49,7 +49,7 @@ export function WeeklyThemes({ data }: WeeklyThemesProps) {
         )}
       </Card>
 
-      <div className="space-y-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         {(data.themes ?? []).map((theme, i) => (
           <Card
             key={theme.category}
@@ -84,7 +84,7 @@ export function WeeklyThemes({ data }: WeeklyThemesProps) {
 
 function SectionHeader() {
   return (
-    <div className="mb-8 border-t-4 border-foreground pt-8">
+    <div className="mb-8 border-y border-foreground/30 py-6">
       <div className="flex items-center gap-4">
         <div className="flex h-12 w-12 items-center justify-center rounded-md bg-primary/15 text-primary">
           <Layers className="h-6 w-6" />

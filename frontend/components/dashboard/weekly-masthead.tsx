@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { CalendarRange, ChevronDown } from "lucide-react";
+import { CalendarRange } from "lucide-react";
 
 interface WeeklyMastheadProps {
   weekStart: string | null;
@@ -30,9 +30,9 @@ export function WeeklyMasthead({ weekStart, weekEnd }: WeeklyMastheadProps) {
       className="animate-fade-up stagger-1"
       aria-label="Weekly analysis window"
     >
-      <div className="border-y border-border py-6">
-        <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          <CalendarRange className="h-3.5 w-3.5" />
+      <div className="rounded-md bg-primary/5 px-6 py-10 text-center ring-1 ring-primary/15">
+        <p className="flex items-center justify-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-primary/80">
+          <CalendarRange aria-hidden="true" className="h-3.5 w-3.5" />
           The analysis below covers
         </p>
 
@@ -42,25 +42,21 @@ export function WeeklyMasthead({ weekStart, weekEnd }: WeeklyMastheadProps) {
           disabled
           aria-label="Select week (historical weeks coming soon)"
           title="Historical weeks coming soon"
-          className="group mt-1.5 flex w-full flex-wrap items-baseline gap-x-3 gap-y-1 text-left disabled:cursor-not-allowed"
+          className="group mt-3 flex w-full flex-wrap items-baseline justify-center gap-x-4 gap-y-2 disabled:cursor-not-allowed"
         >
-          <span className="font-serif text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+          <span className="font-serif text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
             {range ?? (
               <span className="text-muted-foreground">— awaiting data —</span>
             )}
           </span>
           {weekNumber !== null && (
-            <span className="rounded-sm bg-primary/15 px-2 py-0.5 text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+            <span className="rounded-sm bg-primary/20 px-2.5 py-1 text-xs font-bold uppercase tracking-[0.14em] text-primary">
               Week {weekNumber}
             </span>
           )}
-          <ChevronDown
-            aria-hidden="true"
-            className="h-4 w-4 shrink-0 self-center text-muted-foreground transition-transform group-hover:translate-y-0.5"
-          />
         </button>
 
-        <p className="mt-3 text-sm text-muted-foreground">
+        <p className="mt-4 text-sm text-muted-foreground">
           Includes{" "}
           <span className="font-medium text-foreground">Weekly Themes</span>,{" "}
           <span className="font-medium text-foreground">Capital Flows</span>,
