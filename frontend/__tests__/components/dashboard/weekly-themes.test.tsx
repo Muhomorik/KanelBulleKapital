@@ -27,8 +27,15 @@ describe("WeeklyThemes date formatting", () => {
     render(<WeeklyThemes data={makeRun()} />);
 
     expect(screen.queryByText(/Invalid Date/)).toBeNull();
-    // Locale-agnostic: must contain both day numbers and "apr" (Apr/apr./avril/etc.).
-    expect(screen.getByText(/6.*apr.*—.*13.*apr/i)).toBeInTheDocument();
+
+    // Locale-agnostic: the range element must contain both day numbers, an
+    // April month abbreviation, and an em dash. Different locales order the
+    // day/month differently (en-US "Apr 6 — Apr 13" vs en-GB "6 Apr — 13 Apr"),
+    // so we assert on content rather than strict ordering.
+    const range = screen.getByText(/—/);
+    expect(range.textContent).toMatch(/\b6\b/);
+    expect(range.textContent).toMatch(/\b13\b/);
+    expect(range.textContent).toMatch(/apr|avr/i);
   });
 });
 
