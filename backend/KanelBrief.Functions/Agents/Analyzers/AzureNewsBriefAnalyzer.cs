@@ -109,8 +109,14 @@ Return ONLY a JSON object with this exact structure:
             var responseText = clientResult.Value.GetOutputText();
 
             var analysisJson = AgentResponseParser.ExtractJson(responseText);
-            return JsonSerializer.Deserialize<NewsBriefAnalysisResult>(analysisJson, _jsonOptions)
+            var result = JsonSerializer.Deserialize<NewsBriefAnalysisResult>(analysisJson, _jsonOptions)
                 ?? throw new InvalidOperationException("Failed to parse agent response");
+
+            var usage = clientResult.Value.Usage;
+            result.InputTokens = usage.InputTokenCount;
+            result.OutputTokens = usage.OutputTokenCount;
+            result.TotalTokens = usage.TotalTokenCount;
+            return result;
         }
         finally
         {
@@ -150,8 +156,17 @@ Return ONLY a JSON object with this exact structure:
         var prompt = $"Analyze these market news articles:\n\n{articlesText}";
 
         var response = await agent.RunAsync(prompt);
-        var json = AgentResponseParser.ExtractJson(response.ToString() ?? string.Empty);
-        return JsonSerializer.Deserialize<NewsBriefAnalysisResult>(json, _jsonOptions)
+        var json = AgentResponseParser.ExtractJson(response.Text ?? string.Empty);
+        var result = JsonSerializer.Deserialize<NewsBriefAnalysisResult>(json, _jsonOptions)
             ?? throw new InvalidOperationException("Failed to parse article-based news brief response");
+
+        var usage = response.Usage;
+        if (usage is not null)
+        {
+            result.InputTokens = (int)(usage.InputTokenCount ?? 0);
+            result.OutputTokens = (int)(usage.OutputTokenCount ?? 0);
+            result.TotalTokens = (int)(usage.TotalTokenCount ?? 0);
+        }
+        return result;
     }
 }

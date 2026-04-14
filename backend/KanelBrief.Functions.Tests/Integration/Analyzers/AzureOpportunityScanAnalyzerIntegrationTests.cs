@@ -53,5 +53,9 @@ public class AzureOpportunityScanAnalyzerIntegrationTests
             Assert.That(t.Category, Is.Not.Empty);
             Assert.That(t.Rationale, Is.Not.Empty);
         }
+
+        Assert.That(result.InputTokens, Is.GreaterThan(0), "input tokens should be captured from the LLM response");
+        Assert.That(result.OutputTokens, Is.GreaterThan(0), "output tokens should be captured from the LLM response");
+        Assert.That(result.TotalTokens, Is.GreaterThanOrEqualTo(result.InputTokens + result.OutputTokens));
     }
 }

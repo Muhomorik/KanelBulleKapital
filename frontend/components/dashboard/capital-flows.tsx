@@ -4,6 +4,7 @@ import {
   CardContent,
   CardHeader,
 } from "@/components/ui/card";
+import { BriefMeta } from "./brief-meta";
 import { ArrowRight, GitBranch } from "lucide-react";
 
 interface CapitalFlowsProps {
@@ -23,6 +24,10 @@ export function CapitalFlows({ data }: CapitalFlowsProps) {
   return (
     <section className="animate-fade-up stagger-3">
       <SectionHeader />
+
+      <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+        <BriefMeta data={data} />
+      </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
         {(data.chains ?? []).map((chain) => (

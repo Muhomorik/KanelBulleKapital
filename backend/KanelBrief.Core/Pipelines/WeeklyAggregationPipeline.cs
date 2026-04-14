@@ -99,7 +99,10 @@ public sealed class WeeklyAggregationPipeline : IWeeklyAggregationPipeline
             NetMood = AgentResponseParser.ParseSentiment(analysis.Mood),
             MoodSummary = analysis.Summary,
             Themes = analysis.Themes,
-            DurationSeconds = (_timeProvider.GetUtcNow() - startTime).TotalSeconds
+            DurationSeconds = (_timeProvider.GetUtcNow() - startTime).TotalSeconds,
+            InputTokens = analysis.InputTokens,
+            OutputTokens = analysis.OutputTokens,
+            TotalTokens = analysis.TotalTokens
         };
 
         await _repository.SaveWeeklySummaryRunAsync(run);
@@ -123,7 +126,10 @@ public sealed class WeeklyAggregationPipeline : IWeeklyAggregationPipeline
             Status = RunStatus.Success,
             WeeklySummaryRunId = weeklySummary.RunId,
             Chains = analysis.Chains,
-            DurationSeconds = (_timeProvider.GetUtcNow() - startTime).TotalSeconds
+            DurationSeconds = (_timeProvider.GetUtcNow() - startTime).TotalSeconds,
+            InputTokens = analysis.InputTokens,
+            OutputTokens = analysis.OutputTokens,
+            TotalTokens = analysis.TotalTokens
         };
 
         await _repository.SaveSubstitutionChainRunAsync(run);
@@ -146,7 +152,10 @@ public sealed class WeeklyAggregationPipeline : IWeeklyAggregationPipeline
             Status = RunStatus.Success,
             SubstitutionChainRunId = substitutionChain.RunId,
             Targets = analysis.Targets,
-            DurationSeconds = (_timeProvider.GetUtcNow() - startTime).TotalSeconds
+            DurationSeconds = (_timeProvider.GetUtcNow() - startTime).TotalSeconds,
+            InputTokens = analysis.InputTokens,
+            OutputTokens = analysis.OutputTokens,
+            TotalTokens = analysis.TotalTokens
         };
 
         await _repository.SaveOpportunityScanRunAsync(run);
