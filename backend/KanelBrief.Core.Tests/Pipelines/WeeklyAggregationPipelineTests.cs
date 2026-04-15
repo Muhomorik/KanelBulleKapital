@@ -320,10 +320,10 @@ public class WeeklyAggregationPipelineTests
     public async Task ExecuteAsync_WhenTriggeredOnThursday_StillAggregatesPreviousMondayThroughSunday()
     {
         // Arrange
-        // Weekly cron now fires Thursday 21:00 UTC. CalculateWeekBoundaries walks back to
+        // Weekly cron now fires Thursday 17:00 UTC. CalculateWeekBoundaries walks back to
         // "this Monday" then one more week, so the aggregated window must remain the most
         // recently completed Mon–Sun regardless of which weekday triggered the run.
-        var thursday = new DateTimeOffset(2026, 4, 9, 21, 0, 0, TimeSpan.Zero);
+        var thursday = new DateTimeOffset(2026, 4, 9, 17, 0, 0, TimeSpan.Zero);
         var thursdayTime = new FakeTimeProvider(thursday);
         var thursdayPipeline = new WeeklyAggregationPipeline(
             NullLogger<WeeklyAggregationPipeline>.Instance,
