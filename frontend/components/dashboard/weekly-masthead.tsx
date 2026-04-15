@@ -81,14 +81,7 @@ function formatRange(
     d.toLocaleDateString(undefined, opts);
 
   const sameYear = start.getFullYear() === end.getFullYear();
-  const sameMonth = sameYear && start.getMonth() === end.getMonth();
 
-  if (sameMonth) {
-    return `${fmt(start, { month: "long", day: "numeric" })} – ${fmt(end, {
-      day: "numeric",
-      year: "numeric",
-    })}`;
-  }
   if (sameYear) {
     return `${fmt(start, { month: "short", day: "numeric" })} – ${fmt(end, {
       month: "short",
