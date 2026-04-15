@@ -64,5 +64,9 @@ public class AzureWeeklySummaryAnalyzerIntegrationTests
         Assert.That(result.Summary, Is.Not.Empty);
         Assert.That(result.Mood, Is.AnyOf("RiskOn", "RiskOff", "Mixed"));
         Assert.That(result.Themes, Is.Not.Empty);
+
+        Assert.That(result.InputTokens, Is.GreaterThan(0), "input tokens should be captured from the LLM response");
+        Assert.That(result.OutputTokens, Is.GreaterThan(0), "output tokens should be captured from the LLM response");
+        Assert.That(result.TotalTokens, Is.GreaterThanOrEqualTo(result.InputTokens + result.OutputTokens));
     }
 }

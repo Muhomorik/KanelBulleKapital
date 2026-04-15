@@ -61,8 +61,17 @@ Return ONLY a JSON object with this exact structure:
 
         var prompt = $"Analyze this week's market briefs ({weekStart:yyyy-MM-dd} to {weekEnd:yyyy-MM-dd}):\n\n{briefsContext}";
         var response = await agent.RunAsync(prompt);
-        var json = AgentResponseParser.ExtractJson(response.ToString() ?? string.Empty);
-        return JsonSerializer.Deserialize<WeeklySummaryAnalysisResult>(json, KanelJsonOptions.CamelCase)
+        var json = AgentResponseParser.ExtractJson(response.Text ?? string.Empty);
+        var result = JsonSerializer.Deserialize<WeeklySummaryAnalysisResult>(json, KanelJsonOptions.CamelCase)
             ?? throw new InvalidOperationException("Failed to parse weekly summary response");
+
+        var usage = response.Usage;
+        if (usage is not null)
+        {
+            result.InputTokens = (int)(usage.InputTokenCount ?? 0);
+            result.OutputTokens = (int)(usage.OutputTokenCount ?? 0);
+            result.TotalTokens = (int)(usage.TotalTokenCount ?? 0);
+        }
+        return result;
     }
 }

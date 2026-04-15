@@ -17,9 +17,9 @@ public sealed class DailyPipelineOrchestrator(
     /// <remarks>If changed, also update frontend/components/footer.tsx (schedule display).</remarks>
     public const string DAILY_BRIEF_SCHEDULE = "0 */4 * * *";
 
-    /// <summary>Cron schedule: every Thursday at 21 UTC.</summary>
+    /// <summary>Cron schedule: every Thursday at 17 UTC (19:00 Swedish summer / 18:00 Swedish winter).</summary>
     /// <remarks>If changed, also update frontend/components/footer.tsx (schedule display).</remarks>
-    public const string WEEKLY_AGGREGATION_SCHEDULE = "0 21 * * 4";
+    public const string WEEKLY_AGGREGATION_SCHEDULE = "0 17 * * 4";
 
     /// <summary>Daily timer trigger: delegates to <see cref="INewsBriefPipeline"/>.</summary>
     [Function("DailyNewsBriefTimer")]

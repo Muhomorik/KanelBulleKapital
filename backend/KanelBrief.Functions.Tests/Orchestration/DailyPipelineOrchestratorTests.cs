@@ -81,7 +81,7 @@ public class DailyPipelineOrchestratorTests
     }
 
     [Test]
-    public void WeeklyAggregationSchedule_RunsOnThursdayAt21Utc()
+    public void WeeklyAggregationSchedule_RunsOnThursdayAt17Utc()
     {
         var cron = CronExpression.Parse(DailyPipelineOrchestrator.WEEKLY_AGGREGATION_SCHEDULE);
 
@@ -91,7 +91,7 @@ public class DailyPipelineOrchestratorTests
 
         Assert.That(nextRun, Is.Not.Null);
         Assert.That(nextRun!.Value.DayOfWeek, Is.EqualTo(DayOfWeek.Thursday));
-        Assert.That(nextRun.Value.Hour, Is.EqualTo(21));
+        Assert.That(nextRun.Value.Hour, Is.EqualTo(17));
         Assert.That(nextRun.Value.Minute, Is.EqualTo(0));
     }
 
@@ -100,14 +100,14 @@ public class DailyPipelineOrchestratorTests
     {
         var cron = CronExpression.Parse(DailyPipelineOrchestrator.WEEKLY_AGGREGATION_SCHEDULE);
 
-        // Thursday, April 9, 2026, 21:01 UTC — next fire is the following Thursday (April 16).
-        var thursdayAfter21 = new DateTime(2026, 4, 9, 21, 1, 0, DateTimeKind.Utc);
-        var nextRun = cron.GetNextOccurrence(thursdayAfter21);
+        // Thursday, April 9, 2026, 17:01 UTC — next fire is the following Thursday (April 16).
+        var thursdayAfter17 = new DateTime(2026, 4, 9, 17, 1, 0, DateTimeKind.Utc);
+        var nextRun = cron.GetNextOccurrence(thursdayAfter17);
 
         Assert.That(nextRun, Is.Not.Null);
         Assert.That(nextRun!.Value.DayOfWeek, Is.EqualTo(DayOfWeek.Thursday));
         Assert.That(nextRun.Value.Day, Is.EqualTo(16));
-        Assert.That(nextRun.Value.Hour, Is.EqualTo(21));
+        Assert.That(nextRun.Value.Hour, Is.EqualTo(17));
     }
 
     [Test]
@@ -118,9 +118,9 @@ public class DailyPipelineOrchestratorTests
     }
 
     [Test]
-    public void WeeklyAggregationSchedule_ExactValue_Is_0_21_Star_Star_4()
+    public void WeeklyAggregationSchedule_ExactValue_Is_0_17_Star_Star_4()
     {
         var schedule = DailyPipelineOrchestrator.WEEKLY_AGGREGATION_SCHEDULE;
-        Assert.That(schedule, Is.EqualTo("0 21 * * 4"));
+        Assert.That(schedule, Is.EqualTo("0 17 * * 4"));
     }
 }

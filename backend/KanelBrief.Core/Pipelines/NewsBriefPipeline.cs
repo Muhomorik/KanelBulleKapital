@@ -52,7 +52,10 @@ public sealed class NewsBriefPipeline : INewsBriefPipeline
                 Mood = analysis.Mood,
                 Summary = analysis.Summary,
                 Assessments = analysis.Assessments,
-                DurationSeconds = (_timeProvider.GetUtcNow() - startTime).TotalSeconds
+                DurationSeconds = (_timeProvider.GetUtcNow() - startTime).TotalSeconds,
+                InputTokens = analysis.InputTokens,
+                OutputTokens = analysis.OutputTokens,
+                TotalTokens = analysis.TotalTokens
             };
 
             await _repository.SaveNewsBriefRunAsync(run);

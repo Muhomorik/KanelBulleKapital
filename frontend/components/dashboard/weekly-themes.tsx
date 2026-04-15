@@ -2,11 +2,13 @@ import type { WeeklySummaryRun } from "@/lib/types";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { SentimentBadge } from "./sentiment-badge";
 import { ConfidenceBadge } from "./confidence-badge";
+import { BriefMeta } from "./brief-meta";
 import { Bookmark, Layers } from "lucide-react";
 
 interface WeeklyThemesProps {
@@ -39,6 +41,9 @@ export function WeeklyThemes({ data }: WeeklyThemesProps) {
             </CardTitle>
             <SentimentBadge sentiment={data.netMood} size="lg" />
           </div>
+          <CardDescription className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+            <BriefMeta data={data} />
+          </CardDescription>
         </CardHeader>
         {data.moodSummary && (
           <CardContent>

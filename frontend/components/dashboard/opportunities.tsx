@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { SignalBadge } from "./signal-badge";
+import { BriefMeta } from "./brief-meta";
 import { Target, Gem } from "lucide-react";
 
 interface OpportunitiesProps {
@@ -50,6 +51,10 @@ export function Opportunities({ data }: OpportunitiesProps) {
   return (
     <section className="animate-fade-up stagger-4">
       <SectionHeader />
+
+      <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+        <BriefMeta data={data} />
+      </div>
 
       <div className="space-y-6">
         {grouped.map(({ strength, items }, groupI) => (

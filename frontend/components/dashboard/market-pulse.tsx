@@ -1,6 +1,3 @@
-"use client";
-
-import { useSyncExternalStore } from "react";
 import type { NewsBriefRun } from "@/lib/types";
 import {
   Card,
@@ -10,7 +7,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { SentimentBadge } from "./sentiment-badge";
-import { Activity, Newspaper, Clock, Cpu } from "lucide-react";
+import { BriefMeta } from "./brief-meta";
+import { Activity, Newspaper } from "lucide-react";
 
 export const MARKET_PULSE_PANEL_ID = "market-pulse-panel";
 
@@ -63,16 +61,7 @@ export function MarketPulse({ data, selector }: MarketPulseProps) {
             <SentimentBadge sentiment={data.mood} size="lg" />
           </div>
           <CardDescription className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-            <BriefTimestamp iso={data.createdAt} />
-            <span className="inline-flex items-center gap-1">
-              <Cpu className="h-3.5 w-3.5" />
-              {data.modelId}
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <Clock className="h-3.5 w-3.5" />
-              {(data.durationSeconds ?? 0).toFixed(1)}s
-            </span>
-            <span>{(data.totalTokens ?? 0).toLocaleString("en-US")} tokens</span>
+            <BriefMeta data={data} />
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -138,29 +127,6 @@ function SectionHeader({
         </div>
       </div>
     </div>
-  );
-}
-
-// SSR renders a UTC-labeled string; client swaps to local time after hydration
-// to avoid mismatch. See frontend/components/footer.tsx for the same pattern.
-const noopSubscribe = () => () => {};
-
-function BriefTimestamp({ iso }: { iso: string }) {
-  const mode = useSyncExternalStore(
-    noopSubscribe,
-    () => "local" as const,
-    () => "utc" as const,
-  );
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return null;
-  const label =
-    mode === "local"
-      ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-      : `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")} UTC`;
-  return (
-    <span className="font-mono uppercase tracking-[0.12em] tabular-nums text-foreground/80">
-      {label}
-    </span>
   );
 }
 
