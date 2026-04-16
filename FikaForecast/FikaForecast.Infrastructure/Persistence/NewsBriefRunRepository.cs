@@ -66,4 +66,7 @@ public class NewsBriefRunRepository : INewsBriefRunRepository
         _db.NewsBriefRuns.RemoveRange(_db.NewsBriefRuns);
         await _db.SaveChangesAsync(cancellationToken);
     }
+
+    public Task<bool> ExistsAsync(Guid runId, CancellationToken cancellationToken = default)
+        => _db.NewsBriefRuns.AsNoTracking().AnyAsync(r => r.RunId == runId, cancellationToken);
 }

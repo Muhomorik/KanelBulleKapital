@@ -127,4 +127,45 @@ public class WeeklySummaryRun
         if (Status == RunStatus.Success)
             Status = RunStatus.Partial;
     }
+
+    /// <summary>
+    /// Reconstitutes a persisted run (e.g. from a sync endpoint) bypassing the Start/Complete lifecycle.
+    /// </summary>
+    public static WeeklySummaryRun Rehydrate(
+        Guid runId,
+        DateTimeOffset weekStart,
+        DateTimeOffset weekEnd,
+        DateTimeOffset timestamp,
+        string modelId,
+        TimeSpan duration,
+        int inputTokens,
+        int outputTokens,
+        int totalTokens,
+        RunStatus status,
+        string rawAgentOutput,
+        string rawMarkdownOutput,
+        MarketSentiment netMood,
+        string moodSummary,
+        IEnumerable<WeeklySummaryTheme> themes)
+    {
+        var run = new WeeklySummaryRun
+        {
+            RunId = runId,
+            WeekStart = weekStart,
+            WeekEnd = weekEnd,
+            Timestamp = timestamp,
+            ModelId = modelId,
+            Duration = duration,
+            InputTokens = inputTokens,
+            OutputTokens = outputTokens,
+            TotalTokens = totalTokens,
+            Status = status,
+            RawAgentOutput = rawAgentOutput,
+            RawMarkdownOutput = rawMarkdownOutput,
+            NetMood = netMood,
+            MoodSummary = moodSummary
+        };
+        run._themes.AddRange(themes);
+        return run;
+    }
 }

@@ -59,4 +59,7 @@ public class OpportunityScanRunRepository : IOpportunityScanRunRepository
         _db.OpportunityScanRuns.RemoveRange(_db.OpportunityScanRuns);
         await _db.SaveChangesAsync(cancellationToken);
     }
+
+    public Task<bool> ExistsAsync(Guid runId, CancellationToken cancellationToken = default)
+        => _db.OpportunityScanRuns.AsNoTracking().AnyAsync(r => r.RunId == runId, cancellationToken);
 }

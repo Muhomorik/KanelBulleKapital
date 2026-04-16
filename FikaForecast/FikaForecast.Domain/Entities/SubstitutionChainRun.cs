@@ -112,4 +112,39 @@ public class SubstitutionChainRun
         if (Status == RunStatus.Success)
             Status = RunStatus.Partial;
     }
+
+    /// <summary>
+    /// Reconstitutes a persisted run (e.g. from a sync endpoint) bypassing the Start/Complete lifecycle.
+    /// </summary>
+    public static SubstitutionChainRun Rehydrate(
+        Guid runId,
+        Guid weeklySummaryRunId,
+        DateTimeOffset timestamp,
+        string modelId,
+        TimeSpan duration,
+        int inputTokens,
+        int outputTokens,
+        int totalTokens,
+        RunStatus status,
+        string rawAgentOutput,
+        string rawMarkdownOutput,
+        IEnumerable<RotationChain> chains)
+    {
+        var run = new SubstitutionChainRun
+        {
+            RunId = runId,
+            WeeklySummaryRunId = weeklySummaryRunId,
+            Timestamp = timestamp,
+            ModelId = modelId,
+            Duration = duration,
+            InputTokens = inputTokens,
+            OutputTokens = outputTokens,
+            TotalTokens = totalTokens,
+            Status = status,
+            RawAgentOutput = rawAgentOutput,
+            RawMarkdownOutput = rawMarkdownOutput
+        };
+        run._chains.AddRange(chains);
+        return run;
+    }
 }
