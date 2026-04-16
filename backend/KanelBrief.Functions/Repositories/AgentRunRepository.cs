@@ -135,6 +135,7 @@ public class AgentRunRepository : IAgentRunRepository
             { BaseColumns.InputTokens, run.InputTokens },
             { BaseColumns.OutputTokens, run.OutputTokens },
             { BaseColumns.TotalTokens, run.TotalTokens },
+            { BaseColumns.CreatedAt, run.CreatedAt },
             { WeeklySummaryColumns.WeekStart, run.WeekStart },
             { WeeklySummaryColumns.WeekEnd, run.WeekEnd },
             { WeeklySummaryColumns.NetMood, run.NetMood.ToString() },
@@ -168,6 +169,7 @@ public class AgentRunRepository : IAgentRunRepository
             results.Add(MapToWeeklySummaryRun(entity));
         }
 
+        results.Sort(static (a, b) => b.CreatedAt.CompareTo(a.CreatedAt));
         return results;
     }
 
@@ -183,6 +185,7 @@ public class AgentRunRepository : IAgentRunRepository
             { BaseColumns.InputTokens, run.InputTokens },
             { BaseColumns.OutputTokens, run.OutputTokens },
             { BaseColumns.TotalTokens, run.TotalTokens },
+            { BaseColumns.CreatedAt, run.CreatedAt },
             { SubstitutionChainColumns.WeeklySummaryRunId, run.WeeklySummaryRunId },
             { SubstitutionChainColumns.Chains, JsonSerializer.Serialize(run.Chains, KanelJsonOptions.CamelCase) }
         };
@@ -213,6 +216,7 @@ public class AgentRunRepository : IAgentRunRepository
             results.Add(MapToSubstitutionChainRun(entity));
         }
 
+        results.Sort(static (a, b) => b.CreatedAt.CompareTo(a.CreatedAt));
         return results;
     }
 
@@ -228,6 +232,7 @@ public class AgentRunRepository : IAgentRunRepository
             { BaseColumns.InputTokens, run.InputTokens },
             { BaseColumns.OutputTokens, run.OutputTokens },
             { BaseColumns.TotalTokens, run.TotalTokens },
+            { BaseColumns.CreatedAt, run.CreatedAt },
             { OpportunityScanColumns.SubstitutionChainRunId, run.SubstitutionChainRunId },
             { OpportunityScanColumns.Targets, JsonSerializer.Serialize(run.Targets, KanelJsonOptions.CamelCase) }
         };
@@ -258,6 +263,7 @@ public class AgentRunRepository : IAgentRunRepository
             results.Add(MapToOpportunityScanRun(entity));
         }
 
+        results.Sort(static (a, b) => b.CreatedAt.CompareTo(a.CreatedAt));
         return results;
     }
 
@@ -297,6 +303,7 @@ public class AgentRunRepository : IAgentRunRepository
         {
             RunDate = entity.PartitionKey,
             RunId = entity.RowKey,
+            CreatedAt = entity.GetDateTimeOffset(BaseColumns.CreatedAt) ?? entity.Timestamp ?? DateTimeOffset.MinValue,
             ModelId = entity[BaseColumns.ModelId]?.ToString() ?? string.Empty,
             Status = Enum.Parse<RunStatus>(entity[BaseColumns.Status]?.ToString() ?? "Failed"),
             DurationSeconds = (double)(entity[BaseColumns.DurationSeconds] ?? 0.0),
@@ -321,6 +328,7 @@ public class AgentRunRepository : IAgentRunRepository
         {
             RunDate = entity.PartitionKey,
             RunId = entity.RowKey,
+            CreatedAt = entity.GetDateTimeOffset(BaseColumns.CreatedAt) ?? entity.Timestamp ?? DateTimeOffset.MinValue,
             ModelId = entity[BaseColumns.ModelId]?.ToString() ?? string.Empty,
             Status = Enum.Parse<RunStatus>(entity[BaseColumns.Status]?.ToString() ?? "Failed"),
             DurationSeconds = (double)(entity[BaseColumns.DurationSeconds] ?? 0.0),
@@ -342,6 +350,7 @@ public class AgentRunRepository : IAgentRunRepository
         {
             RunDate = entity.PartitionKey,
             RunId = entity.RowKey,
+            CreatedAt = entity.GetDateTimeOffset(BaseColumns.CreatedAt) ?? entity.Timestamp ?? DateTimeOffset.MinValue,
             ModelId = entity[BaseColumns.ModelId]?.ToString() ?? string.Empty,
             Status = Enum.Parse<RunStatus>(entity[BaseColumns.Status]?.ToString() ?? "Failed"),
             DurationSeconds = (double)(entity[BaseColumns.DurationSeconds] ?? 0.0),
