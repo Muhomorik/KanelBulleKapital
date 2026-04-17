@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
+        xmlns:mahShared="http://metro.mahapps.com/winfx/xaml/shared"
         xmlns:dxmvvm="http://schemas.devexpress.com/winfx/2008/xaml/mvvm"
         xmlns:viewModels="clr-namespace:FikaForecast.Wpf.ViewModels"
         xmlns:converters="clr-namespace:FikaForecast.Wpf.Converters"
@@ -175,9 +176,11 @@
                                 <TextBlock Text="Auth token"
                                            Style="{StaticResource ff.SmallStyle}"
                                            Margin="0,12,0,4"/>
-                                <PasswordBox x:Name="SyncTokenBox"
-                                             PasswordChanged="SyncTokenBox_PasswordChanged"
-                                             mah:TextBoxHelper.Watermark="Bearer token"/>
+                                <PasswordBox Style="{StaticResource MahApps.Styles.PasswordBox.Win8}"
+                                             mah:TextBoxHelper.Watermark="Bearer token"
+                                             mahShared:PasswordBoxBindingBehavior.Password="{Binding SyncAuthToken,
+                                                                                                    Mode=TwoWay,
+                                                                                                    UpdateSourceTrigger=PropertyChanged}"/>
                             </StackPanel>
                         </Border>
 

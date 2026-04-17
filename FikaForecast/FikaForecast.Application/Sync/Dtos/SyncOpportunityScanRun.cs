@@ -10,7 +10,7 @@ public sealed class SyncOpportunityScanRun
     public string RunId { get; set; } = "";
     public DateTimeOffset CreatedAt { get; set; }
     public string ModelId { get; set; } = "";
-    public int Status { get; set; }
+    public string Status { get; set; } = "";
     public double DurationSeconds { get; set; }
     public int InputTokens { get; set; }
     public int OutputTokens { get; set; }
@@ -24,7 +24,7 @@ public sealed class SyncOpportunityScanRun
 public sealed class SyncRotationTarget
 {
     public string Category { get; set; } = "";
-    public int SignalStrength { get; set; }
+    public string SignalStrength { get; set; } = "";
     public string Rationale { get; set; } = "";
     public string RiskCaveat { get; set; } = "";
 }

@@ -1,4 +1,3 @@
-using System.Windows.Controls;
 using FikaForecast.Wpf.ViewModels;
 using MahApps.Metro.Controls;
 
@@ -13,18 +12,5 @@ public partial class SettingsWindow : MetroWindow
     {
         InitializeComponent();
         DataContext = viewModel;
-
-        // PasswordBox.Password isn't a DependencyProperty — seed and sync manually.
-        Loaded += (_, _) =>
-        {
-            if (DataContext is SettingsViewModel vm && vm.SyncAuthToken is not null)
-                SyncTokenBox.Password = vm.SyncAuthToken;
-        };
-    }
-
-    private void SyncTokenBox_PasswordChanged(object sender, System.Windows.RoutedEventArgs e)
-    {
-        if (DataContext is SettingsViewModel vm)
-            vm.SyncAuthToken = ((PasswordBox)sender).Password;
     }
 }

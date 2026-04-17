@@ -136,27 +136,18 @@ public class SyncRunMapper
             targets: targets);
     }
 
-    // ── Enum mapping helpers ──────────────────────────────────────────────
-    // Backend and WPF enums have different orderings for some types.
-    // Backend serializes enums as integers (no JsonStringEnumConverter).
+    #region Enum mapping helpers
+    // Backend enums use [JsonStringEnumConverter] and emit their member names.
+    // WPF-side enum members don't always match — these switches bridge the gap.
 
-    /// <summary>RunStatus: same ordering on both sides — direct cast is safe.</summary>
-    private static RunStatus MapStatus(int value) => (RunStatus)value;
-
-    /// <summary>
-    /// Backend MarketSentiment: RiskOn=0, RiskOff=1, Mixed=2.
-    /// WPF MarketSentiment: RiskOff=0, RiskOn=1, Mixed=2.
-    /// </summary>
-    private static MarketSentiment MapSentiment(int value) => value switch
+    public static RunStatus MapStatus(string s) => s switch
     {
-        0 => MarketSentiment.RiskOn,
-        1 => MarketSentiment.RiskOff,
-        2 => MarketSentiment.Mixed,
-        _ => MarketSentiment.Mixed
+        "Success" => RunStatus.Success,
+        "Failed" => RunStatus.Failed,
+        _ => RunStatus.Failed  // includes "Partial" — obsolete on backend, no WPF equivalent
     };
 
-    /// <summary>NewsBriefRun.Mood is stored as a string on the backend, not an enum.</summary>
-    private static MarketSentiment MapMoodString(string mood) => mood switch
+    public static MarketSentiment MapSentiment(string s) => s switch
     {
         "RiskOn" => MarketSentiment.RiskOn,
         "RiskOff" => MarketSentiment.RiskOff,
@@ -164,27 +155,26 @@ public class SyncRunMapper
         _ => MarketSentiment.Mixed
     };
 
-    /// <summary>
-    /// Backend ConfidenceLevel: High=0, Medium=1, Low=2.
-    /// WPF ConfidenceLevel: High=0, Moderate=1, Dropped=2.
-    /// </summary>
-    private static ConfidenceLevel MapConfidence(int value) => value switch
+    /// <summary>NewsBriefRun.Mood is stored as a string on the backend (not the enum).</summary>
+    public static MarketSentiment MapMoodString(string mood) => MapSentiment(mood);
+
+    /// <summary>Backend <c>Medium</c> → WPF <c>Moderate</c>, <c>Low</c> → WPF <c>Dropped</c>.</summary>
+    public static ConfidenceLevel MapConfidence(string s) => s switch
     {
-        0 => ConfidenceLevel.High,
-        1 => ConfidenceLevel.Moderate,
-        2 => ConfidenceLevel.Dropped,
+        "High" => ConfidenceLevel.High,
+        "Medium" => ConfidenceLevel.Moderate,
+        "Low" => ConfidenceLevel.Dropped,
         _ => ConfidenceLevel.Moderate
     };
 
-    /// <summary>
-    /// Backend SignalStrength: Strong=0, Moderate=1, Weak=2.
-    /// WPF SignalStrength: Strong=0, Moderate=1 (no Weak).
-    /// </summary>
-    private static SignalStrength MapSignalStrength(int value) => value switch
+    /// <summary>Backend has <c>Weak</c>; WPF doesn't — folds to <c>Moderate</c>.</summary>
+    public static SignalStrength MapSignalStrength(string s) => s switch
     {
-        0 => SignalStrength.Strong,
-        1 => SignalStrength.Moderate,
-        2 => SignalStrength.Moderate, // Weak has no WPF equivalent
+        "Strong" => SignalStrength.Strong,
+        "Moderate" => SignalStrength.Moderate,
+        "Weak" => SignalStrength.Moderate,
         _ => SignalStrength.Moderate
     };
+
+    #endregion
 }

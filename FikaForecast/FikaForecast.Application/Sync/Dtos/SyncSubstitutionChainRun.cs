@@ -10,7 +10,7 @@ public sealed class SyncSubstitutionChainRun
     public string RunId { get; set; } = "";
     public DateTimeOffset CreatedAt { get; set; }
     public string ModelId { get; set; } = "";
-    public int Status { get; set; }
+    public string Status { get; set; } = "";
     public double DurationSeconds { get; set; }
     public int InputTokens { get; set; }
     public int OutputTokens { get; set; }

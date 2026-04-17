@@ -48,7 +48,7 @@ public class SettingsViewModel : ViewModelBase
     /// <summary>Path shown in the UI so the user knows where settings are stored.</summary>
     public string SettingsFilePath { get; }
 
-    // ── Sync properties ──────────────────────────────────────────────────
+    #region Sync properties
 
     public string? SyncBaseUrl
     {
@@ -92,12 +92,16 @@ public class SettingsViewModel : ViewModelBase
         set => SetValue(value);
     }
 
-    // ── Commands ─────────────────────────────────────────────────────────
+    #endregion
+
+    #region Commands
 
     public DelegateCommand SaveCommand { get; }
     public DelegateCommand CloseCommand { get; }
     public DelegateCommand ResetPromptCommand { get; }
     public AsyncCommand SyncCommand { get; }
+
+    #endregion
 
     /// <summary>Runtime constructor (DI).</summary>
     public SettingsViewModel(

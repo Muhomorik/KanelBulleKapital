@@ -12,7 +12,7 @@ public sealed class SyncNewsBriefRun
     public string RunId { get; set; } = "";
     public DateTimeOffset CreatedAt { get; set; }
     public string ModelId { get; set; } = "";
-    public int Status { get; set; }
+    public string Status { get; set; } = "";
     public double DurationSeconds { get; set; }
     public int InputTokens { get; set; }
     public int OutputTokens { get; set; }
@@ -30,5 +30,5 @@ public sealed class SyncCategoryAssessment
     public string Category { get; set; } = "";
     public string Headline { get; set; } = "";
     public string Summary { get; set; } = "";
-    public int Sentiment { get; set; }
+    public string Sentiment { get; set; } = "";
 }
