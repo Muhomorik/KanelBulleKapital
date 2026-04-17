@@ -55,6 +55,16 @@ The Microsoft Agent Framework and Azure AI Foundry are newly released and evolvi
 - **Azure App Service F1 (free tier) is already in use** for the backend — do not suggest removing or replacing it. Use Azure Functions for new serverless workloads instead.
 - **Do not use or reference Semantic Kernel** — it is deprecated. Use Microsoft Agent Framework instead.
 
+## Development Environment
+
+- **IDE:** Visual Studio 2022 **Community**. When documenting paths to VS-bundled
+  tools, hardcode `Community` — don't write `<edition>` placeholders.
+  Example: Azurite lives at
+  `C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\Extensions\Microsoft\Azure Storage Emulator\azurite.exe`.
+- **VS Code is NOT used for this project** — all instructions should assume Visual Studio 2022 Community only.
+- **OS:** Windows 11.
+- **Shell:** Git Bash (use Unix-style forward-slash paths and `/dev/null`, not `NUL`).
+
 ## Project Overview
 
 **Project Hosting:**
