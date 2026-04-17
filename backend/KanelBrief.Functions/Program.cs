@@ -7,6 +7,7 @@ using KanelBrief.Core.Agents;
 using KanelBrief.Core.Pipelines;
 using KanelBrief.Core.Repositories;
 using KanelBrief.Functions.Agents.Analyzers;
+using KanelBrief.Functions.Middleware;
 using KanelBrief.Functions.Orchestration;
 using KanelBrief.Functions.Repositories;
 
@@ -23,6 +24,7 @@ var builder = FunctionsApplication.CreateBuilder(args);
 builder.Configuration.AddUserSecrets(typeof(Program).Assembly, optional: true);
 
 builder.ConfigureFunctionsWebApplication();
+builder.UseMiddleware<BearerTokenAuthMiddleware>();
 
 builder.Services
     .AddApplicationInsightsTelemetryWorkerService()

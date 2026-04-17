@@ -298,6 +298,47 @@ az functionapp create \
 
 Flex Consumption: effectively $0 within free grant (250,000 GB-s + 1,000,000 executions/month). KanelBrief uses ~10% of the free grant.
 
+### Sync Endpoints — Bearer Token
+
+The `/api/sync/*` endpoints (News Brief, Weekly Summary, Substitution Chain,
+Opportunity Scan range queries) are protected by a symmetric bearer token.
+The FikaForecast WPF desktop app uses these to pull runs into its local SQLite DB.
+
+**Setup:**
+
+1. Generate a 32-byte hex token on your local machine:
+
+   ```bash
+   # bash / WSL
+   openssl rand -hex 32
+   ```
+
+   ```powershell
+   # PowerShell equivalent
+   -join ((1..64) | ForEach-Object { '{0:x}' -f (Get-Random -Max 16) })
+   ```
+
+   Store the value in a password manager — you'll paste it into both Azure and the WPF app.
+
+2. Azure Portal → Function App (`<your-function-app>`) → **Settings** → **Environment variables** → **+ Add**:
+   - **Name:** `SYNC_AUTH_TOKEN`
+   - **Value:** `<your-sync-auth-token>`
+   - **Apply** → **Confirm** (Function App restarts automatically).
+
+3. In the WPF app: **Settings → Sync** → paste the same token into the "Auth token" field, and set **Base URL** to `https://<your-function-app>.azurewebsites.net`.
+
+**Security notes:**
+
+- The token is stored as a plain App Setting. Values are hidden from users with `Reader` role but visible with `Contributor`+.
+- Rotate by replacing the App Setting value and updating the WPF-side token; rollover is manual (single shared secret).
+- If `SYNC_AUTH_TOKEN` is missing or empty at runtime, sync endpoints return **503** — they **fail closed**, never falling through to anonymous access.
+- The middleware never logs the raw header or token; unauthorized attempts log only the function name.
+- No GitHub Secret is needed — the token is runtime configuration, not used at build/deploy time.
+
+**CORS:** Leave CORS restricted to your frontend origin
+(e.g. `http://localhost:3000` locally, your Static Web App domain in prod).
+The WPF app calls the API directly (no browser), so it bypasses CORS.
+
 ## Static Web App (SmorgasBoard)
 
 Next.js frontend dashboard — displays agent pipeline results from KanelBrief.

@@ -123,6 +123,22 @@ public class AgentRunRepository : IAgentRunRepository
         return results;
     }
 
+    public async Task<List<NewsBriefRun>> GetNewsBriefRunsByDateRangeAsync(string fromDate, string toDate)
+    {
+        // PartitionKey is "yyyy-MM-dd" — lexicographically sortable, so string CompareTo is correct.
+        var query = _newsBriefRunsTable.QueryAsync<TableEntity>(
+            e => e.PartitionKey.CompareTo(fromDate) >= 0 && e.PartitionKey.CompareTo(toDate) <= 0);
+        var results = new List<NewsBriefRun>();
+
+        await foreach (var entity in query)
+        {
+            results.Add(MapToNewsBriefRun(entity));
+        }
+
+        results.Sort(static (a, b) => b.CreatedAt.CompareTo(a.CreatedAt));
+        return results;
+    }
+
     // Weekly Summary Runs
 
     public async Task SaveWeeklySummaryRunAsync(WeeklySummaryRun run)
@@ -162,6 +178,21 @@ public class AgentRunRepository : IAgentRunRepository
     public async Task<List<WeeklySummaryRun>> GetWeeklySummaryRunsByDateAsync(string runDate)
     {
         var query = _weeklySummaryRunsTable.QueryAsync<TableEntity>(e => e.PartitionKey == runDate);
+        var results = new List<WeeklySummaryRun>();
+
+        await foreach (var entity in query)
+        {
+            results.Add(MapToWeeklySummaryRun(entity));
+        }
+
+        results.Sort(static (a, b) => b.CreatedAt.CompareTo(a.CreatedAt));
+        return results;
+    }
+
+    public async Task<List<WeeklySummaryRun>> GetWeeklySummaryRunsByDateRangeAsync(string fromDate, string toDate)
+    {
+        var query = _weeklySummaryRunsTable.QueryAsync<TableEntity>(
+            e => e.PartitionKey.CompareTo(fromDate) >= 0 && e.PartitionKey.CompareTo(toDate) <= 0);
         var results = new List<WeeklySummaryRun>();
 
         await foreach (var entity in query)
@@ -220,6 +251,21 @@ public class AgentRunRepository : IAgentRunRepository
         return results;
     }
 
+    public async Task<List<SubstitutionChainRun>> GetSubstitutionChainRunsByDateRangeAsync(string fromDate, string toDate)
+    {
+        var query = _substitutionChainRunsTable.QueryAsync<TableEntity>(
+            e => e.PartitionKey.CompareTo(fromDate) >= 0 && e.PartitionKey.CompareTo(toDate) <= 0);
+        var results = new List<SubstitutionChainRun>();
+
+        await foreach (var entity in query)
+        {
+            results.Add(MapToSubstitutionChainRun(entity));
+        }
+
+        results.Sort(static (a, b) => b.CreatedAt.CompareTo(a.CreatedAt));
+        return results;
+    }
+
     // Opportunity Scan Runs
 
     public async Task SaveOpportunityScanRunAsync(OpportunityScanRun run)
@@ -256,6 +302,21 @@ public class AgentRunRepository : IAgentRunRepository
     public async Task<List<OpportunityScanRun>> GetOpportunityScanRunsByDateAsync(string runDate)
     {
         var query = _opportunityScanRunsTable.QueryAsync<TableEntity>(e => e.PartitionKey == runDate);
+        var results = new List<OpportunityScanRun>();
+
+        await foreach (var entity in query)
+        {
+            results.Add(MapToOpportunityScanRun(entity));
+        }
+
+        results.Sort(static (a, b) => b.CreatedAt.CompareTo(a.CreatedAt));
+        return results;
+    }
+
+    public async Task<List<OpportunityScanRun>> GetOpportunityScanRunsByDateRangeAsync(string fromDate, string toDate)
+    {
+        var query = _opportunityScanRunsTable.QueryAsync<TableEntity>(
+            e => e.PartitionKey.CompareTo(fromDate) >= 0 && e.PartitionKey.CompareTo(toDate) <= 0);
         var results = new List<OpportunityScanRun>();
 
         await foreach (var entity in query)

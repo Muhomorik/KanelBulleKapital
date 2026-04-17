@@ -24,6 +24,20 @@
 | --- | --- | --- |
 | `AzureAIFoundry:BingConnectionName` | Bing Grounding connection name | `<your-bing-connection>` |
 
+### Sync Configuration (optional — pulls runs from the cloud)
+
+These values are entered through **Settings → Sync** in the WPF app and stored in
+`%LOCALAPPDATA%\FikaForecast\settings.json` as plaintext. Single-user desktop use
+only — treat the file as sensitive.
+
+| Setting | Description | Example |
+| --- | --- | --- |
+| Sync base URL | Function App URL | `https://<your-function-app>.azurewebsites.net` |
+| Sync auth token | Matches backend `SYNC_AUTH_TOKEN` App Setting | `<your-sync-auth-token>` |
+
+See [AZURE-DEPLOYMENT.md](AZURE-DEPLOYMENT.md#sync-endpoints--bearer-token) for how to
+generate the token and set it on the Function App.
+
 ### Authentication
 
 FikaForecast uses **DefaultAzureCredential** — no API key needed.
@@ -130,6 +144,7 @@ Settings configured in Azure Portal → Function App → **Environment variables
 | `TableStorageUri` | Storage Table endpoint for Managed Identity auth | No — just a URL |
 | `FOUNDRY_PROJECT_ENDPOINT` | AI Foundry project endpoint | No — just a URL |
 | `BING_CONNECTION_NAME` | Bing Grounding connection name (optional — enables real-time news) | No — just a name |
+| `SYNC_AUTH_TOKEN` | Bearer token for `/api/sync/*` (WPF desktop sync) | **Yes — 32-byte hex, rotate if leaked** |
 
 > **Managed Identity:** Both Table data access and AI Foundry use
 > `DefaultAzureCredential` with the Function App's system-assigned managed

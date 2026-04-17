@@ -20,6 +20,9 @@ public interface IAgentRunRepository
     /// <summary>Retrieve all News Brief runs for a given date (partition scan).</summary>
     Task<List<NewsBriefRun>> GetNewsBriefRunsByDateAsync(string runDate);
 
+    /// <summary>Retrieve all News Brief runs whose <c>RunDate</c> falls within <paramref name="fromDate"/>..<paramref name="toDate"/> inclusive (both <c>yyyy-MM-dd</c>).</summary>
+    Task<List<NewsBriefRun>> GetNewsBriefRunsByDateRangeAsync(string fromDate, string toDate);
+
 
     // Weekly Summary Runs
 
@@ -31,6 +34,9 @@ public interface IAgentRunRepository
 
     /// <summary>Retrieve all Weekly Summary runs for a given date (partition scan).</summary>
     Task<List<WeeklySummaryRun>> GetWeeklySummaryRunsByDateAsync(string runDate);
+
+    /// <summary>Retrieve all Weekly Summary runs whose <c>RunDate</c> falls within <paramref name="fromDate"/>..<paramref name="toDate"/> inclusive.</summary>
+    Task<List<WeeklySummaryRun>> GetWeeklySummaryRunsByDateRangeAsync(string fromDate, string toDate);
 
 
     // Substitution Chain Runs
@@ -44,6 +50,9 @@ public interface IAgentRunRepository
     /// <summary>Retrieve all Substitution Chain runs for a given date (partition scan).</summary>
     Task<List<SubstitutionChainRun>> GetSubstitutionChainRunsByDateAsync(string runDate);
 
+    /// <summary>Retrieve all Substitution Chain runs whose <c>RunDate</c> falls within <paramref name="fromDate"/>..<paramref name="toDate"/> inclusive.</summary>
+    Task<List<SubstitutionChainRun>> GetSubstitutionChainRunsByDateRangeAsync(string fromDate, string toDate);
+
 
     // Opportunity Scan Runs
 
@@ -55,4 +64,7 @@ public interface IAgentRunRepository
 
     /// <summary>Retrieve all Opportunity Scan runs for a given date (partition scan).</summary>
     Task<List<OpportunityScanRun>> GetOpportunityScanRunsByDateAsync(string runDate);
+
+    /// <summary>Retrieve all Opportunity Scan runs whose <c>RunDate</c> falls within <paramref name="fromDate"/>..<paramref name="toDate"/> inclusive.</summary>
+    Task<List<OpportunityScanRun>> GetOpportunityScanRunsByDateRangeAsync(string fromDate, string toDate);
 }
