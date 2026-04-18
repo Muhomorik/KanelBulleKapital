@@ -65,6 +65,27 @@ All runs are persisted to SQLite. Filter by model, inspect past reports, delete 
 </details>
 
 <details>
+<summary><strong>Export weekly reports for a fund analytics AI agent</strong></summary>
+
+Hand off each week's Weekly Summary, Substitution Chain, and Rotation Targets as
+plain markdown files for a separate **fund analytics AI agent** to consume. Each
+file has a standardized H1, a YAML metadata block (fenced by
+`<!-- BEGIN/END METADATA -->`) and the report body (fenced by
+`<!-- BEGIN/END REPORT -->`) so the downstream agent can split concatenated
+reports deterministically.
+
+Two flows:
+
+- **Auto-export** — after each weekly timer run (or per-tab "Run now" click), the orchestrator writes the file behind the scenes. Toggle on/off in the Export window.
+- **Manual export** — pick any past ISO week from a dropdown and dump all three report types at once.
+
+Files are named `YYYY-Www-{slug}.md` (e.g. `2026-W15-substitution-chain.md`) and overwritten silently on re-runs — latest successful run wins.
+
+See [Weekly Report Export](docs/weekly-report-export.md) for the full file format, triggers, and component layout.
+
+</details>
+
+<details>
 <summary><strong>Configure models and prompts</strong></summary>
 
 Enable/disable models, set the default, and edit all three prompts (news brief, evaluation, comparison) directly in the app. Prompts are stored as external files with embedded-resource fallback.
@@ -129,10 +150,10 @@ Step 1 uses **Agent Service** (needs Bing Grounding for web search). Steps 2–4
 
 | Step | Agent | What it does | Status |
 | --- | --- | --- | --- |
-| 1 | News Brief | Scans 14 days of news via Bing Grounding, produces categorized market brief | Done |
-| 2 | Weekly Summary | Aggregates 5–7 daily briefs (default model) into confidence-weighted weekly summary | Done |
-| 3 | Substitution Chain | Follows disruption chains to find rotation beneficiaries | Done |
-| 4 | Rotation Targets | Flags up to 3 strongest capital rotation destinations worth watching | Done |
+| 1 | [News Brief](../docs/step1-news-brief-agent.md) | Scans 14 days of news via Bing Grounding, produces categorized market brief | Done |
+| 2 | [Weekly Summary](../docs/step2-weekly-summary-agent.md) | Aggregates 5–7 daily briefs (default model) into confidence-weighted weekly summary | Done |
+| 3 | [Substitution Chain](../docs/step3-substitution-chain-agent.md) | Follows disruption chains to find rotation beneficiaries | Done |
+| 4 | [Rotation Targets](../docs/step4-opportunity-scan-agent.md) | Flags up to 3 strongest capital rotation destinations worth watching | Done |
 
 ## Models
 
@@ -177,8 +198,8 @@ Claude models have [built-in web search](https://www.anthropic.com/news/web-sear
 
 ## Roadmap
 
+- [x] Implement pipeline steps 2–4
 - [ ] Add gpt-5.4, gpt-5.4-nano, DeepSeek-V3.1, grok-3 model configs
-- [ ] Implement pipeline steps 2–4
 - [ ] Portfolio integration layer — match rotation signals to holdings and buyable funds
 
 ### Portfolio Integration (future)
@@ -312,4 +333,13 @@ erDiagram
 
 ## Documentation
 
-- [News Brief Agent Architecture](docs/news-brief-agent-architecture.md) — Step 1 design, Mermaid diagrams, domain model, persistence schema
+Pipeline agents (one doc per step):
+
+- [Step 1 — News Brief](../docs/step1-news-brief-agent.md)
+- [Step 2 — Weekly Summary](../docs/step2-weekly-summary-agent.md)
+- [Step 3 — Substitution Chain](../docs/step3-substitution-chain-agent.md)
+- [Step 4 — Rotation Targets / Opportunity Scan](../docs/step4-opportunity-scan-agent.md)
+
+App features:
+
+- [Weekly Report Export](docs/weekly-report-export.md) — export format, triggers, settings, file naming, component layout
