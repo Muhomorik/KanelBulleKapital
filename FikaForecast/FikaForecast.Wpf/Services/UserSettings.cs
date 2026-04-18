@@ -22,4 +22,7 @@ public class UserSettings
 
     /// <summary>When true, each completed weekly agent run writes a markdown file to <see cref="ExportFolderPath"/>.</summary>
     public bool AutoExportEnabled { get; set; }
+
+    /// <summary>Full path to the SQLite database file. Resolved at startup if null.</summary>
+    public string? DatabasePath { get; set; }
 }

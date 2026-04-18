@@ -21,10 +21,12 @@ namespace FikaForecast.Wpf.Modules;
 public class InfrastructureModule : Autofac.Module
 {
     private readonly IConfiguration _configuration;
+    private readonly string _databasePath;
 
-    public InfrastructureModule(IConfiguration configuration)
+    public InfrastructureModule(IConfiguration configuration, string databasePath)
     {
         _configuration = configuration;
+        _databasePath = databasePath;
     }
 
     protected override void Load(ContainerBuilder builder)
@@ -62,12 +64,9 @@ public class InfrastructureModule : Autofac.Module
             .InstancePerLifetimeScope();
     }
 
-    private static void RegisterDatabase(ContainerBuilder builder)
+    private void RegisterDatabase(ContainerBuilder builder)
     {
-        var dbPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "FikaForecast",
-            "fikaforecast.db");
+        var dbPath = _databasePath;
         Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
 
         builder.Register(_ =>

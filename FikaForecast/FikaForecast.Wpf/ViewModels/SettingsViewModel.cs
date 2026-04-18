@@ -20,6 +20,7 @@ public class SettingsViewModel : ViewModelBase
     private readonly IPromptFileService _promptFileService;
     private readonly IPromptProvider _promptProvider;
     private readonly ISyncService _syncService;
+    private readonly IFilePicker _filePicker;
     private readonly ILogger _logger;
 
     private ICurrentWindowService CurrentWindowService => GetService<ICurrentWindowService>();
@@ -47,6 +48,13 @@ public class SettingsViewModel : ViewModelBase
 
     /// <summary>Path shown in the UI so the user knows where settings are stored.</summary>
     public string SettingsFilePath { get; }
+
+    /// <summary>Full path to the SQLite database file. Edits take effect after restart.</summary>
+    public string? DatabasePath
+    {
+        get => GetValue<string?>();
+        set => SetValue(value);
+    }
 
     #region Sync properties
 
@@ -99,6 +107,7 @@ public class SettingsViewModel : ViewModelBase
     public DelegateCommand SaveCommand { get; }
     public DelegateCommand CloseCommand { get; }
     public DelegateCommand ResetPromptCommand { get; }
+    public DelegateCommand BrowseDatabasePathCommand { get; }
     public AsyncCommand SyncCommand { get; }
 
     #endregion
@@ -110,6 +119,7 @@ public class SettingsViewModel : ViewModelBase
         IPromptFileService promptFileService,
         IPromptProvider promptProvider,
         ISyncService syncService,
+        IFilePicker filePicker,
         IEnumerable<ModelConfig> allModels)
     {
         _logger = logger;
@@ -117,9 +127,11 @@ public class SettingsViewModel : ViewModelBase
         _promptFileService = promptFileService;
         _promptProvider = promptProvider;
         _syncService = syncService;
+        _filePicker = filePicker;
         SettingsFilePath = settingsService.SettingsFilePath;
 
         var currentSettings = settingsService.Load();
+        DatabasePath = currentSettings.DatabasePath;
         LoadModelSettings(currentSettings, allModels);
         LoadPrompts();
         LoadSyncSettings(currentSettings);
@@ -127,6 +139,7 @@ public class SettingsViewModel : ViewModelBase
         SaveCommand = new DelegateCommand(Save);
         CloseCommand = new DelegateCommand(() => CurrentWindowService?.Close());
         ResetPromptCommand = new DelegateCommand(ResetPrompt, () => SelectedPrompt is not null);
+        BrowseDatabasePathCommand = new DelegateCommand(BrowseDatabasePath);
         SyncCommand = new AsyncCommand(RunSyncAsync, () => !IsSyncing);
     }
 
@@ -137,14 +150,17 @@ public class SettingsViewModel : ViewModelBase
         _promptFileService = null!;
         _promptProvider = null!;
         _syncService = null!;
+        _filePicker = null!;
         _logger = null!;
         SettingsFilePath = @"%LocalAppData%\FikaForecast\settings.json";
+        DatabasePath = @"%UserProfile%\Documents\fikaforecast.db";
 
         PromptItems.Add(new PromptSettingItem("newsbrief", "News Brief - Default", "Sample prompt body..."));
         SelectedPrompt = PromptItems.FirstOrDefault();
         SaveCommand = new DelegateCommand(() => { });
         CloseCommand = new DelegateCommand(() => { });
         ResetPromptCommand = new DelegateCommand(() => { });
+        BrowseDatabasePathCommand = new DelegateCommand(() => { });
         SyncCommand = new AsyncCommand(() => Task.CompletedTask);
     }
 
@@ -198,6 +214,7 @@ public class SettingsViewModel : ViewModelBase
         settings.DefaultModelId = DefaultModel?.ModelId;
         settings.SyncBaseUrl = SyncBaseUrl;
         settings.SyncAuthToken = SyncAuthToken;
+        settings.DatabasePath = string.IsNullOrWhiteSpace(DatabasePath) ? null : DatabasePath;
 
         _settingsService.Save(settings);
 
@@ -263,6 +280,17 @@ public class SettingsViewModel : ViewModelBase
         {
             IsSyncing = false;
         }
+    }
+
+    private void BrowseDatabasePath()
+    {
+        var chosen = _filePicker.Pick(
+            DatabasePath,
+            "Choose database file",
+            "SQLite database (*.db)|*.db|All files (*.*)|*.*",
+            "fikaforecast.db");
+        if (!string.IsNullOrWhiteSpace(chosen))
+            DatabasePath = chosen;
     }
 
     private void ResetPrompt()

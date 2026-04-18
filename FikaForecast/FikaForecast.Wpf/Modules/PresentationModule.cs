@@ -40,6 +40,10 @@ public class PresentationModule : Autofac.Module
         builder.RegisterType<FolderPicker>()
             .As<IFolderPicker>()
             .SingleInstance();
+
+        builder.RegisterType<FilePicker>()
+            .As<IFilePicker>()
+            .SingleInstance();
     }
 
     /// <summary>
