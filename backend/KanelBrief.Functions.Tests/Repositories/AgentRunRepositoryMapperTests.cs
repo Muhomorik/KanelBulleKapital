@@ -262,6 +262,50 @@ public class AgentRunRepositoryMapperTests
     }
 
     [Test]
+    [Category("WeeklySummaryRun")]
+    public void MapToWeeklySummaryRun_EntityWithCreatedAt_MapsCreatedAt()
+    {
+        var createdAt = new DateTimeOffset(2026, 4, 16, 19, 0, 0, TimeSpan.Zero);
+        var entity = CreateBaseEntity("2026-04-16", "weekly-001");
+        entity[BaseColumns.CreatedAt] = createdAt;
+        entity[WeeklySummaryColumns.WeekStart] = DateTimeOffset.MinValue;
+        entity[WeeklySummaryColumns.WeekEnd] = DateTimeOffset.MinValue;
+        entity[WeeklySummaryColumns.NetMood] = "Mixed";
+        entity[WeeklySummaryColumns.MoodSummary] = "";
+        entity[WeeklySummaryColumns.Themes] = "[]";
+
+        var run = _sut.MapToWeeklySummaryRun(entity);
+
+        Assert.That(run.CreatedAt, Is.EqualTo(createdAt));
+    }
+
+    [Test]
+    [Category("WeeklySummaryRun")]
+    public void MapToWeeklySummaryRun_LegacyEntityWithoutCreatedAtButWithTimestamp_FallsBackToTimestamp()
+    {
+        var legacyTimestamp = new DateTimeOffset(2026, 4, 2, 19, 0, 0, TimeSpan.Zero);
+        var entity = new TableEntity("2026-04-02", "legacy-weekly")
+        {
+            { BaseColumns.ModelId, "gpt-5.4-mini" },
+            { BaseColumns.Status, "Success" },
+            { BaseColumns.DurationSeconds, 11.5 },
+            { BaseColumns.InputTokens, 100 },
+            { BaseColumns.OutputTokens, 200 },
+            { BaseColumns.TotalTokens, 300 },
+            { WeeklySummaryColumns.WeekStart, DateTimeOffset.MinValue },
+            { WeeklySummaryColumns.WeekEnd, DateTimeOffset.MinValue },
+            { WeeklySummaryColumns.NetMood, "Mixed" },
+            { WeeklySummaryColumns.MoodSummary, "" },
+            { WeeklySummaryColumns.Themes, "[]" }
+        };
+        entity.Timestamp = legacyTimestamp;
+
+        var run = _sut.MapToWeeklySummaryRun(entity);
+
+        Assert.That(run.CreatedAt, Is.EqualTo(legacyTimestamp));
+    }
+
+    [Test]
     [Category("SubstitutionChainRun")]
     public void MapToSubstitutionChainRun_ValidEntity_MapsChainsFromJson()
     {
@@ -295,6 +339,21 @@ public class AgentRunRepositoryMapperTests
     }
 
     [Test]
+    [Category("SubstitutionChainRun")]
+    public void MapToSubstitutionChainRun_EntityWithCreatedAt_MapsCreatedAt()
+    {
+        var createdAt = new DateTimeOffset(2026, 4, 16, 19, 2, 0, TimeSpan.Zero);
+        var entity = CreateBaseEntity("2026-04-16", "chain-001");
+        entity[BaseColumns.CreatedAt] = createdAt;
+        entity[SubstitutionChainColumns.WeeklySummaryRunId] = "weekly-001";
+        entity[SubstitutionChainColumns.Chains] = "[]";
+
+        var run = _sut.MapToSubstitutionChainRun(entity);
+
+        Assert.That(run.CreatedAt, Is.EqualTo(createdAt));
+    }
+
+    [Test]
     [Category("OpportunityScanRun")]
     public void MapToOpportunityScanRun_ValidEntity_MapsTargetsFromJson()
     {
@@ -324,6 +383,21 @@ public class AgentRunRepositoryMapperTests
         var run = _sut.MapToOpportunityScanRun(entity);
 
         Assert.That(run.SubstitutionChainRunId, Is.EqualTo("chain-ref-456"));
+    }
+
+    [Test]
+    [Category("OpportunityScanRun")]
+    public void MapToOpportunityScanRun_EntityWithCreatedAt_MapsCreatedAt()
+    {
+        var createdAt = new DateTimeOffset(2026, 4, 16, 19, 4, 0, TimeSpan.Zero);
+        var entity = CreateBaseEntity("2026-04-16", "opp-001");
+        entity[BaseColumns.CreatedAt] = createdAt;
+        entity[OpportunityScanColumns.SubstitutionChainRunId] = "chain-001";
+        entity[OpportunityScanColumns.Targets] = "[]";
+
+        var run = _sut.MapToOpportunityScanRun(entity);
+
+        Assert.That(run.CreatedAt, Is.EqualTo(createdAt));
     }
 
     private static TableEntity CreateBaseEntity(string partitionKey, string rowKey)

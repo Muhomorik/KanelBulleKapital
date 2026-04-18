@@ -59,4 +59,7 @@ public class SubstitutionChainRunRepository : ISubstitutionChainRunRepository
         _db.SubstitutionChainRuns.RemoveRange(_db.SubstitutionChainRuns);
         await _db.SaveChangesAsync(cancellationToken);
     }
+
+    public Task<bool> ExistsAsync(Guid runId, CancellationToken cancellationToken = default)
+        => _db.SubstitutionChainRuns.AsNoTracking().AnyAsync(r => r.RunId == runId, cancellationToken);
 }

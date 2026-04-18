@@ -21,4 +21,7 @@ public interface IWeeklySummaryRunRepository
 
     /// <summary>Deletes all runs.</summary>
     Task DeleteAllAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Returns <c>true</c> if a run with the given ID exists (lightweight, no entity materialization).</summary>
+    Task<bool> ExistsAsync(Guid runId, CancellationToken cancellationToken = default);
 }

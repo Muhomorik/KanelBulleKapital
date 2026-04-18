@@ -2,6 +2,7 @@ using System.Reactive.Concurrency;
 using Autofac;
 using FikaForecast.Application.Interfaces;
 using FikaForecast.Application.Services;
+using FikaForecast.Application.Sync.Mappers;
 
 namespace FikaForecast.Wpf.Modules;
 
@@ -88,6 +89,11 @@ public class ApplicationModule : Module
             .InstancePerLifetimeScope();
 
         builder.RegisterType<OpportunityScanInputFormatter>()
+            .AsSelf()
+            .InstancePerLifetimeScope();
+
+        // Sync mapper (uses all 4 markdown renderers)
+        builder.RegisterType<SyncRunMapper>()
             .AsSelf()
             .InstancePerLifetimeScope();
     }

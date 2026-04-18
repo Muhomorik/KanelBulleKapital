@@ -42,7 +42,7 @@ export function WeeklyMasthead({ weekStart, weekEnd }: WeeklyMastheadProps) {
           disabled
           aria-label="Select week (historical weeks coming soon)"
           title="Historical weeks coming soon"
-          className="group mt-3 flex w-full flex-wrap items-baseline justify-center gap-x-4 gap-y-2 disabled:cursor-not-allowed"
+          className="group mt-3 flex w-full flex-wrap items-baseline justify-center gap-x-4 gap-y-2"
         >
           <span className="font-serif text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
             {range ?? (

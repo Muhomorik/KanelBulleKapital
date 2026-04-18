@@ -123,6 +123,22 @@ public class AgentRunRepository : IAgentRunRepository
         return results;
     }
 
+    public async Task<List<NewsBriefRun>> GetNewsBriefRunsByDateRangeAsync(string fromDate, string toDate)
+    {
+        // PartitionKey is "yyyy-MM-dd" — lexicographically sortable, so string CompareTo is correct.
+        var query = _newsBriefRunsTable.QueryAsync<TableEntity>(
+            e => e.PartitionKey.CompareTo(fromDate) >= 0 && e.PartitionKey.CompareTo(toDate) <= 0);
+        var results = new List<NewsBriefRun>();
+
+        await foreach (var entity in query)
+        {
+            results.Add(MapToNewsBriefRun(entity));
+        }
+
+        results.Sort(static (a, b) => b.CreatedAt.CompareTo(a.CreatedAt));
+        return results;
+    }
+
     // Weekly Summary Runs
 
     public async Task SaveWeeklySummaryRunAsync(WeeklySummaryRun run)
@@ -135,6 +151,7 @@ public class AgentRunRepository : IAgentRunRepository
             { BaseColumns.InputTokens, run.InputTokens },
             { BaseColumns.OutputTokens, run.OutputTokens },
             { BaseColumns.TotalTokens, run.TotalTokens },
+            { BaseColumns.CreatedAt, run.CreatedAt },
             { WeeklySummaryColumns.WeekStart, run.WeekStart },
             { WeeklySummaryColumns.WeekEnd, run.WeekEnd },
             { WeeklySummaryColumns.NetMood, run.NetMood.ToString() },
@@ -168,6 +185,22 @@ public class AgentRunRepository : IAgentRunRepository
             results.Add(MapToWeeklySummaryRun(entity));
         }
 
+        results.Sort(static (a, b) => b.CreatedAt.CompareTo(a.CreatedAt));
+        return results;
+    }
+
+    public async Task<List<WeeklySummaryRun>> GetWeeklySummaryRunsByDateRangeAsync(string fromDate, string toDate)
+    {
+        var query = _weeklySummaryRunsTable.QueryAsync<TableEntity>(
+            e => e.PartitionKey.CompareTo(fromDate) >= 0 && e.PartitionKey.CompareTo(toDate) <= 0);
+        var results = new List<WeeklySummaryRun>();
+
+        await foreach (var entity in query)
+        {
+            results.Add(MapToWeeklySummaryRun(entity));
+        }
+
+        results.Sort(static (a, b) => b.CreatedAt.CompareTo(a.CreatedAt));
         return results;
     }
 
@@ -183,6 +216,7 @@ public class AgentRunRepository : IAgentRunRepository
             { BaseColumns.InputTokens, run.InputTokens },
             { BaseColumns.OutputTokens, run.OutputTokens },
             { BaseColumns.TotalTokens, run.TotalTokens },
+            { BaseColumns.CreatedAt, run.CreatedAt },
             { SubstitutionChainColumns.WeeklySummaryRunId, run.WeeklySummaryRunId },
             { SubstitutionChainColumns.Chains, JsonSerializer.Serialize(run.Chains, KanelJsonOptions.CamelCase) }
         };
@@ -213,6 +247,22 @@ public class AgentRunRepository : IAgentRunRepository
             results.Add(MapToSubstitutionChainRun(entity));
         }
 
+        results.Sort(static (a, b) => b.CreatedAt.CompareTo(a.CreatedAt));
+        return results;
+    }
+
+    public async Task<List<SubstitutionChainRun>> GetSubstitutionChainRunsByDateRangeAsync(string fromDate, string toDate)
+    {
+        var query = _substitutionChainRunsTable.QueryAsync<TableEntity>(
+            e => e.PartitionKey.CompareTo(fromDate) >= 0 && e.PartitionKey.CompareTo(toDate) <= 0);
+        var results = new List<SubstitutionChainRun>();
+
+        await foreach (var entity in query)
+        {
+            results.Add(MapToSubstitutionChainRun(entity));
+        }
+
+        results.Sort(static (a, b) => b.CreatedAt.CompareTo(a.CreatedAt));
         return results;
     }
 
@@ -228,6 +278,7 @@ public class AgentRunRepository : IAgentRunRepository
             { BaseColumns.InputTokens, run.InputTokens },
             { BaseColumns.OutputTokens, run.OutputTokens },
             { BaseColumns.TotalTokens, run.TotalTokens },
+            { BaseColumns.CreatedAt, run.CreatedAt },
             { OpportunityScanColumns.SubstitutionChainRunId, run.SubstitutionChainRunId },
             { OpportunityScanColumns.Targets, JsonSerializer.Serialize(run.Targets, KanelJsonOptions.CamelCase) }
         };
@@ -258,6 +309,22 @@ public class AgentRunRepository : IAgentRunRepository
             results.Add(MapToOpportunityScanRun(entity));
         }
 
+        results.Sort(static (a, b) => b.CreatedAt.CompareTo(a.CreatedAt));
+        return results;
+    }
+
+    public async Task<List<OpportunityScanRun>> GetOpportunityScanRunsByDateRangeAsync(string fromDate, string toDate)
+    {
+        var query = _opportunityScanRunsTable.QueryAsync<TableEntity>(
+            e => e.PartitionKey.CompareTo(fromDate) >= 0 && e.PartitionKey.CompareTo(toDate) <= 0);
+        var results = new List<OpportunityScanRun>();
+
+        await foreach (var entity in query)
+        {
+            results.Add(MapToOpportunityScanRun(entity));
+        }
+
+        results.Sort(static (a, b) => b.CreatedAt.CompareTo(a.CreatedAt));
         return results;
     }
 
@@ -297,6 +364,7 @@ public class AgentRunRepository : IAgentRunRepository
         {
             RunDate = entity.PartitionKey,
             RunId = entity.RowKey,
+            CreatedAt = entity.GetDateTimeOffset(BaseColumns.CreatedAt) ?? entity.Timestamp ?? DateTimeOffset.MinValue,
             ModelId = entity[BaseColumns.ModelId]?.ToString() ?? string.Empty,
             Status = Enum.Parse<RunStatus>(entity[BaseColumns.Status]?.ToString() ?? "Failed"),
             DurationSeconds = (double)(entity[BaseColumns.DurationSeconds] ?? 0.0),
@@ -321,6 +389,7 @@ public class AgentRunRepository : IAgentRunRepository
         {
             RunDate = entity.PartitionKey,
             RunId = entity.RowKey,
+            CreatedAt = entity.GetDateTimeOffset(BaseColumns.CreatedAt) ?? entity.Timestamp ?? DateTimeOffset.MinValue,
             ModelId = entity[BaseColumns.ModelId]?.ToString() ?? string.Empty,
             Status = Enum.Parse<RunStatus>(entity[BaseColumns.Status]?.ToString() ?? "Failed"),
             DurationSeconds = (double)(entity[BaseColumns.DurationSeconds] ?? 0.0),
@@ -342,6 +411,7 @@ public class AgentRunRepository : IAgentRunRepository
         {
             RunDate = entity.PartitionKey,
             RunId = entity.RowKey,
+            CreatedAt = entity.GetDateTimeOffset(BaseColumns.CreatedAt) ?? entity.Timestamp ?? DateTimeOffset.MinValue,
             ModelId = entity[BaseColumns.ModelId]?.ToString() ?? string.Empty,
             Status = Enum.Parse<RunStatus>(entity[BaseColumns.Status]?.ToString() ?? "Failed"),
             DurationSeconds = (double)(entity[BaseColumns.DurationSeconds] ?? 0.0),

@@ -122,14 +122,30 @@ KanelBrief is a pipeline executor, not a rich domain, so full 4-layer DDD is ove
 
 ## 🚀 Quick Start
 
-You'll also need **Azure Functions Core Tools v4** and **Azurite** (local storage emulator) on top of the stack listed above. Foundry is optional locally — agents fall back to placeholder data on failure.
+Foundry is optional locally — agents fall back to placeholder data on failure.
+
+### Visual Studio 2022 Community (preferred)
+
+1. Open `backend/KanelBrief.sln`.
+2. Right-click `KanelBrief.Functions` → **Set as Startup Project**.
+3. Press **Ctrl+F5** (Start Without Debugging). A console opens listing routes on
+   `http://localhost:7220` (port set in `Properties/launchSettings.json`).
+
+**Azurite auto-starts.** VS detects `AzureWebJobsStorage=UseDevelopmentStorage=true`
+in `local.settings.json` and launches Azurite silently in the background. No
+manual step, no separate install — it ships with VS 2022 Community (Azure
+development workload). You never see an Azurite window, and that's fine.
+
+### CLI (for CI or scripts)
+
+Requires **Azure Functions Core Tools v4** and **Azurite** installed separately.
 
 ```bash
 cd backend
 dotnet build
 dotnet test
 cd KanelBrief.Functions
-func start                    # http://localhost:7071
+func start                    # http://localhost:7071 (CLI default)
 ```
 
 ## ⚙️ Configuration

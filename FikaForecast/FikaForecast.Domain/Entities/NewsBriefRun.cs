@@ -111,4 +111,41 @@ public class NewsBriefRun
     {
         Item = item;
     }
+
+    /// <summary>
+    /// Reconstitutes a persisted run (e.g. from a sync endpoint) bypassing the Start/Complete lifecycle.
+    /// Fields not available on the source default to <see cref="string.Empty"/>.
+    /// </summary>
+    public static NewsBriefRun Rehydrate(
+        Guid runId,
+        DateTimeOffset timestamp,
+        string modelId,
+        string deploymentName,
+        string promptName,
+        TimeSpan duration,
+        int inputTokens,
+        int outputTokens,
+        int totalTokens,
+        RunStatus status,
+        string rawAgentOutput,
+        string rawMarkdownOutput,
+        NewsItem? item)
+    {
+        return new NewsBriefRun
+        {
+            RunId = runId,
+            Timestamp = timestamp,
+            ModelId = modelId,
+            DeploymentName = deploymentName,
+            PromptName = promptName,
+            Duration = duration,
+            InputTokens = inputTokens,
+            OutputTokens = outputTokens,
+            TotalTokens = totalTokens,
+            Status = status,
+            RawAgentOutput = rawAgentOutput,
+            RawMarkdownOutput = rawMarkdownOutput,
+            Item = item
+        };
+    }
 }

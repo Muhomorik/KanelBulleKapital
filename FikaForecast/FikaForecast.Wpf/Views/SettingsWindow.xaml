@@ -4,8 +4,10 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
+        xmlns:mahShared="http://metro.mahapps.com/winfx/xaml/shared"
         xmlns:dxmvvm="http://schemas.devexpress.com/winfx/2008/xaml/mvvm"
         xmlns:viewModels="clr-namespace:FikaForecast.Wpf.ViewModels"
+        xmlns:converters="clr-namespace:FikaForecast.Wpf.Converters"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance viewModels:SettingsViewModel, IsDesignTimeCreatable=True}"
         Title="Settings" Height="600" Width="900"
@@ -13,6 +15,9 @@
         ResizeMode="NoResize"
         ShowInTaskbar="False"
         Icon="/fikaforecast.ico">
+    <mah:MetroWindow.Resources>
+        <converters:EnumToBoolConverter x:Key="EnumToBoolConverter"/>
+    </mah:MetroWindow.Resources>
     <dxmvvm:Interaction.Behaviors>
         <dxmvvm:CurrentWindowService/>
     </dxmvvm:Interaction.Behaviors>
@@ -146,6 +151,87 @@
                         </Grid>
                     </Border>
                 </Grid>
+            </TabItem>
+
+            <!-- Sync Tab -->
+            <TabItem Header="Sync" Padding="12,6">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,8,0,0">
+                    <StackPanel>
+                        <!-- Connection card -->
+                        <Border Style="{StaticResource ff.PanelControlStyle}">
+                            <StackPanel>
+                                <TextBlock Text="Connection"
+                                           Style="{StaticResource ff.SubheaderStyle}"
+                                           Margin="{StaticResource ff.LabelSpacing}"/>
+                                <TextBlock Text="Backend URL and bearer token for the sync endpoints."
+                                           Style="{StaticResource ff.CaptionStyle}"
+                                           Margin="{StaticResource ff.LabelSpacing}"/>
+
+                                <TextBlock Text="Sync URL"
+                                           Style="{StaticResource ff.SmallStyle}"
+                                           Margin="0,8,0,4"/>
+                                <TextBox Text="{Binding SyncBaseUrl, UpdateSourceTrigger=PropertyChanged}"
+                                         mah:TextBoxHelper.Watermark="https://your-backend.azurewebsites.net"/>
+
+                                <TextBlock Text="Auth token"
+                                           Style="{StaticResource ff.SmallStyle}"
+                                           Margin="0,12,0,4"/>
+                                <PasswordBox Style="{StaticResource MahApps.Styles.PasswordBox.Win8}"
+                                             mah:TextBoxHelper.Watermark="Bearer token"
+                                             mahShared:PasswordBoxBindingBehavior.Password="{Binding SyncAuthToken,
+                                                                                                    Mode=TwoWay,
+                                                                                                    UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Run sync card -->
+                        <Border Style="{StaticResource ff.PanelControlStyle}"
+                                Margin="{StaticResource ff.ItemSpacing}">
+                            <StackPanel>
+                                <TextBlock Text="Run sync"
+                                           Style="{StaticResource ff.SubheaderStyle}"
+                                           Margin="{StaticResource ff.LabelSpacing}"/>
+                                <TextBlock Text="Pull recent runs from the backend into the local database. Existing rows are skipped."
+                                           Style="{StaticResource ff.CaptionStyle}"
+                                           Margin="{StaticResource ff.LabelSpacing}"/>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                    <RadioButton Content="Last 1 day"
+                                                 IsChecked="{Binding SyncRange, Converter={StaticResource EnumToBoolConverter}, ConverterParameter=OneDay}"
+                                                 GroupName="SyncRange"
+                                                 Margin="0,0,16,0"/>
+                                    <RadioButton Content="Last 1 week"
+                                                 IsChecked="{Binding SyncRange, Converter={StaticResource EnumToBoolConverter}, ConverterParameter=OneWeek}"
+                                                 GroupName="SyncRange"/>
+                                </StackPanel>
+
+                                <Button Content="Sync now"
+                                        Command="{Binding SyncCommand}"
+                                        Style="{StaticResource ff.ButtonAccentStyle}"
+                                        HorizontalAlignment="Left"
+                                        Padding="24,6"
+                                        Margin="0,12,0,0"/>
+
+                                <ProgressBar Value="{Binding SyncProgressCurrent, Mode=OneWay}"
+                                             Maximum="{Binding SyncProgressTotal, Mode=OneWay}"
+                                             Height="4"
+                                             Margin="0,8,0,0"
+                                             Visibility="{Binding IsSyncing, Converter={dxmvvm:BooleanToVisibilityConverter}}"/>
+
+                                <TextBlock Text="{Binding SyncStatusText}"
+                                           Style="{StaticResource ff.CaptionStyle}"
+                                           TextWrapping="Wrap"
+                                           Margin="0,8,0,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Info caption -->
+                        <TextBlock Text="Sync settings are saved immediately when you click Sync now."
+                                   Style="{StaticResource ff.SmallStyle}"
+                                   Foreground="{StaticResource MahApps.Brushes.Gray3}"
+                                   Margin="0,8,0,0"/>
+                    </StackPanel>
+                </ScrollViewer>
             </TabItem>
         </mah:MetroTabControl>
 

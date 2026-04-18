@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using DevExpress.Mvvm;
 using FikaForecast.Application.Interfaces;
 using FikaForecast.Application.Services;
+using FikaForecast.Application.Sync;
 using FikaForecast.Domain.ValueObjects;
 using FikaForecast.Wpf.Services;
 using NLog;
@@ -18,6 +19,7 @@ public class SettingsViewModel : ViewModelBase
     private readonly IUserSettingsService _settingsService;
     private readonly IPromptFileService _promptFileService;
     private readonly IPromptProvider _promptProvider;
+    private readonly ISyncService _syncService;
     private readonly ILogger _logger;
 
     private ICurrentWindowService CurrentWindowService => GetService<ICurrentWindowService>();
@@ -46,9 +48,60 @@ public class SettingsViewModel : ViewModelBase
     /// <summary>Path shown in the UI so the user knows where settings are stored.</summary>
     public string SettingsFilePath { get; }
 
+    #region Sync properties
+
+    public string? SyncBaseUrl
+    {
+        get => GetValue<string?>();
+        set => SetValue(value);
+    }
+
+    public string? SyncAuthToken
+    {
+        get => GetValue<string?>();
+        set => SetValue(value);
+    }
+
+    public SyncRange SyncRange
+    {
+        get => GetValue<SyncRange>();
+        set => SetValue(value);
+    }
+
+    public bool IsSyncing
+    {
+        get => GetValue<bool>();
+        set => SetValue(value);
+    }
+
+    public string? SyncStatusText
+    {
+        get => GetValue<string?>();
+        set => SetValue(value);
+    }
+
+    public int SyncProgressCurrent
+    {
+        get => GetValue<int>();
+        set => SetValue(value);
+    }
+
+    public int SyncProgressTotal
+    {
+        get => GetValue<int>();
+        set => SetValue(value);
+    }
+
+    #endregion
+
+    #region Commands
+
     public DelegateCommand SaveCommand { get; }
     public DelegateCommand CloseCommand { get; }
     public DelegateCommand ResetPromptCommand { get; }
+    public AsyncCommand SyncCommand { get; }
+
+    #endregion
 
     /// <summary>Runtime constructor (DI).</summary>
     public SettingsViewModel(
@@ -56,20 +109,25 @@ public class SettingsViewModel : ViewModelBase
         IUserSettingsService settingsService,
         IPromptFileService promptFileService,
         IPromptProvider promptProvider,
+        ISyncService syncService,
         IEnumerable<ModelConfig> allModels)
     {
         _logger = logger;
         _settingsService = settingsService;
         _promptFileService = promptFileService;
         _promptProvider = promptProvider;
+        _syncService = syncService;
         SettingsFilePath = settingsService.SettingsFilePath;
 
-        LoadModelSettings(settingsService.Load(), allModels);
+        var currentSettings = settingsService.Load();
+        LoadModelSettings(currentSettings, allModels);
         LoadPrompts();
+        LoadSyncSettings(currentSettings);
 
         SaveCommand = new DelegateCommand(Save);
         CloseCommand = new DelegateCommand(() => CurrentWindowService?.Close());
         ResetPromptCommand = new DelegateCommand(ResetPrompt, () => SelectedPrompt is not null);
+        SyncCommand = new AsyncCommand(RunSyncAsync, () => !IsSyncing);
     }
 
     /// <summary>Design-time constructor.</summary>
@@ -78,6 +136,7 @@ public class SettingsViewModel : ViewModelBase
         _settingsService = null!;
         _promptFileService = null!;
         _promptProvider = null!;
+        _syncService = null!;
         _logger = null!;
         SettingsFilePath = @"%LocalAppData%\FikaForecast\settings.json";
 
@@ -86,6 +145,7 @@ public class SettingsViewModel : ViewModelBase
         SaveCommand = new DelegateCommand(() => { });
         CloseCommand = new DelegateCommand(() => { });
         ResetPromptCommand = new DelegateCommand(() => { });
+        SyncCommand = new AsyncCommand(() => Task.CompletedTask);
     }
 
     private void LoadModelSettings(UserSettings settings, IEnumerable<ModelConfig> allModels)
@@ -119,17 +179,26 @@ public class SettingsViewModel : ViewModelBase
         SelectedPrompt = PromptItems.FirstOrDefault();
     }
 
+    private void LoadSyncSettings(UserSettings settings)
+    {
+        SyncBaseUrl = settings.SyncBaseUrl;
+        SyncAuthToken = settings.SyncAuthToken;
+        SyncRange = SyncRange.OneDay;
+    }
+
     private void Save()
     {
-        // Save model settings
-        var settings = new UserSettings
-        {
-            EnabledModelIds = ModelItems
-                .Where(m => m.IsEnabled)
-                .Select(m => m.Model.ModelId)
-                .ToList(),
-            DefaultModelId = DefaultModel?.ModelId
-        };
+        // Load-merge-save: preserve fields we don't manage on this tab (e.g. sync fields).
+        var settings = _settingsService.Load();
+
+        settings.EnabledModelIds = ModelItems
+            .Where(m => m.IsEnabled)
+            .Select(m => m.Model.ModelId)
+            .ToList();
+        settings.DefaultModelId = DefaultModel?.ModelId;
+        settings.SyncBaseUrl = SyncBaseUrl;
+        settings.SyncAuthToken = SyncAuthToken;
+
         _settingsService.Save(settings);
 
         // Save dirty prompts
@@ -149,6 +218,51 @@ public class SettingsViewModel : ViewModelBase
 
         _logger.Info("Settings saved");
         CurrentWindowService?.Close();
+    }
+
+    private async Task RunSyncAsync()
+    {
+        if (string.IsNullOrWhiteSpace(SyncBaseUrl) || string.IsNullOrWhiteSpace(SyncAuthToken))
+        {
+            SyncStatusText = "Enter a sync URL and token first.";
+            return;
+        }
+
+        // Persist sync settings before running so they survive if the app crashes.
+        var settings = _settingsService.Load();
+        settings.SyncBaseUrl = SyncBaseUrl;
+        settings.SyncAuthToken = SyncAuthToken;
+        _settingsService.Save(settings);
+
+        IsSyncing = true;
+        SyncStatusText = "Syncing...";
+        SyncProgressCurrent = 0;
+        SyncProgressTotal = 0;
+
+        var connection = new SyncConnectionInfo(SyncBaseUrl!, SyncAuthToken!);
+        var progress = new Progress<SyncProgressUpdate>(update =>
+        {
+            SyncStatusText = $"{update.Stage}: {update.Message}";
+            SyncProgressCurrent = update.Done;
+            SyncProgressTotal = update.Total;
+        });
+
+        try
+        {
+            var result = await _syncService.RunAsync(connection, SyncRange, progress, CancellationToken.None);
+
+            SyncStatusText = result.ErrorMessage
+                ?? $"Done — {result.Inserted} inserted, {result.Skipped} skipped, {result.Failed} failed ({result.TotalDurationMs}ms)";
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Sync failed unexpectedly");
+            SyncStatusText = $"Sync failed: {ex.Message}";
+        }
+        finally
+        {
+            IsSyncing = false;
+        }
     }
 
     private void ResetPrompt()

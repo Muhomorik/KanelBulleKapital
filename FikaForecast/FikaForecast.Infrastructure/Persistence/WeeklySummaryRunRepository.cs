@@ -53,4 +53,7 @@ public class WeeklySummaryRunRepository : IWeeklySummaryRunRepository
         _db.WeeklySummaryRuns.RemoveRange(_db.WeeklySummaryRuns);
         await _db.SaveChangesAsync(cancellationToken);
     }
+
+    public Task<bool> ExistsAsync(Guid runId, CancellationToken cancellationToken = default)
+        => _db.WeeklySummaryRuns.AsNoTracking().AnyAsync(r => r.RunId == runId, cancellationToken);
 }

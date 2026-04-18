@@ -1,11 +1,14 @@
 using System.IO;
+using System.Net.Http;
 using Autofac;
 using Azure.AI.Projects;
 using Azure.Identity;
 using FikaForecast.Application.Interfaces;
+using FikaForecast.Application.Sync;
 using FikaForecast.Infrastructure.Agents;
 using FikaForecast.Infrastructure.Persistence;
 using FikaForecast.Infrastructure.Services;
+using FikaForecast.Infrastructure.Sync;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 
@@ -28,12 +31,27 @@ public class InfrastructureModule : Autofac.Module
     {
         RegisterDatabase(builder);
         RegisterPromptFileService(builder);
+        RegisterSyncServices(builder);
         RegisterAgentClient(builder);
         RegisterAgent(builder);
         RegisterEvaluationAgent(builder);
         RegisterWeeklySummaryAgent(builder);
         RegisterSubstitutionChainAgent(builder);
         RegisterOpportunityScanAgent(builder);
+    }
+
+    private static void RegisterSyncServices(ContainerBuilder builder)
+    {
+        builder.Register(_ => new HttpClient { Timeout = TimeSpan.FromSeconds(30) })
+            .SingleInstance();
+
+        builder.RegisterType<AgentRunSyncClient>()
+            .As<IAgentRunSyncClient>()
+            .SingleInstance();
+
+        builder.RegisterType<SyncService>()
+            .As<ISyncService>()
+            .InstancePerLifetimeScope();
     }
 
     private static void RegisterDatabase(ContainerBuilder builder)

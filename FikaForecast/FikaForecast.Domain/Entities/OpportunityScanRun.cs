@@ -112,4 +112,39 @@ public class OpportunityScanRun
         if (Status == RunStatus.Success)
             Status = RunStatus.Partial;
     }
+
+    /// <summary>
+    /// Reconstitutes a persisted run (e.g. from a sync endpoint) bypassing the Start/Complete lifecycle.
+    /// </summary>
+    public static OpportunityScanRun Rehydrate(
+        Guid runId,
+        Guid substitutionChainRunId,
+        DateTimeOffset timestamp,
+        string modelId,
+        TimeSpan duration,
+        int inputTokens,
+        int outputTokens,
+        int totalTokens,
+        RunStatus status,
+        string rawAgentOutput,
+        string rawMarkdownOutput,
+        IEnumerable<RotationTarget> targets)
+    {
+        var run = new OpportunityScanRun
+        {
+            RunId = runId,
+            SubstitutionChainRunId = substitutionChainRunId,
+            Timestamp = timestamp,
+            ModelId = modelId,
+            Duration = duration,
+            InputTokens = inputTokens,
+            OutputTokens = outputTokens,
+            TotalTokens = totalTokens,
+            Status = status,
+            RawAgentOutput = rawAgentOutput,
+            RawMarkdownOutput = rawMarkdownOutput
+        };
+        run._targets.AddRange(targets);
+        return run;
+    }
 }
