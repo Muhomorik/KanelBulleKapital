@@ -32,6 +32,14 @@ public class PresentationModule : Autofac.Module
         builder.RegisterType<UserSettingsService>()
             .As<IUserSettingsService>()
             .SingleInstance();
+
+        builder.RegisterType<ExportSettingsProvider>()
+            .As<FikaForecast.Application.Interfaces.IExportSettingsProvider>()
+            .SingleInstance();
+
+        builder.RegisterType<FolderPicker>()
+            .As<IFolderPicker>()
+            .SingleInstance();
     }
 
     /// <summary>

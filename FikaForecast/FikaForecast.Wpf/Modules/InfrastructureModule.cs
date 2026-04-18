@@ -38,6 +38,14 @@ public class InfrastructureModule : Autofac.Module
         RegisterWeeklySummaryAgent(builder);
         RegisterSubstitutionChainAgent(builder);
         RegisterOpportunityScanAgent(builder);
+        RegisterExporter(builder);
+    }
+
+    private static void RegisterExporter(ContainerBuilder builder)
+    {
+        builder.RegisterType<WeeklyReportExporter>()
+            .As<IWeeklyReportExporter>()
+            .InstancePerLifetimeScope();
     }
 
     private static void RegisterSyncServices(ContainerBuilder builder)

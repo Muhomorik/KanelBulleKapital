@@ -18,6 +18,7 @@ public class WeeklySummaryOrchestrator
     private readonly IWeeklySummaryParser _parser;
     private readonly WeeklySummaryMarkdownRenderer _renderer;
     private readonly WeeklySummaryInputFormatter _inputFormatter;
+    private readonly IWeeklyReportExporter _exporter;
 
     public WeeklySummaryOrchestrator(
         ILogger logger,
@@ -25,7 +26,8 @@ public class WeeklySummaryOrchestrator
         IWeeklySummaryRunRepository repository,
         IWeeklySummaryParser parser,
         WeeklySummaryMarkdownRenderer renderer,
-        WeeklySummaryInputFormatter inputFormatter)
+        WeeklySummaryInputFormatter inputFormatter,
+        IWeeklyReportExporter exporter)
     {
         _logger = logger;
         _agent = agent;
@@ -33,6 +35,7 @@ public class WeeklySummaryOrchestrator
         _parser = parser;
         _renderer = renderer;
         _inputFormatter = inputFormatter;
+        _exporter = exporter;
     }
 
     /// <summary>
@@ -107,6 +110,9 @@ public class WeeklySummaryOrchestrator
         }
 
         await _repository.SaveAsync(run, cancellationToken);
+
+        await _exporter.ExportWeeklySummaryAsync(run, cancellationToken);
+
         return Result.Ok(run);
     }
 }
