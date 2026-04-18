@@ -360,11 +360,11 @@ public class BatchSchedulingServiceTests
     [TestOf(nameof(BatchSchedulingService.CalculateWeeklyDelay))]
     public void CalculateWeeklyDelay_ThursdayNotYetPassed_ReturnsDelayToThisThursday()
     {
-        // Arrange — Monday 10:00 UTC, target Thursday 22:00
-        var utcNow = new DateTime(2026, 4, 6, 10, 0, 0, DateTimeKind.Utc); // Monday
+        // Arrange — Monday 10:00 local, target Thursday 22:00
+        var now = new DateTime(2026, 4, 6, 10, 0, 0, DateTimeKind.Local); // Monday
 
         // Act
-        var delay = _sut.CalculateWeeklyDelay(DayOfWeek.Thursday, new TimeOnly(22, 0), utcNow);
+        var delay = _sut.CalculateWeeklyDelay(DayOfWeek.Thursday, new TimeOnly(22, 0), now);
 
         // Assert — Thursday 22:00 is 3 days + 12 hours away
         var expected = TimeSpan.FromHours(3 * 24 + 12);
@@ -375,11 +375,11 @@ public class BatchSchedulingServiceTests
     [TestOf(nameof(BatchSchedulingService.CalculateWeeklyDelay))]
     public void CalculateWeeklyDelay_ThursdayAlreadyPassed_ReturnsDelayToNextThursday()
     {
-        // Arrange — Friday 08:00 UTC, target Thursday 22:00
-        var utcNow = new DateTime(2026, 4, 10, 8, 0, 0, DateTimeKind.Utc); // Friday
+        // Arrange — Friday 08:00 local, target Thursday 22:00
+        var now = new DateTime(2026, 4, 10, 8, 0, 0, DateTimeKind.Local); // Friday
 
         // Act
-        var delay = _sut.CalculateWeeklyDelay(DayOfWeek.Thursday, new TimeOnly(22, 0), utcNow);
+        var delay = _sut.CalculateWeeklyDelay(DayOfWeek.Thursday, new TimeOnly(22, 0), now);
 
         // Assert — next Thursday 22:00 is 6 days + 14 hours away
         var expected = TimeSpan.FromHours(6 * 24 + 14);
@@ -391,10 +391,10 @@ public class BatchSchedulingServiceTests
     public void CalculateWeeklyDelay_ExactlyOnTargetTime_ReturnsSevenDays()
     {
         // Arrange — Thursday 22:00 exactly
-        var utcNow = new DateTime(2026, 4, 9, 22, 0, 0, DateTimeKind.Utc); // Thursday
+        var now = new DateTime(2026, 4, 9, 22, 0, 0, DateTimeKind.Local); // Thursday
 
         // Act
-        var delay = _sut.CalculateWeeklyDelay(DayOfWeek.Thursday, new TimeOnly(22, 0), utcNow);
+        var delay = _sut.CalculateWeeklyDelay(DayOfWeek.Thursday, new TimeOnly(22, 0), now);
 
         // Assert — should skip to next week
         Assert.That(delay, Is.EqualTo(TimeSpan.FromDays(7)));
@@ -404,11 +404,11 @@ public class BatchSchedulingServiceTests
     [TestOf(nameof(BatchSchedulingService.CalculateWeeklyDelay))]
     public void CalculateWeeklyDelay_SameDayBeforeTargetTime_ReturnsDelayToday()
     {
-        // Arrange — Thursday 10:00 UTC, target Thursday 22:00
-        var utcNow = new DateTime(2026, 4, 9, 10, 0, 0, DateTimeKind.Utc); // Thursday
+        // Arrange — Thursday 10:00 local, target Thursday 22:00
+        var now = new DateTime(2026, 4, 9, 10, 0, 0, DateTimeKind.Local); // Thursday
 
         // Act
-        var delay = _sut.CalculateWeeklyDelay(DayOfWeek.Thursday, new TimeOnly(22, 0), utcNow);
+        var delay = _sut.CalculateWeeklyDelay(DayOfWeek.Thursday, new TimeOnly(22, 0), now);
 
         // Assert — 12 hours away
         Assert.That(delay, Is.EqualTo(TimeSpan.FromHours(12)));
@@ -418,11 +418,11 @@ public class BatchSchedulingServiceTests
     [TestOf(nameof(BatchSchedulingService.CalculateWeeklyDelay))]
     public void CalculateWeeklyDelay_SameDayAfterTargetTime_ReturnsNextWeek()
     {
-        // Arrange — Thursday 23:00 UTC, target Thursday 22:00
-        var utcNow = new DateTime(2026, 4, 9, 23, 0, 0, DateTimeKind.Utc); // Thursday
+        // Arrange — Thursday 23:00 local, target Thursday 22:00
+        var now = new DateTime(2026, 4, 9, 23, 0, 0, DateTimeKind.Local); // Thursday
 
         // Act
-        var delay = _sut.CalculateWeeklyDelay(DayOfWeek.Thursday, new TimeOnly(22, 0), utcNow);
+        var delay = _sut.CalculateWeeklyDelay(DayOfWeek.Thursday, new TimeOnly(22, 0), now);
 
         // Assert — 6 days + 23 hours until next Thursday 22:00
         var expected = TimeSpan.FromDays(7) - TimeSpan.FromHours(1);
@@ -439,12 +439,12 @@ public class BatchSchedulingServiceTests
     {
         // Arrange — test from each day of the week at noon
         // 2026-04-05 is a Sunday
-        var baseSunday = new DateTime(2026, 4, 5, 12, 0, 0, DateTimeKind.Utc);
+        var baseSunday = new DateTime(2026, 4, 5, 12, 0, 0, DateTimeKind.Local);
         var daysFromSunday = ((int)currentDay - (int)DayOfWeek.Sunday + 7) % 7;
-        var utcNow = baseSunday.AddDays(daysFromSunday);
+        var now = baseSunday.AddDays(daysFromSunday);
 
         // Act
-        var delay = _sut.CalculateWeeklyDelay(DayOfWeek.Thursday, new TimeOnly(22, 0), utcNow);
+        var delay = _sut.CalculateWeeklyDelay(DayOfWeek.Thursday, new TimeOnly(22, 0), now);
 
         // Assert
         Assert.That(delay, Is.GreaterThan(TimeSpan.Zero));

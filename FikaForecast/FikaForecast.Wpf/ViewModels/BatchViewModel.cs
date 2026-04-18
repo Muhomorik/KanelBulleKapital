@@ -148,17 +148,17 @@ public class BatchViewModel : ViewModelBase, IDisposable
         TodayDate = DateTime.Today.ToString("yyyy-MM-dd");
 
         WeeklySummaryInfo = new WeeklySummaryScheduleInfo(
-            $"{WeeklySummaryDay} {WeeklySummaryTime:HH:mm} UTC",
+            $"{WeeklySummaryDay} {WeeklySummaryTime:HH:mm} local",
             _defaultModel?.DisplayName);
         UpdateWeeklyNextRunDate();
 
         SubstitutionChainInfo = new SubstitutionChainScheduleInfo(
-            $"{SubstitutionChainDay} {SubstitutionChainTime:HH:mm} UTC",
+            $"{SubstitutionChainDay} {SubstitutionChainTime:HH:mm} local",
             _defaultModel?.DisplayName);
         UpdateChainNextRunDate();
 
         OpportunityScanInfo = new OpportunityScanScheduleInfo(
-            $"{OpportunityScanDay} {OpportunityScanTime:HH:mm} UTC",
+            $"{OpportunityScanDay} {OpportunityScanTime:HH:mm} local",
             _defaultModel?.DisplayName);
         UpdateScanNextRunDate();
 
@@ -428,7 +428,7 @@ public class BatchViewModel : ViewModelBase, IDisposable
     #region Weekly Summary
 
     /// <summary>
-    /// Schedules the weekly summary timer to fire at the next Thursday 22:00 UTC.
+    /// Schedules the weekly summary timer to fire at the next Thursday 22:00 local time.
     /// </summary>
     private void ScheduleWeeklySummary()
     {
@@ -438,7 +438,7 @@ public class BatchViewModel : ViewModelBase, IDisposable
             return;
         }
 
-        var delay = _schedulingService.CalculateWeeklyDelay(WeeklySummaryDay, WeeklySummaryTime, DateTime.UtcNow);
+        var delay = _schedulingService.CalculateWeeklyDelay(WeeklySummaryDay, WeeklySummaryTime, DateTime.Now);
         UpdateWeeklyNextRunDate();
 
         _logger.Debug("Weekly summary scheduled — fires in {0:F1}h ({1})",
@@ -562,8 +562,8 @@ public class BatchViewModel : ViewModelBase, IDisposable
 
     private void UpdateWeeklyNextRunDate()
     {
-        var delay = _schedulingService.CalculateWeeklyDelay(WeeklySummaryDay, WeeklySummaryTime, DateTime.UtcNow);
-        var nextRun = DateTime.UtcNow + delay;
+        var delay = _schedulingService.CalculateWeeklyDelay(WeeklySummaryDay, WeeklySummaryTime, DateTime.Now);
+        var nextRun = DateTime.Now + delay;
         var daysUntil = (int)Math.Ceiling(delay.TotalDays);
         WeeklySummaryInfo.NextRunDate = $"{nextRun:MMM dd, yyyy} ({daysUntil}d)";
     }
@@ -573,7 +573,7 @@ public class BatchViewModel : ViewModelBase, IDisposable
     #region Substitution Chain
 
     /// <summary>
-    /// Schedules the substitution chain timer to fire at the next Thursday 22:10 UTC.
+    /// Schedules the substitution chain timer to fire at the next Thursday 22:10 local time.
     /// </summary>
     private void ScheduleSubstitutionChain()
     {
@@ -583,7 +583,7 @@ public class BatchViewModel : ViewModelBase, IDisposable
             return;
         }
 
-        var delay = _schedulingService.CalculateWeeklyDelay(SubstitutionChainDay, SubstitutionChainTime, DateTime.UtcNow);
+        var delay = _schedulingService.CalculateWeeklyDelay(SubstitutionChainDay, SubstitutionChainTime, DateTime.Now);
         UpdateChainNextRunDate();
 
         _logger.Debug("Substitution chain scheduled — fires in {0:F1}h ({1})",
@@ -703,8 +703,8 @@ public class BatchViewModel : ViewModelBase, IDisposable
 
     private void UpdateChainNextRunDate()
     {
-        var delay = _schedulingService.CalculateWeeklyDelay(SubstitutionChainDay, SubstitutionChainTime, DateTime.UtcNow);
-        var nextRun = DateTime.UtcNow + delay;
+        var delay = _schedulingService.CalculateWeeklyDelay(SubstitutionChainDay, SubstitutionChainTime, DateTime.Now);
+        var nextRun = DateTime.Now + delay;
         var daysUntil = (int)Math.Ceiling(delay.TotalDays);
         SubstitutionChainInfo.NextRunDate = $"{nextRun:MMM dd, yyyy} ({daysUntil}d)";
     }
@@ -714,7 +714,7 @@ public class BatchViewModel : ViewModelBase, IDisposable
     #region Opportunity Scan
 
     /// <summary>
-    /// Schedules the opportunity scan timer to fire at the next Thursday 22:20 UTC.
+    /// Schedules the opportunity scan timer to fire at the next Thursday 22:20 local time.
     /// </summary>
     private void ScheduleOpportunityScan()
     {
@@ -724,7 +724,7 @@ public class BatchViewModel : ViewModelBase, IDisposable
             return;
         }
 
-        var delay = _schedulingService.CalculateWeeklyDelay(OpportunityScanDay, OpportunityScanTime, DateTime.UtcNow);
+        var delay = _schedulingService.CalculateWeeklyDelay(OpportunityScanDay, OpportunityScanTime, DateTime.Now);
         UpdateScanNextRunDate();
 
         _logger.Debug("Opportunity scan scheduled — fires in {0:F1}h ({1})",
@@ -844,8 +844,8 @@ public class BatchViewModel : ViewModelBase, IDisposable
 
     private void UpdateScanNextRunDate()
     {
-        var delay = _schedulingService.CalculateWeeklyDelay(OpportunityScanDay, OpportunityScanTime, DateTime.UtcNow);
-        var nextRun = DateTime.UtcNow + delay;
+        var delay = _schedulingService.CalculateWeeklyDelay(OpportunityScanDay, OpportunityScanTime, DateTime.Now);
+        var nextRun = DateTime.Now + delay;
         var daysUntil = (int)Math.Ceiling(delay.TotalDays);
         OpportunityScanInfo.NextRunDate = $"{nextRun:MMM dd, yyyy} ({daysUntil}d)";
     }

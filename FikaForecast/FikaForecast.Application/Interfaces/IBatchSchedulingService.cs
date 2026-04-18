@@ -31,9 +31,10 @@ public interface IBatchSchedulingService
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Calculates the delay from <paramref name="utcNow"/> to the next occurrence
-    /// of the given day-of-week and time (UTC). If the target has already passed
-    /// this week, returns the delay to next week's occurrence.
+    /// Calculates the delay from <paramref name="now"/> to the next occurrence
+    /// of the given day-of-week and time. Both inputs are interpreted in the same
+    /// (local) time zone. If the target has already passed this week, returns the
+    /// delay to next week's occurrence.
     /// </summary>
-    TimeSpan CalculateWeeklyDelay(DayOfWeek targetDay, TimeOnly targetTime, DateTime utcNow);
+    TimeSpan CalculateWeeklyDelay(DayOfWeek targetDay, TimeOnly targetTime, DateTime now);
 }
