@@ -1,0 +1,111 @@
+<mah:MetroWindow x:Class="FikaForecast.Wpf.Views.ExportWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
+        xmlns:dxmvvm="http://schemas.devexpress.com/winfx/2008/xaml/mvvm"
+        xmlns:viewModels="clr-namespace:FikaForecast.Wpf.ViewModels"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance viewModels:ExportViewModel, IsDesignTimeCreatable=True}"
+        Title="Export weekly reports" Height="520" Width="720"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        Icon="/fikaforecast.ico">
+    <dxmvvm:Interaction.Behaviors>
+        <dxmvvm:CurrentWindowService/>
+    </dxmvvm:Interaction.Behaviors>
+    <Grid Margin="16,8,16,16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+
+                <!-- Automatic export card -->
+                <Border Style="{StaticResource ff.PanelControlStyle}">
+                    <StackPanel>
+                        <TextBlock Text="Automatic export"
+                                   Style="{StaticResource ff.SubheaderStyle}"
+                                   Margin="{StaticResource ff.LabelSpacing}"/>
+                        <TextBlock Text="Each completed weekly agent run writes a markdown file to the folder below. Files are overwritten on re-runs."
+                                   Style="{StaticResource ff.CaptionStyle}"
+                                   TextWrapping="Wrap"
+                                   Margin="{StaticResource ff.LabelSpacing}"/>
+
+                        <TextBlock Text="Export folder"
+                                   Style="{StaticResource ff.SmallStyle}"
+                                   Margin="0,8,0,4"/>
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right"
+                                    Content="Browse…"
+                                    Command="{Binding BrowseCommand}"
+                                    Style="{StaticResource ff.ButtonFlatStyle}"
+                                    Padding="16,4"
+                                    Margin="8,0,0,0"/>
+                            <TextBox Text="{Binding ExportFolderPath, UpdateSourceTrigger=PropertyChanged}"
+                                     mah:TextBoxHelper.Watermark="C:\...\exports"/>
+                        </DockPanel>
+
+                        <mah:ToggleSwitch Content="Enable automatic export"
+                                          IsOn="{Binding AutoExportEnabled}"
+                                          Margin="0,16,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Manual export card -->
+                <Border Style="{StaticResource ff.PanelControlStyle}"
+                        Margin="{StaticResource ff.ItemSpacing}">
+                    <StackPanel>
+                        <TextBlock Text="Manual export"
+                                   Style="{StaticResource ff.SubheaderStyle}"
+                                   Margin="{StaticResource ff.LabelSpacing}"/>
+                        <TextBlock Text="Pick a week and export every available report (weekly summary, substitution chain, rotation targets) at once."
+                                   Style="{StaticResource ff.CaptionStyle}"
+                                   TextWrapping="Wrap"
+                                   Margin="{StaticResource ff.LabelSpacing}"/>
+
+                        <TextBlock Text="Week"
+                                   Style="{StaticResource ff.SmallStyle}"
+                                   Margin="0,8,0,4"/>
+                        <ComboBox ItemsSource="{Binding WeekOptions}"
+                                  SelectedItem="{Binding SelectedWeek}"
+                                  DisplayMemberPath="DisplayLabel"
+                                  HorizontalAlignment="Stretch"/>
+
+                        <Button Content="Export"
+                                Command="{Binding ExportCommand}"
+                                Style="{StaticResource ff.ButtonAccentStyle}"
+                                HorizontalAlignment="Left"
+                                Padding="24,6"
+                                Margin="0,12,0,0"/>
+
+                        <TextBlock Text="{Binding StatusText}"
+                                   Style="{StaticResource ff.CaptionStyle}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,8,0,0"/>
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Footer -->
+        <StackPanel Grid.Row="1"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Margin="0,12,0,0">
+            <Button Content="Save"
+                    Command="{Binding SaveCommand}"
+                    Style="{StaticResource ff.ButtonAccentStyle}"
+                    Margin="0,0,8,0"/>
+            <Button Content="Close"
+                    Command="{Binding CloseCommand}"
+                    Style="{StaticResource ff.ButtonStyle}"
+                    IsCancel="True"/>
+        </StackPanel>
+    </Grid>
+</mah:MetroWindow>

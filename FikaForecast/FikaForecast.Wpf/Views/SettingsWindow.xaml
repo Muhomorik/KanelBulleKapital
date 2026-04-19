@@ -33,6 +33,36 @@
                              mah:TabControlHelper.Underlined="SelectedTabItem"
                              SelectedIndex="{Binding SelectedTabIndex}">
 
+            <!-- Database Tab -->
+            <TabItem Header="Database" Padding="12,6">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,8,0,0">
+                    <StackPanel>
+                        <Border Style="{StaticResource ff.PanelControlStyle}">
+                            <StackPanel>
+                                <TextBlock Text="Database file"
+                                           Style="{StaticResource ff.SubheaderStyle}"
+                                           Margin="{StaticResource ff.LabelSpacing}"/>
+                                <TextBlock Text="Full path to the SQLite database. Moving the path creates a fresh empty database — existing data stays at the old location."
+                                           Style="{StaticResource ff.CaptionStyle}"
+                                           TextWrapping="Wrap"
+                                           Margin="{StaticResource ff.LabelSpacing}"/>
+
+                                <DockPanel Margin="0,8,0,0">
+                                    <Button DockPanel.Dock="Right"
+                                            Content="Browse…"
+                                            Command="{Binding BrowseDatabasePathCommand}"
+                                            Style="{StaticResource ff.ButtonStyle}"
+                                            Padding="16,4"
+                                            Margin="8,0,0,0"/>
+                                    <TextBox Text="{Binding DatabasePath, UpdateSourceTrigger=PropertyChanged}"
+                                             mah:TextBoxHelper.Watermark="C:\Users\...\Documents\fikaforecast.db"/>
+                                </DockPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
             <!-- Models Tab -->
             <TabItem Header="Models" Padding="12,6">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,8,0,0">

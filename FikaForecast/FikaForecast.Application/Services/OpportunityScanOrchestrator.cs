@@ -18,6 +18,7 @@ public class OpportunityScanOrchestrator
     private readonly IOpportunityScanParser _parser;
     private readonly OpportunityScanMarkdownRenderer _renderer;
     private readonly OpportunityScanInputFormatter _inputFormatter;
+    private readonly IWeeklyReportExporter _exporter;
 
     public OpportunityScanOrchestrator(
         ILogger logger,
@@ -25,7 +26,8 @@ public class OpportunityScanOrchestrator
         IOpportunityScanRunRepository repository,
         IOpportunityScanParser parser,
         OpportunityScanMarkdownRenderer renderer,
-        OpportunityScanInputFormatter inputFormatter)
+        OpportunityScanInputFormatter inputFormatter,
+        IWeeklyReportExporter exporter)
     {
         _logger = logger;
         _agent = agent;
@@ -33,6 +35,7 @@ public class OpportunityScanOrchestrator
         _parser = parser;
         _renderer = renderer;
         _inputFormatter = inputFormatter;
+        _exporter = exporter;
     }
 
     /// <summary>
@@ -100,6 +103,9 @@ public class OpportunityScanOrchestrator
         }
 
         await _repository.SaveAsync(run, cancellationToken);
+
+        await _exporter.ExportOpportunityScanAsync(run, cancellationToken);
+
         return Result.Ok(run);
     }
 }

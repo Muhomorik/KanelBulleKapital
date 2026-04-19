@@ -16,4 +16,13 @@ public class UserSettings
 
     /// <summary>Bearer token for authenticating sync requests. Stored plaintext (single-user hobby use).</summary>
     public string? SyncAuthToken { get; set; }
+
+    /// <summary>Folder where weekly report markdown files are written.</summary>
+    public string? ExportFolderPath { get; set; }
+
+    /// <summary>When true, each completed weekly agent run writes a markdown file to <see cref="ExportFolderPath"/>.</summary>
+    public bool AutoExportEnabled { get; set; }
+
+    /// <summary>Full path to the SQLite database file. Resolved at startup if null.</summary>
+    public string? DatabasePath { get; set; }
 }

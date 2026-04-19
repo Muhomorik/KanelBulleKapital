@@ -3,6 +3,8 @@
 import { useSyncExternalStore } from "react";
 import { CalendarRange } from "lucide-react";
 
+export const WEEKLY_MASTHEAD_PANEL_ID = "weekly-masthead";
+
 interface WeeklyMastheadProps {
   weekStart: string | null;
   weekEnd: string | null;
@@ -27,7 +29,8 @@ export function WeeklyMasthead({ weekStart, weekEnd }: WeeklyMastheadProps) {
 
   return (
     <section
-      className="animate-fade-up stagger-1"
+      id={WEEKLY_MASTHEAD_PANEL_ID}
+      className="animate-fade-up stagger-1 scroll-mt-20"
       aria-label="Weekly analysis window"
     >
       <div className="rounded-md bg-primary/5 px-6 py-10 text-center ring-1 ring-primary/15">

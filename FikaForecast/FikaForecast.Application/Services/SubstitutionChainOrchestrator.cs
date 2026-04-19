@@ -18,6 +18,7 @@ public class SubstitutionChainOrchestrator
     private readonly ISubstitutionChainParser _parser;
     private readonly SubstitutionChainMarkdownRenderer _renderer;
     private readonly SubstitutionChainInputFormatter _inputFormatter;
+    private readonly IWeeklyReportExporter _exporter;
 
     public SubstitutionChainOrchestrator(
         ILogger logger,
@@ -25,7 +26,8 @@ public class SubstitutionChainOrchestrator
         ISubstitutionChainRunRepository repository,
         ISubstitutionChainParser parser,
         SubstitutionChainMarkdownRenderer renderer,
-        SubstitutionChainInputFormatter inputFormatter)
+        SubstitutionChainInputFormatter inputFormatter,
+        IWeeklyReportExporter exporter)
     {
         _logger = logger;
         _agent = agent;
@@ -33,6 +35,7 @@ public class SubstitutionChainOrchestrator
         _parser = parser;
         _renderer = renderer;
         _inputFormatter = inputFormatter;
+        _exporter = exporter;
     }
 
     /// <summary>
@@ -101,6 +104,9 @@ public class SubstitutionChainOrchestrator
         }
 
         await _repository.SaveAsync(run, cancellationToken);
+
+        await _exporter.ExportSubstitutionChainAsync(run, cancellationToken);
+
         return Result.Ok(run);
     }
 }

@@ -21,7 +21,7 @@ interface MarketPulseProps {
 export function MarketPulse({ data, selector }: MarketPulseProps) {
   if (!data) {
     return (
-      <section className="animate-fade-up stagger-1" id={MARKET_PULSE_PANEL_ID}>
+      <section className="animate-fade-up stagger-1 scroll-mt-20" id={MARKET_PULSE_PANEL_ID}>
         <SectionHeader
           title="Market Pulse"
           subtitle="News brief · every 4 hours"
@@ -35,7 +35,7 @@ export function MarketPulse({ data, selector }: MarketPulseProps) {
 
   return (
     <section
-      className="animate-fade-up stagger-1"
+      className="animate-fade-up stagger-1 scroll-mt-20"
       id={MARKET_PULSE_PANEL_ID}
       role="tabpanel"
       aria-labelledby={`${MARKET_PULSE_PANEL_ID}-title`}

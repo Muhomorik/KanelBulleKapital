@@ -11,12 +11,17 @@ namespace FikaForecast.Wpf;
 public partial class MainWindow : MetroWindow
 {
     private readonly Func<SettingsWindow> _settingsFactory;
+    private readonly Func<ExportWindow> _exportFactory;
 
-    public MainWindow(MainWindowViewModel viewModel, Func<SettingsWindow> settingsFactory)
+    public MainWindow(
+        MainWindowViewModel viewModel,
+        Func<SettingsWindow> settingsFactory,
+        Func<ExportWindow> exportFactory)
     {
         InitializeComponent();
         DataContext = viewModel;
         _settingsFactory = settingsFactory;
+        _exportFactory = exportFactory;
     }
 
     private void OnSettingsClick(object sender, RoutedEventArgs e)
@@ -24,5 +29,12 @@ public partial class MainWindow : MetroWindow
         var settings = _settingsFactory();
         settings.Owner = this;
         settings.ShowDialog();
+    }
+
+    private void OnExportClick(object sender, RoutedEventArgs e)
+    {
+        var export = _exportFactory();
+        export.Owner = this;
+        export.ShowDialog();
     }
 }

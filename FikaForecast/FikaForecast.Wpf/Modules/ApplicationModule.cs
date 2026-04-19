@@ -96,5 +96,10 @@ public class ApplicationModule : Module
         builder.RegisterType<SyncRunMapper>()
             .AsSelf()
             .InstancePerLifetimeScope();
+
+        // Export formatter (used by WeeklyReportExporter)
+        builder.RegisterType<ReportExportMarkdownFormatter>()
+            .AsSelf()
+            .SingleInstance();
     }
 }

@@ -20,6 +20,7 @@
 
     <mah:MetroWindow.RightWindowCommands>
         <mah:WindowCommands>
+            <Button Content="&#x1F4E4; Export" Click="OnExportClick"/>
             <Button Content="&#x2699; Settings" Click="OnSettingsClick"/>
         </mah:WindowCommands>
     </mah:MetroWindow.RightWindowCommands>

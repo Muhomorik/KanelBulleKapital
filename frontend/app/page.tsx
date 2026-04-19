@@ -1,35 +1,33 @@
 "use client";
 
-import {
-  useState,
-  useEffect,
-  useCallback,
-  useSyncExternalStore,
-  useTransition,
-} from "react";
+import { useState, useEffect, useCallback, useTransition } from "react";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { DemoBanner } from "@/components/demo-banner";
 import { ColdStartBanner } from "@/components/cold-start-banner";
 import { MarketPulse, MARKET_PULSE_PANEL_ID } from "@/components/dashboard/market-pulse";
 import { BriefSelector } from "@/components/dashboard/brief-selector";
-import { WeeklyMasthead } from "@/components/dashboard/weekly-masthead";
+import { WeeklyMasthead, WEEKLY_MASTHEAD_PANEL_ID } from "@/components/dashboard/weekly-masthead";
 import { WeeklyThemes } from "@/components/dashboard/weekly-themes";
-import { CapitalFlows } from "@/components/dashboard/capital-flows";
-import { Opportunities } from "@/components/dashboard/opportunities";
+import { CapitalFlows, CAPITAL_FLOWS_PANEL_ID } from "@/components/dashboard/capital-flows";
+import { Opportunities, OPPORTUNITIES_PANEL_ID } from "@/components/dashboard/opportunities";
 import { getDashboard, getNewsBriefs } from "@/lib/api";
 import { demoDashboard } from "@/lib/demo-data";
 import type { DashboardData, NewsBriefRun } from "@/lib/types";
 import { RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
+import { useLenis } from "lenis/react";
 
 function toLocalDateString(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-// Returns "" during SSR, today's date on the client — avoids hydration mismatch
-const noopSubscribe = () => () => {};
-const getClientDate = () => toLocalDateString(new Date());
-const getServerDate = () => "";
+// Keyboard → section id map. Hoisted so the effect doesn't re-alloc each run.
+const SCROLL_TARGETS: Record<string, string> = {
+  "1": MARKET_PULSE_PANEL_ID,
+  "2": WEEKLY_MASTHEAD_PANEL_ID,
+  "3": CAPITAL_FLOWS_PANEL_ID,
+  "4": OPPORTUNITIES_PANEL_ID,
+};
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData>(demoDashboard);
@@ -43,7 +41,12 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false);
   const [coldStart, setColdStart] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const today = useSyncExternalStore(noopSubscribe, getClientDate, getServerDate);
+  // today = "" until after hydration — keeps server HTML in sync with client's first
+  // render so derived props like `disabled` don't flip between SSR and hydration.
+  const [today, setToday] = useState("");
+  useEffect(() => {
+    setToday(toLocalDateString(new Date()));
+  }, []);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [dataDate, setDataDate] = useState("");
   const [, startSelectionTransition] = useTransition();
@@ -86,7 +89,7 @@ export default function DashboardPage() {
         } else {
           setData(demoDashboard);
           setIsDemo(true);
-          setDataDate(date ?? today);
+          setDataDate(date ?? toLocalDateString(new Date()));
           const demoList = demoDashboard.newsBrief ? [demoDashboard.newsBrief] : [];
           setBriefs(demoList);
           setSelectedRunId(demoList[0]?.runId ?? null);
@@ -104,12 +107,32 @@ export default function DashboardPage() {
         setLoading(false);
       }
     },
-    [today],
+    [],
   );
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Press 1/2/3/4 to smooth-scroll to dashboard sections — handy while recording
+  // walkthrough videos. Ignored when typing in an input (e.g. the date picker).
+  const lenis = useLenis();
+  useEffect(() => {
+    if (!lenis) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+      const id = SCROLL_TARGETS[e.key];
+      if (!id) return;
+      const el = document.getElementById(id);
+      if (!el) return;
+      e.preventDefault();
+      lenis.scrollTo(el, { offset: -80, duration: 1.4 });
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [lenis]);
 
   const navigateDate = (offset: number) => {
     const base = selectedDate ?? dataDate;

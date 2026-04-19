@@ -7,6 +7,8 @@ import {
 import { BriefMeta } from "./brief-meta";
 import { ArrowRight, GitBranch } from "lucide-react";
 
+export const CAPITAL_FLOWS_PANEL_ID = "capital-flows";
+
 interface CapitalFlowsProps {
   data: SubstitutionChainRun | null;
 }
@@ -14,7 +16,7 @@ interface CapitalFlowsProps {
 export function CapitalFlows({ data }: CapitalFlowsProps) {
   if (!data) {
     return (
-      <section className="animate-fade-up stagger-3">
+      <section id={CAPITAL_FLOWS_PANEL_ID} className="animate-fade-up stagger-3 scroll-mt-20">
         <SectionHeader />
         <EmptyCard message="No capital rotation data available." />
       </section>
@@ -22,7 +24,7 @@ export function CapitalFlows({ data }: CapitalFlowsProps) {
   }
 
   return (
-    <section className="animate-fade-up stagger-3">
+    <section id={CAPITAL_FLOWS_PANEL_ID} className="animate-fade-up stagger-3 scroll-mt-20">
       <SectionHeader />
 
       <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">

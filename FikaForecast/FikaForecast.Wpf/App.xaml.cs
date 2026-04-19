@@ -1,8 +1,10 @@
+using System.IO;
 using System.Windows;
 using Autofac;
 using CommandLine;
 using FikaForecast.Infrastructure.Persistence;
 using FikaForecast.Wpf.Modules;
+using FikaForecast.Wpf.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using NLog;
@@ -64,6 +66,11 @@ public partial class App : System.Windows.Application
         // Build configuration from appsettings.json and User Secrets
         var configuration = BuildConfiguration();
 
+        // Resolve the database path from user settings before wiring up the container,
+        // backfilling the legacy LocalAppData location for existing installs and
+        // defaulting new installs to the user's Documents folder.
+        var databasePath = ResolveAndPersistDatabasePath();
+
         // Configure Autofac container
         var builder = new ContainerBuilder();
 
@@ -75,7 +82,7 @@ public partial class App : System.Windows.Application
         builder.RegisterModule<NLogModule>();
 
         // Register modules
-        builder.RegisterModule(new InfrastructureModule(configuration));
+        builder.RegisterModule(new InfrastructureModule(configuration, databasePath));
         builder.RegisterModule<ApplicationModule>();
         builder.RegisterModule(new PresentationModule(configuration));
 
@@ -108,6 +115,37 @@ public partial class App : System.Windows.Application
         LogManager.Shutdown();
 
         base.OnExit(e);
+    }
+
+    /// <summary>
+    /// Loads user settings, resolves the SQLite database path, and persists the
+    /// resolved path back to <c>settings.json</c> so the Settings UI can display
+    /// and edit it. Legacy installs keep their existing LocalAppData database;
+    /// new installs default to <c>%UserProfile%\Documents\fikaforecast.db</c>.
+    /// </summary>
+    private static string ResolveAndPersistDatabasePath()
+    {
+        var settingsService = new UserSettingsService(Logger);
+        var settings = settingsService.Load();
+
+        if (!string.IsNullOrWhiteSpace(settings.DatabasePath))
+            return settings.DatabasePath;
+
+        var legacyPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "FikaForecast",
+            "fikaforecast.db");
+
+        var resolved = File.Exists(legacyPath)
+            ? legacyPath
+            : Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                "fikaforecast.db");
+
+        settings.DatabasePath = resolved;
+        settingsService.Save(settings);
+        Logger.Info("Database path resolved and persisted: {0}", resolved);
+        return resolved;
     }
 
     /// <summary>
