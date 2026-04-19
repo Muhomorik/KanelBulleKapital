@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useState,
-  useEffect,
-  useCallback,
-  useSyncExternalStore,
-  useTransition,
-} from "react";
+import { useState, useEffect, useCallback, useTransition } from "react";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { DemoBanner } from "@/components/demo-banner";
@@ -27,10 +21,13 @@ function toLocalDateString(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-// Returns "" during SSR, today's date on the client — avoids hydration mismatch
-const noopSubscribe = () => () => {};
-const getClientDate = () => toLocalDateString(new Date());
-const getServerDate = () => "";
+// Keyboard → section id map. Hoisted so the effect doesn't re-alloc each run.
+const SCROLL_TARGETS: Record<string, string> = {
+  "1": MARKET_PULSE_PANEL_ID,
+  "2": WEEKLY_MASTHEAD_PANEL_ID,
+  "3": CAPITAL_FLOWS_PANEL_ID,
+  "4": OPPORTUNITIES_PANEL_ID,
+};
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData>(demoDashboard);
@@ -44,7 +41,12 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false);
   const [coldStart, setColdStart] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const today = useSyncExternalStore(noopSubscribe, getClientDate, getServerDate);
+  // today = "" until after hydration — keeps server HTML in sync with client's first
+  // render so derived props like `disabled` don't flip between SSR and hydration.
+  const [today, setToday] = useState("");
+  useEffect(() => {
+    setToday(toLocalDateString(new Date()));
+  }, []);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [dataDate, setDataDate] = useState("");
   const [, startSelectionTransition] = useTransition();
@@ -87,7 +89,7 @@ export default function DashboardPage() {
         } else {
           setData(demoDashboard);
           setIsDemo(true);
-          setDataDate(date ?? today);
+          setDataDate(date ?? toLocalDateString(new Date()));
           const demoList = demoDashboard.newsBrief ? [demoDashboard.newsBrief] : [];
           setBriefs(demoList);
           setSelectedRunId(demoList[0]?.runId ?? null);
@@ -105,7 +107,7 @@ export default function DashboardPage() {
         setLoading(false);
       }
     },
-    [today],
+    [],
   );
 
   useEffect(() => {
@@ -117,17 +119,11 @@ export default function DashboardPage() {
   const lenis = useLenis();
   useEffect(() => {
     if (!lenis) return;
-    const targets: Record<string, string> = {
-      "1": MARKET_PULSE_PANEL_ID,
-      "2": WEEKLY_MASTHEAD_PANEL_ID,
-      "3": CAPITAL_FLOWS_PANEL_ID,
-      "4": OPPORTUNITIES_PANEL_ID,
-    };
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
-      const id = targets[e.key];
+      const id = SCROLL_TARGETS[e.key];
       if (!id) return;
       const el = document.getElementById(id);
       if (!el) return;
