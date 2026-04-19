@@ -1,6 +1,7 @@
 "use client";
 
 import { ThemeProvider as NextThemesProvider } from "next-themes";
+import { ReactLenis } from "lenis/react";
 import type { ReactNode } from "react";
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
@@ -11,7 +12,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       enableSystem
       disableTransitionOnChange
     >
-      {children}
+      <ReactLenis root options={{ duration: 1.4, smoothWheel: true }}>
+        {children}
+      </ReactLenis>
     </NextThemesProvider>
   );
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Outfit } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
+import "lenis/dist/lenis.css";
 import "./globals.css";
 
 const cormorant = Cormorant_Garamond({

@@ -13,14 +13,15 @@ import { DemoBanner } from "@/components/demo-banner";
 import { ColdStartBanner } from "@/components/cold-start-banner";
 import { MarketPulse, MARKET_PULSE_PANEL_ID } from "@/components/dashboard/market-pulse";
 import { BriefSelector } from "@/components/dashboard/brief-selector";
-import { WeeklyMasthead } from "@/components/dashboard/weekly-masthead";
+import { WeeklyMasthead, WEEKLY_MASTHEAD_PANEL_ID } from "@/components/dashboard/weekly-masthead";
 import { WeeklyThemes } from "@/components/dashboard/weekly-themes";
-import { CapitalFlows } from "@/components/dashboard/capital-flows";
-import { Opportunities } from "@/components/dashboard/opportunities";
+import { CapitalFlows, CAPITAL_FLOWS_PANEL_ID } from "@/components/dashboard/capital-flows";
+import { Opportunities, OPPORTUNITIES_PANEL_ID } from "@/components/dashboard/opportunities";
 import { getDashboard, getNewsBriefs } from "@/lib/api";
 import { demoDashboard } from "@/lib/demo-data";
 import type { DashboardData, NewsBriefRun } from "@/lib/types";
 import { RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
+import { useLenis } from "lenis/react";
 
 function toLocalDateString(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -110,6 +111,32 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Press 1/2/3/4 to smooth-scroll to dashboard sections — handy while recording
+  // walkthrough videos. Ignored when typing in an input (e.g. the date picker).
+  const lenis = useLenis();
+  useEffect(() => {
+    if (!lenis) return;
+    const targets: Record<string, string> = {
+      "1": MARKET_PULSE_PANEL_ID,
+      "2": WEEKLY_MASTHEAD_PANEL_ID,
+      "3": CAPITAL_FLOWS_PANEL_ID,
+      "4": OPPORTUNITIES_PANEL_ID,
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+      const id = targets[e.key];
+      if (!id) return;
+      const el = document.getElementById(id);
+      if (!el) return;
+      e.preventDefault();
+      lenis.scrollTo(el, { offset: -80, duration: 1.4 });
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [lenis]);
 
   const navigateDate = (offset: number) => {
     const base = selectedDate ?? dataDate;

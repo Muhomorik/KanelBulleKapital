@@ -14,6 +14,8 @@ import { SignalBadge } from "./signal-badge";
 import { BriefMeta } from "./brief-meta";
 import { Target, Gem } from "lucide-react";
 
+export const OPPORTUNITIES_PANEL_ID = "opportunities";
+
 interface OpportunitiesProps {
   data: OpportunityScanRun | null;
 }
@@ -28,7 +30,7 @@ const GROUP_LABEL: Record<SignalStrength, string> = {
 export function Opportunities({ data }: OpportunitiesProps) {
   if (!data) {
     return (
-      <section className="animate-fade-up stagger-4">
+      <section id={OPPORTUNITIES_PANEL_ID} className="animate-fade-up stagger-4 scroll-mt-20">
         <SectionHeader />
         <EmptyCard message="No opportunity scans available." />
       </section>
@@ -49,7 +51,7 @@ export function Opportunities({ data }: OpportunitiesProps) {
   );
 
   return (
-    <section className="animate-fade-up stagger-4">
+    <section id={OPPORTUNITIES_PANEL_ID} className="animate-fade-up stagger-4 scroll-mt-20">
       <SectionHeader />
 
       <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
