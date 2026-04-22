@@ -101,7 +101,7 @@ public class AgentRunsApi
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetDashboard failed");
-            return await WriteJsonAsync(req, new { error = ex.Message }, System.Net.HttpStatusCode.InternalServerError);
+            return await WriteJsonAsync(req, new { error = "Internal server error" }, System.Net.HttpStatusCode.InternalServerError);
         }
     }
 
@@ -131,7 +131,7 @@ public class AgentRunsApi
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetNewsBriefRuns failed");
-            return await WriteJsonAsync(req, new { error = ex.Message }, System.Net.HttpStatusCode.InternalServerError);
+            return await WriteJsonAsync(req, new { error = "Internal server error" }, System.Net.HttpStatusCode.InternalServerError);
         }
     }
 
@@ -155,7 +155,7 @@ public class AgentRunsApi
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetNewsBriefRun failed");
-            return await WriteJsonAsync(req, new { error = ex.Message }, System.Net.HttpStatusCode.InternalServerError);
+            return await WriteJsonAsync(req, new { error = "Internal server error" }, System.Net.HttpStatusCode.InternalServerError);
         }
     }
 
@@ -178,7 +178,7 @@ public class AgentRunsApi
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetWeeklySummaryRuns failed");
-            return await WriteJsonAsync(req, new { error = ex.Message }, System.Net.HttpStatusCode.InternalServerError);
+            return await WriteJsonAsync(req, new { error = "Internal server error" }, System.Net.HttpStatusCode.InternalServerError);
         }
     }
 
@@ -202,7 +202,7 @@ public class AgentRunsApi
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetWeeklySummaryRun failed");
-            return await WriteJsonAsync(req, new { error = ex.Message }, System.Net.HttpStatusCode.InternalServerError);
+            return await WriteJsonAsync(req, new { error = "Internal server error" }, System.Net.HttpStatusCode.InternalServerError);
         }
     }
 
@@ -225,7 +225,7 @@ public class AgentRunsApi
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetSubstitutionChainRuns failed");
-            return await WriteJsonAsync(req, new { error = ex.Message }, System.Net.HttpStatusCode.InternalServerError);
+            return await WriteJsonAsync(req, new { error = "Internal server error" }, System.Net.HttpStatusCode.InternalServerError);
         }
     }
 
@@ -249,7 +249,7 @@ public class AgentRunsApi
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetSubstitutionChainRun failed");
-            return await WriteJsonAsync(req, new { error = ex.Message }, System.Net.HttpStatusCode.InternalServerError);
+            return await WriteJsonAsync(req, new { error = "Internal server error" }, System.Net.HttpStatusCode.InternalServerError);
         }
     }
 
@@ -272,7 +272,7 @@ public class AgentRunsApi
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetOpportunityScanRuns failed");
-            return await WriteJsonAsync(req, new { error = ex.Message }, System.Net.HttpStatusCode.InternalServerError);
+            return await WriteJsonAsync(req, new { error = "Internal server error" }, System.Net.HttpStatusCode.InternalServerError);
         }
     }
 
@@ -296,7 +296,7 @@ public class AgentRunsApi
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetOpportunityScanRun failed");
-            return await WriteJsonAsync(req, new { error = ex.Message }, System.Net.HttpStatusCode.InternalServerError);
+            return await WriteJsonAsync(req, new { error = "Internal server error" }, System.Net.HttpStatusCode.InternalServerError);
         }
     }
 

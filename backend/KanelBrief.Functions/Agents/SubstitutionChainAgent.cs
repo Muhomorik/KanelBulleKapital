@@ -47,7 +47,7 @@ public sealed class SubstitutionChainAgent(
         {
             logger.LogError(ex, "Substitution Chain agent failed");
             var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
-            await errorResponse.WriteAsJsonAsync(new { error = ex.Message });
+            await errorResponse.WriteAsJsonAsync(new { error = "Internal server error" });
             return errorResponse;
         }
     }
