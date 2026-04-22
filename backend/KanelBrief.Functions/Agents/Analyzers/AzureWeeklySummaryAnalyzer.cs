@@ -5,6 +5,8 @@ using KanelBrief.Core.Agents;
 using KanelBrief.Core.Models;
 using KanelBrief.Core.Parsers;
 using KanelBrief.Core.Serialization;
+using Microsoft.Agents.AI;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 
 namespace KanelBrief.Functions.Agents.Analyzers;
@@ -16,6 +18,7 @@ namespace KanelBrief.Functions.Agents.Analyzers;
 public sealed class AzureWeeklySummaryAnalyzer : IWeeklySummaryAnalyzer
 {
     private const string ModelId = "gpt-5.4-mini";
+    private const int OutputTokenCap = 2000;
 
     private readonly ILogger<AzureWeeklySummaryAnalyzer> _logger;
     private readonly AIProjectClient _aiProjectClient;
@@ -60,7 +63,8 @@ Return ONLY a JSON object with this exact structure:
 }");
 
         var prompt = $"Analyze this week's market briefs ({weekStart:yyyy-MM-dd} to {weekEnd:yyyy-MM-dd}):\n\n{briefsContext}";
-        var response = await agent.RunAsync(prompt);
+        var runOptions = new ChatClientAgentRunOptions(new ChatOptions { MaxOutputTokens = OutputTokenCap });
+        var response = await agent.RunAsync(prompt, options: runOptions);
         var json = AgentResponseParser.ExtractJson(response.Text ?? string.Empty);
         var result = JsonSerializer.Deserialize<WeeklySummaryAnalysisResult>(json, KanelJsonOptions.CamelCase)
             ?? throw new InvalidOperationException("Failed to parse weekly summary response");
