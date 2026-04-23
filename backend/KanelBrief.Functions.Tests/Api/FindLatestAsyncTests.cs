@@ -56,7 +56,7 @@ public class FindLatestAsyncTests
     }
 
     [Test]
-    public async Task FindLatestAsync_NoRunsFor7Days_ReturnsEmptyList()
+    public async Task FindLatestAsync_NoRunsFor8Days_ReturnsEmptyList()
     {
         var callCount = 0;
 
@@ -67,7 +67,28 @@ public class FindLatestAsyncTests
         });
 
         Assert.That(result, Is.Empty);
-        Assert.That(callCount, Is.EqualTo(7));
+        Assert.That(callCount, Is.EqualTo(8));
+    }
+
+    [Test]
+    public async Task FindLatestAsync_NoRunsFor7Days_FindsDay8()
+    {
+        // Weekly-cadence data (e.g. WeeklySummary runs every Thursday 17:00 UTC) lands
+        // exactly 7 days ago after the next cadence day starts. The lookback must include
+        // day 8 (today + 7 previous days) so last week's run is still surfaced before
+        // this week's scan fires.
+        var day8Data = new List<string> { "last-week-run" };
+        var callCount = 0;
+
+        var result = await AgentRunsApi.FindLatestAsync<string>(date =>
+        {
+            callCount++;
+            return Task.FromResult(callCount == 8 ? day8Data : new List<string>());
+        });
+
+        Assert.That(result, Has.Count.EqualTo(1));
+        Assert.That(result[0], Is.EqualTo("last-week-run"));
+        Assert.That(callCount, Is.EqualTo(8));
     }
 
     [Test]
@@ -96,7 +117,7 @@ public class FindLatestAsyncTests
     }
 
     [Test]
-    public async Task FindLatestAsync_SearchesMaximum7Days()
+    public async Task FindLatestAsync_SearchesMaximum8Days()
     {
         var callCount = 0;
 
@@ -106,6 +127,6 @@ public class FindLatestAsyncTests
             return Task.FromResult(new List<string>());
         });
 
-        Assert.That(callCount, Is.EqualTo(7), "Should search exactly 7 days");
+        Assert.That(callCount, Is.EqualTo(8), "Should search exactly 8 days (today + 7 previous) to cover weekly-cadence data");
     }
 }
