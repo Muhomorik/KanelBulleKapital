@@ -61,7 +61,19 @@ public class SettingsViewModel : ViewModelBase
     public string? SyncBaseUrl
     {
         get => GetValue<string?>();
-        set => SetValue(value);
+        set => SetValue(value, () => RaisePropertyChanged(nameof(SyncBaseUrlWarning)));
+    }
+
+    /// <summary>Warning shown under the sync URL field when the URL is present but not a valid <c>https://</c> absolute URI.</summary>
+    public string? SyncBaseUrlWarning
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(SyncBaseUrl)) return null;
+            if (!Uri.TryCreate(SyncBaseUrl, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps)
+                return "URL must start with https:// (e.g. https://your-backend.azurewebsites.net).";
+            return null;
+        }
     }
 
     public string? SyncAuthToken
@@ -242,6 +254,12 @@ public class SettingsViewModel : ViewModelBase
         if (string.IsNullOrWhiteSpace(SyncBaseUrl) || string.IsNullOrWhiteSpace(SyncAuthToken))
         {
             SyncStatusText = "Enter a sync URL and token first.";
+            return;
+        }
+
+        if (SyncBaseUrlWarning is not null)
+        {
+            SyncStatusText = SyncBaseUrlWarning;
             return;
         }
 

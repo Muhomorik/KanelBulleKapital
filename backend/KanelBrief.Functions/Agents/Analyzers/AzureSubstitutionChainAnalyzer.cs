@@ -5,6 +5,8 @@ using KanelBrief.Core.Agents;
 using KanelBrief.Core.Models;
 using KanelBrief.Core.Parsers;
 using KanelBrief.Core.Serialization;
+using Microsoft.Agents.AI;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 
 namespace KanelBrief.Functions.Agents.Analyzers;
@@ -16,6 +18,7 @@ namespace KanelBrief.Functions.Agents.Analyzers;
 public sealed class AzureSubstitutionChainAnalyzer : ISubstitutionChainAnalyzer
 {
     private const string ModelId = "gpt-5.4-mini";
+    private const int OutputTokenCap = 2000;
 
     private readonly ILogger<AzureSubstitutionChainAnalyzer> _logger;
     private readonly AIProjectClient _aiProjectClient;
@@ -53,7 +56,8 @@ Return ONLY a JSON object with this exact structure:
 }");
 
         var prompt = $"Based on this weekly summary, identify capital rotation chains:\n\n{summaryContext}";
-        var response = await agent.RunAsync(prompt);
+        var runOptions = new ChatClientAgentRunOptions(new ChatOptions { MaxOutputTokens = OutputTokenCap });
+        var response = await agent.RunAsync(prompt, options: runOptions);
         var json = AgentResponseParser.ExtractJson(response.Text ?? string.Empty);
         var result = JsonSerializer.Deserialize<SubstitutionChainAnalysisResult>(json, _jsonOptions)
             ?? throw new InvalidOperationException("Failed to parse substitution chains response");

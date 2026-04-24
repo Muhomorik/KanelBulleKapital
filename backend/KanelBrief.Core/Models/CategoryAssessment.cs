@@ -16,4 +16,7 @@ public class CategoryAssessment
 
     [JsonPropertyName("sentiment")]
     public MarketSentiment Sentiment { get; set; }
+
+    [JsonPropertyName("source")]
+    public string? Source { get; set; }
 }

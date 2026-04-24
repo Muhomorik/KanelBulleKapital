@@ -24,7 +24,10 @@ var builder = FunctionsApplication.CreateBuilder(args);
 builder.Configuration.AddUserSecrets(typeof(Program).Assembly, optional: true);
 
 builder.ConfigureFunctionsWebApplication();
+builder.UseMiddleware<RateLimitMiddleware>();
 builder.UseMiddleware<BearerTokenAuthMiddleware>();
+
+builder.Services.AddMemoryCache();
 
 builder.Services
     .AddApplicationInsightsTelemetryWorkerService()

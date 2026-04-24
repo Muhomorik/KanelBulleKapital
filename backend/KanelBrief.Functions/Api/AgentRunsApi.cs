@@ -101,14 +101,14 @@ public class AgentRunsApi
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetDashboard failed");
-            return await WriteJsonAsync(req, new { error = ex.Message }, System.Net.HttpStatusCode.InternalServerError);
+            return await WriteJsonAsync(req, new { error = "Internal server error" }, System.Net.HttpStatusCode.InternalServerError);
         }
     }
 
     /// <summary>
     /// Get News Brief runs.
     /// If ?date is provided, returns runs for that date.
-    /// Otherwise, returns the latest available (up to 7 days back).
+    /// Otherwise, returns the latest available (up to 8 days back).
     /// Results are ordered newest-first by <c>CreatedAt</c> (see <see cref="Repositories.AgentRunRepository.GetNewsBriefRunsByDateAsync"/>).
     /// </summary>
     /// <param name="req"></param>
@@ -131,7 +131,7 @@ public class AgentRunsApi
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetNewsBriefRuns failed");
-            return await WriteJsonAsync(req, new { error = ex.Message }, System.Net.HttpStatusCode.InternalServerError);
+            return await WriteJsonAsync(req, new { error = "Internal server error" }, System.Net.HttpStatusCode.InternalServerError);
         }
     }
 
@@ -155,11 +155,11 @@ public class AgentRunsApi
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetNewsBriefRun failed");
-            return await WriteJsonAsync(req, new { error = ex.Message }, System.Net.HttpStatusCode.InternalServerError);
+            return await WriteJsonAsync(req, new { error = "Internal server error" }, System.Net.HttpStatusCode.InternalServerError);
         }
     }
 
-    /// <summary>Get Weekly Summary runs. If ?date is provided, returns runs for that date. Otherwise returns the latest available (up to 7 days back).</summary>
+    /// <summary>Get Weekly Summary runs. If ?date is provided, returns runs for that date. Otherwise returns the latest available (up to 8 days back).</summary>
     [Function("GetWeeklySummaryRuns")]
     public async Task<HttpResponseData> GetWeeklySummaryRuns(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "runs/weekly-summaries")] HttpRequestData req)
@@ -178,7 +178,7 @@ public class AgentRunsApi
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetWeeklySummaryRuns failed");
-            return await WriteJsonAsync(req, new { error = ex.Message }, System.Net.HttpStatusCode.InternalServerError);
+            return await WriteJsonAsync(req, new { error = "Internal server error" }, System.Net.HttpStatusCode.InternalServerError);
         }
     }
 
@@ -202,11 +202,11 @@ public class AgentRunsApi
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetWeeklySummaryRun failed");
-            return await WriteJsonAsync(req, new { error = ex.Message }, System.Net.HttpStatusCode.InternalServerError);
+            return await WriteJsonAsync(req, new { error = "Internal server error" }, System.Net.HttpStatusCode.InternalServerError);
         }
     }
 
-    /// <summary>Get Substitution Chain runs. If ?date is provided, returns runs for that date. Otherwise returns the latest available (up to 7 days back).</summary>
+    /// <summary>Get Substitution Chain runs. If ?date is provided, returns runs for that date. Otherwise returns the latest available (up to 8 days back).</summary>
     [Function("GetSubstitutionChainRuns")]
     public async Task<HttpResponseData> GetSubstitutionChainRuns(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "runs/substitution-chains")] HttpRequestData req)
@@ -225,7 +225,7 @@ public class AgentRunsApi
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetSubstitutionChainRuns failed");
-            return await WriteJsonAsync(req, new { error = ex.Message }, System.Net.HttpStatusCode.InternalServerError);
+            return await WriteJsonAsync(req, new { error = "Internal server error" }, System.Net.HttpStatusCode.InternalServerError);
         }
     }
 
@@ -249,11 +249,11 @@ public class AgentRunsApi
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetSubstitutionChainRun failed");
-            return await WriteJsonAsync(req, new { error = ex.Message }, System.Net.HttpStatusCode.InternalServerError);
+            return await WriteJsonAsync(req, new { error = "Internal server error" }, System.Net.HttpStatusCode.InternalServerError);
         }
     }
 
-    /// <summary>Get Opportunity Scan runs. If ?date is provided, returns runs for that date. Otherwise returns the latest available (up to 7 days back).</summary>
+    /// <summary>Get Opportunity Scan runs. If ?date is provided, returns runs for that date. Otherwise returns the latest available (up to 8 days back).</summary>
     [Function("GetOpportunityScanRuns")]
     public async Task<HttpResponseData> GetOpportunityScanRuns(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "runs/opportunity-scans")] HttpRequestData req)
@@ -272,7 +272,7 @@ public class AgentRunsApi
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetOpportunityScanRuns failed");
-            return await WriteJsonAsync(req, new { error = ex.Message }, System.Net.HttpStatusCode.InternalServerError);
+            return await WriteJsonAsync(req, new { error = "Internal server error" }, System.Net.HttpStatusCode.InternalServerError);
         }
     }
 
@@ -296,15 +296,19 @@ public class AgentRunsApi
         catch (Exception ex)
         {
             _logger.LogError(ex, "GetOpportunityScanRun failed");
-            return await WriteJsonAsync(req, new { error = ex.Message }, System.Net.HttpStatusCode.InternalServerError);
+            return await WriteJsonAsync(req, new { error = "Internal server error" }, System.Net.HttpStatusCode.InternalServerError);
         }
     }
 
-    /// <summary>Scan backwards from today up to 7 days to find the latest available runs.</summary>
+    /// <summary>
+    /// Scan backwards from today up to 8 days (today + 7 previous) to find the latest available runs.
+    /// Window size covers weekly-cadence data (e.g. WeeklySummary fires Thursday 17:00 UTC) so a run
+    /// that landed exactly 7 days ago is still surfaced on the next cadence day before that day's scan fires.
+    /// </summary>
     internal static async Task<List<T>> FindLatestAsync<T>(Func<string, Task<List<T>>> getByDate)
     {
         var today = DateTimeOffset.UtcNow;
-        for (var i = 0; i < 7; i++)
+        for (var i = 0; i < 8; i++)
         {
             var date = today.AddDays(-i).ToString("yyyy-MM-dd");
             var runs = await getByDate(date);

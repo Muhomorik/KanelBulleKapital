@@ -48,7 +48,7 @@ public sealed class WeeklySummaryAgent(
         {
             logger.LogError(ex, "Weekly Summary agent failed");
             var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
-            await errorResponse.WriteAsJsonAsync(new { error = ex.Message });
+            await errorResponse.WriteAsJsonAsync(new { error = "Internal server error" });
             return errorResponse;
         }
     }

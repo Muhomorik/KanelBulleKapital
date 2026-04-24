@@ -200,8 +200,26 @@
                                 <TextBlock Text="Sync URL"
                                            Style="{StaticResource ff.SmallStyle}"
                                            Margin="0,8,0,4"/>
-                                <TextBox Text="{Binding SyncBaseUrl, UpdateSourceTrigger=PropertyChanged}"
-                                         mah:TextBoxHelper.Watermark="https://your-backend.azurewebsites.net"/>
+                                <PasswordBox Style="{StaticResource MahApps.Styles.PasswordBox.Win8}"
+                                             mah:TextBoxHelper.Watermark="https://your-backend.azurewebsites.net"
+                                             mahShared:PasswordBoxBindingBehavior.Password="{Binding SyncBaseUrl,
+                                                                                                     Mode=TwoWay,
+                                                                                                     UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBlock Text="{Binding SyncBaseUrlWarning}"
+                                           Foreground="{DynamicResource ff.WarningBrush}"
+                                           TextWrapping="Wrap"
+                                           Margin="0,4,0,0">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock" BasedOn="{StaticResource ff.CaptionStyle}">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SyncBaseUrlWarning}" Value="{x:Null}">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
 
                                 <TextBlock Text="Auth token"
                                            Style="{StaticResource ff.SmallStyle}"

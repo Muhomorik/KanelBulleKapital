@@ -1,3 +1,4 @@
+using System.ClientModel;
 using System.Text.Json;
 using Azure.AI.Extensions.OpenAI;
 using Azure.AI.Projects;
@@ -7,18 +8,24 @@ using KanelBrief.Core.Models;
 using KanelBrief.Core.Parsers;
 using KanelBrief.Core.Serialization;
 using KanelBrief.Functions.Orchestration;
+using Microsoft.Agents.AI;
+using Microsoft.Agents.AI.Foundry;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 
 namespace KanelBrief.Functions.Agents.Analyzers;
 
 /// <summary>
 /// Azure AI Foundry implementation of <see cref="INewsBriefAnalyzer"/>.
-/// Creates an ephemeral declarative agent version (optionally with Bing Grounding),
-/// runs it via <see cref="ProjectResponsesClient"/>, and deletes the version afterwards.
+/// Invokes the persistent Foundry agent <c>kanelbrief-news-brief</c>, which is created
+/// once in the Foundry portal (see <c>docs/AZURE-DEPLOYMENT.md § Persistent Agent Setup</c>).
+/// Portal-resident agent enables Foundry continuous evaluation (Groundedness + Custom
+/// Evaluator) to attach to a stable agent name across runs.
 /// </summary>
 public sealed class AzureNewsBriefAnalyzer : INewsBriefAnalyzer
 {
     private const string ModelId = "gpt-5.4-mini";
+    private const int OutputTokenCap = 2000;
 
     private readonly ILogger<AzureNewsBriefAnalyzer> _logger;
     private readonly AIProjectClient _aiProjectClient;
@@ -41,88 +48,88 @@ public sealed class AzureNewsBriefAnalyzer : INewsBriefAnalyzer
 
     public async Task<NewsBriefAnalysisResult> AnalyzeAsync(DateTimeOffset asOf, CancellationToken ct = default)
     {
-        var agentDefinition = new DeclarativeAgentDefinition(model: ModelId)
-        {
-            Instructions = @"You are a financial market analyst. Analyze today's global financial market conditions and produce a morning market brief.
+        // Persistent-agent pattern (see docs/AZURE-DEPLOYMENT.md § Persistent Agent Setup).
+        //
+        // Instructions, model, and Bing Grounding tool all live in the Foundry portal —
+        // not in this code. Why:
+        //
+        // - Foundry continuous evaluation (Groundedness, Custom Evaluator) attaches to a
+        //   stable named agent and scores every run automatically. An ephemeral
+        //   create-and-delete-per-run pattern (our old behavior) left no agent in the
+        //   portal for evaluators to target.
+        // - At a 4-hour run cadence that pattern would pile up ~2,200 agent versions/year.
+        //
+        // Disaster recovery: the exact instructions and tool config are documented
+        // verbatim in docs/AZURE-DEPLOYMENT.md § Persistent Agent Setup so the agent
+        // can be recreated if accidentally deleted from the portal.
+        const string agentName = "kanelbrief-news-brief";
 
-Cover these sectors: Technology, Energy, Financials, Healthcare, Consumer Discretionary, Industrials.
-Focus on the most significant market-moving events and trends.
-
-1. Determine the overall market mood (RiskOn, RiskOff, or Mixed)
-2. Write a brief 1-2 sentence market summary
-3. For each significant sector (at least 3-4), provide a sentiment assessment
-
-Return ONLY a JSON object with this exact structure:
-{
-  ""mood"": ""RiskOn|RiskOff|Mixed"",
-  ""summary"": ""Your market summary"",
-  ""assessments"": [
-    {
-      ""category"": ""Sector name"",
-      ""headline"": ""Key development"",
-      ""summary"": ""Brief analysis"",
-      ""sentiment"": ""RiskOn|RiskOff|Mixed""
-    }
-  ]
-}"
-        };
-
-        if (!string.IsNullOrEmpty(_options.BingConnectionName))
-        {
-            try
-            {
-                var bingConnection = await _aiProjectClient.Connections
-                    .GetConnectionAsync(connectionName: _options.BingConnectionName);
-                var bingTool = new BingGroundingTool(
-                    new BingGroundingSearchToolOptions(
-                        searchConfigurations: [new BingGroundingSearchConfiguration(
-                            projectConnectionId: bingConnection.Value.Id)]));
-                agentDefinition.Tools.Add(bingTool);
-                _logger.LogInformation("Bing Grounding tool enabled");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to resolve Bing connection '{Name}' — continuing without Bing Grounding",
-                    _options.BingConnectionName);
-            }
-        }
-        else
-        {
-            _logger.LogWarning("Bing Grounding not configured — agent will use training data only");
-        }
-
-        var agentVersionResult = await _agentAdmin.CreateAgentVersionAsync(
-            agentName: "kanelbrief-news-brief",
-            options: new(agentDefinition));
-        var agentVersionValue = agentVersionResult.Value;
-
+        ProjectsAgentRecord agentRecord;
         try
         {
-            var responsesClient = new ProjectResponsesClient(
-                _options.FoundryEndpoint,
-                _options.Credential,
-                new AgentReference(agentVersionValue.Name, agentVersionValue.Version));
-
-            var userMessage = $"Produce today's morning market brief for {asOf:yyyy-MM-dd}. Analyze the most significant global financial market developments and sector-level sentiment.";
-
-            var clientResult = await responsesClient.CreateResponseAsync(userMessage);
-            var responseText = clientResult.Value.GetOutputText();
-
-            var analysisJson = AgentResponseParser.ExtractJson(responseText);
-            var result = JsonSerializer.Deserialize<NewsBriefAnalysisResult>(analysisJson, _jsonOptions)
-                ?? throw new InvalidOperationException("Failed to parse agent response");
-
-            var usage = clientResult.Value.Usage;
-            result.InputTokens = usage.InputTokenCount;
-            result.OutputTokens = usage.OutputTokenCount;
-            result.TotalTokens = usage.TotalTokenCount;
-            return result;
+            agentRecord = await _agentAdmin.GetAgentAsync(agentName, ct);
         }
-        finally
+        catch (ClientResultException ex) when (ex.Status == 404)
         {
-            await _agentAdmin.DeleteAgentVersionAsync(
-                agentName: agentVersionValue.Name, agentVersion: agentVersionValue.Version);
+            // Most common setup error: agent hasn't been created in the portal yet.
+            // Log with enough detail that the operator can fix it without reading code.
+            _logger.LogError(ex,
+                "Persistent agent '{AgentName}' not found in Foundry project. " +
+                "Create it in the Foundry portal (Build → Agents → + New agent) with the " +
+                "instructions and Bing Grounding tool from docs/AZURE-DEPLOYMENT.md § " +
+                "Persistent Agent Setup (KanelBrief News Brief). The timer will not " +
+                "produce briefs until the agent exists.",
+                agentName);
+            throw new InvalidOperationException(
+                $"Persistent agent '{agentName}' not found in Foundry. " +
+                "See docs/AZURE-DEPLOYMENT.md § Persistent Agent Setup (KanelBrief News Brief) " +
+                "for one-time portal setup instructions.",
+                ex);
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Failed to retrieve persistent agent '{AgentName}' from Foundry — " +
+                "check FOUNDRY_PROJECT_ENDPOINT, Managed Identity RBAC (Azure AI Developer + " +
+                "Cognitive Services User), and network reachability.",
+                agentName);
+            throw;
+        }
+
+        _logger.LogInformation(
+            "Retrieved persistent agent '{AgentName}' (id: {AgentId}) — latest version resolved by Foundry",
+            agentName, agentRecord.Id);
+
+        var agent = _aiProjectClient.AsAIAgent(agentRecord);
+
+        var userMessage = $"Produce the market brief for {asOf:yyyy-MM-dd}.";
+
+        var runOptions = new ChatClientAgentRunOptions(new ChatOptions { MaxOutputTokens = OutputTokenCap });
+        var response = await agent.RunAsync(userMessage, options: runOptions, cancellationToken: ct);
+
+        var responseText = response.Text ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(responseText))
+        {
+            _logger.LogError(
+                "Persistent agent '{AgentName}' returned empty response — possible Bing " +
+                "Grounding or model-deployment issue. Check the agent's tool configuration " +
+                "in the Foundry portal.",
+                agentName);
+            throw new InvalidOperationException($"Agent '{agentName}' returned empty response");
+        }
+
+        var analysisJson = AgentResponseParser.ExtractJson(responseText);
+        var result = JsonSerializer.Deserialize<NewsBriefAnalysisResult>(analysisJson, _jsonOptions)
+            ?? throw new InvalidOperationException("Failed to parse agent response");
+
+        var usage = response.Usage;
+        if (usage is not null)
+        {
+            result.InputTokens = (int)(usage.InputTokenCount ?? 0);
+            result.OutputTokens = (int)(usage.OutputTokenCount ?? 0);
+            result.TotalTokens = (int)(usage.TotalTokenCount ?? 0);
+        }
+        return result;
     }
 
     public async Task<NewsBriefAnalysisResult> AnalyzeAsync(
@@ -155,7 +162,8 @@ Return ONLY a JSON object with this exact structure:
             $"[Article {i + 1}]\nCategory: {a.Category}\nTitle: {a.Title}\nContent: {a.Content}"));
         var prompt = $"Analyze these market news articles:\n\n{articlesText}";
 
-        var response = await agent.RunAsync(prompt);
+        var runOptions = new ChatClientAgentRunOptions(new ChatOptions { MaxOutputTokens = OutputTokenCap });
+        var response = await agent.RunAsync(prompt, options: runOptions);
         var json = AgentResponseParser.ExtractJson(response.Text ?? string.Empty);
         var result = JsonSerializer.Deserialize<NewsBriefAnalysisResult>(json, _jsonOptions)
             ?? throw new InvalidOperationException("Failed to parse article-based news brief response");

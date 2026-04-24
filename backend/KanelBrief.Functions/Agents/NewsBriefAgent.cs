@@ -47,7 +47,7 @@ public sealed class NewsBriefAgent(
         {
             logger.LogError(ex, "News Brief agent failed");
             var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
-            await errorResponse.WriteAsJsonAsync(new { error = ex.Message });
+            await errorResponse.WriteAsJsonAsync(new { error = "Internal server error" });
             return errorResponse;
         }
     }
