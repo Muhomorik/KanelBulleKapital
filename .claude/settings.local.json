@@ -9,7 +9,8 @@
       "mcp__microsoft-learn__microsoft_code_sample_search",
       "mcp__microsoft-learn__microsoft_docs_fetch",
       "Bash(ls:*)",
-      "mcp__next-devtools__browser_eval"
+      "mcp__next-devtools__browser_eval",
+      "Bash(xargs grep *)"
     ],
     "deny": [
       "Bash(git diff:*)",
@@ -20,12 +21,12 @@
     ],
     "ask": []
   },
-  "autoMemoryEnabled": false,
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "microsoft-learn",
     "next-devtools",
     "shadcn",
     "dxdocs"
-  ]
+  ],
+  "autoMemoryEnabled": false
 }

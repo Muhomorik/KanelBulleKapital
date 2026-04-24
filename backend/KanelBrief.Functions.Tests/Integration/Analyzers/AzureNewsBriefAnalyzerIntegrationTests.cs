@@ -8,11 +8,19 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace KanelBrief.Functions.Tests.Integration.Analyzers;
 
 /// <summary>
-/// Hits live Azure AI Foundry. Requires FOUNDRY_PROJECT_ENDPOINT in user secrets and <c>az login</c>.
+/// Hits live Azure AI Foundry. Prerequisites:
+/// <list type="bullet">
+///   <item><description><c>FOUNDRY_PROJECT_ENDPOINT</c> in user secrets</description></item>
+///   <item><description><c>az login</c> for <c>DefaultAzureCredential</c></description></item>
+///   <item><description>Persistent agent <c>kanelbrief-news-brief</c> created in the Foundry portal
+///     (see <c>docs/AZURE-DEPLOYMENT.md § Persistent Agent Setup</c>) — the test fails fast with a
+///     clear error message if it's missing, but we'd rather skip the wasted call.</description></item>
+/// </list>
 /// Run manually with: <c>dotnet test --filter "TestCategory=Integration"</c>.
 /// </summary>
 [TestFixture]
-[Explicit("Hits live Azure AI Foundry — run manually, requires user secrets.")]
+[Explicit("Hits live Azure AI Foundry — run manually. Requires user secrets and the " +
+          "persistent 'kanelbrief-news-brief' agent in the portal (see docs/AZURE-DEPLOYMENT.md).")]
 [Category("Integration")]
 public class AzureNewsBriefAnalyzerIntegrationTests
 {

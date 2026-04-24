@@ -171,6 +171,98 @@ The Agent Framework needs permission to create and run agents.
    pick your Function App → **Review + assign**
 3. Repeat for **"Cognitive Services User"**
 
+### Persistent Agent Setup (KanelBrief News Brief)
+
+The News Brief agent is created **once** in the Foundry portal as a persistent, named agent.
+The backend invokes it by reference on every 4-hour timer tick instead of creating and
+deleting an ephemeral agent per run.
+
+**Why persistent?** Foundry continuous evaluation (Groundedness, Custom Evaluator) targets
+an agent by name and scores every run automatically. An ephemeral agent that's deleted
+after each run has no target for evaluators to attach to and never surfaces in the portal UI.
+
+**Why groundedness matters here?** The agent uses Bing Grounding to cite news from the past
+48 hours. Groundedness measures whether the report's claims are actually supported by those
+Bing citations — catching hallucinations and drift from real-world data. Without Bing
+Grounding (and without the `source` field in the agent output), groundedness scoring has
+nothing to verify against.
+
+**Why 48 hours?** At a 4-hour run cadence a 14-day window would be mostly redundant between
+consecutive runs. 48 hours is wide enough to absorb Bing indexing lag (paywalled article
+previews and smaller outlets can take up to ~24 hours to be searchable) yet narrow enough
+that each run reflects new developments rather than rehashing the same fortnight.
+
+**Step 1 — Create the agent (Foundry Portal):**
+
+1. Foundry portal → **Build** → **Agents** → **+ New agent**.
+2. Fill in:
+   - **Name**: `kanelbrief-news-brief`
+   - **Model**: `gpt-5.4-mini` (Global Standard)
+   - **Tools**: add **Grounding with Bing Search** → pick `<your-bing-connection>`
+   - **Instructions**: paste the prompt in Step 1a below
+3. Save.
+
+**Step 1a — News Brief agent instructions (source of truth, paste verbatim):**
+
+```text
+You are a financial market analyst. Analyze global financial market conditions from the past 48 hours and produce a morning market brief.
+
+Cover these sectors: Technology, Energy, Financials, Healthcare, Consumer Discretionary, Industrials.
+Focus on the most significant market-moving events and trends from the past 48 hours (indexing lag headroom: some stories may still surface that broke up to ~2 days ago).
+
+1. Determine the overall market mood (RiskOn, RiskOff, or Mixed)
+2. Write a brief 1-2 sentence market summary
+3. For each significant sector (at least 3-4), provide a sentiment assessment
+
+Sourcing rules:
+- Every assessment headline must reference a specific event, data point, or named source from Bing Grounding results (e.g., "Fed held rates at 5.25%", "IEA cut 2026 demand forecast", "NVIDIA reported Q1 earnings of $X").
+- Cite the source name and URL in the `source` field. Paywalled articles are fine to cite — use the publication and URL even if only the headline preview was accessible.
+- Do NOT invent sources. If Bing returned no relevant results for a sector, label sentiment `Mixed` and set `source` to `null`.
+- Avoid hedging language ("appears", "likely", "may", "could", "tends to") — state facts with verifiable sources or omit the claim.
+
+Output formatting rules:
+- Do NOT include inline citation markers like 【6:2†source】 or [1] anywhere in `summary`, `headline`, or assessment `summary` fields. The `source` field is the ONLY citation mechanism.
+- The `source` field must be an article-level URL from a Bing Grounding result — NOT a homepage, section, or aggregator URL:
+  - ✅ "Reuters — https://www.reuters.com/markets/us/intel-earnings-2026-04-24/"
+  - ❌ "Reuters — https://www.reuters.com/" (homepage)
+  - ❌ "FT — https://www.ft.com/markets" (section)
+  - ❌ "Google Finance — https://www.google.com/finance/" (aggregator)
+- Pick the source whose content most directly supports the headline's specific claim.
+
+Return ONLY a JSON object with this exact structure:
+{
+  "mood": "RiskOn|RiskOff|Mixed",
+  "summary": "Your market summary with specific data points where available",
+  "assessments": [
+    {
+      "category": "Sector name",
+      "headline": "Specific market-moving event or data point",
+      "summary": "Brief analysis grounded in the cited source",
+      "sentiment": "RiskOn|RiskOff|Mixed",
+      "source": "Publication name — https://article.url.example (or null when sentiment is Mixed)"
+    }
+  ]
+}
+```
+
+> Because this prompt lives in the portal rather than source code, this doc is the recovery copy. If the agent is accidentally deleted, recreate it by pasting the block above verbatim.
+
+**Step 2 — Enable Groundedness evaluator (built-in):**
+
+1. Foundry portal → **Build → Agents → `kanelbrief-news-brief`** → **Monitor** tab.
+2. **Set up continuous evaluation** → enable **Groundedness**. Judge model: `gpt-5.4-mini`. Accept default sampling.
+3. Save.
+
+**Step 3 — Enable Custom Evaluator (content quality):**
+
+Groundedness covers "are claims supported by sources?". To also score domain-specific content rules (brevity, source authenticity, category coverage, sentiment-label accuracy), add a custom evaluator:
+
+1. Same Monitor tab → **Custom Evaluator** → **Create**.
+2. Paste the contents of [../FikaForecast/FikaForecast.Application/Prompts/evaluation.prompt.txt](../FikaForecast/FikaForecast.Application/Prompts/evaluation.prompt.txt).
+3. Save.
+
+Both evaluators run automatically on every future News Brief run — scores appear in the Monitor tab within ~5–10 min of each run.
+
 ## Storage Account
 
 Azure Tables for agent results + Durable Functions state. Single account handles both.

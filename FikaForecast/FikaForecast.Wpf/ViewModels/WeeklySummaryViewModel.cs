@@ -134,15 +134,19 @@ public class WeeklySummaryViewModel : ViewModelBase
 
         try
         {
-            // Load recent daily briefs from the default model
+            var (weekStart, weekEndExclusive) = WeekBoundary.CalculateLastCompletedWeek(DateTimeOffset.Now);
+
             var allRuns = await _newsBriefRepository.GetByModelAsync(_defaultModelId!);
             var successfulRuns = allRuns
                 .Where(r => r.Status == RunStatus.Success && r.Item is not null)
+                .Where(r => r.Timestamp >= weekStart && r.Timestamp < weekEndExclusive)
                 .ToList();
 
             if (successfulRuns.Count == 0)
             {
-                SetStatus("No successful daily briefs found for the default model. Run Step 1 first.", isError: true);
+                SetStatus(
+                    $"No successful daily briefs for the week of {weekStart:MMM dd} – {weekEndExclusive.AddDays(-1):MMM dd}. Run Step 1 first.",
+                    isError: true);
                 return;
             }
 
@@ -236,24 +240,24 @@ public class WeeklySummaryViewModel : ViewModelBase
 
         try
         {
+            var (weekStart, weekEndExclusive) = WeekBoundary.CalculateLastCompletedWeek(DateTimeOffset.Now);
+
             var allRuns = await _newsBriefRepository.GetByModelAsync(_defaultModelId);
             var successfulRuns = allRuns
                 .Where(r => r.Status == RunStatus.Success && r.Item is not null)
+                .Where(r => r.Timestamp >= weekStart && r.Timestamp < weekEndExclusive)
                 .OrderBy(r => r.Timestamp)
                 .ToList();
 
             DailyBriefCount = successfulRuns.Count;
             AvailableBriefs.Clear();
 
+            BriefsDateRange = $"{weekStart:MMM dd} – {weekEndExclusive.AddDays(-1):MMM dd, yyyy}";
+
             if (successfulRuns.Count == 0)
             {
-                BriefsDateRange = null;
                 return;
             }
-
-            var first = successfulRuns.First().Timestamp;
-            var last = successfulRuns.Last().Timestamp;
-            BriefsDateRange = $"{first:MMM dd} – {last:MMM dd, yyyy}";
 
             // Group by calendar date, show per-day breakdown
             var byDate = successfulRuns
