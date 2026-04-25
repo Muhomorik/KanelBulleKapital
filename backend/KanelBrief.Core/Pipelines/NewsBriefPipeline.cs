@@ -52,6 +52,7 @@ public sealed class NewsBriefPipeline : INewsBriefPipeline
                 Mood = analysis.Mood,
                 Summary = analysis.Summary,
                 Assessments = analysis.Assessments,
+                Citations = analysis.Citations,
                 DurationSeconds = (_timeProvider.GetUtcNow() - startTime).TotalSeconds,
                 InputTokens = analysis.InputTokens,
                 OutputTokens = analysis.OutputTokens,

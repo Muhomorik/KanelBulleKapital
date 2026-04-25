@@ -2,6 +2,7 @@ using Azure.AI.Projects;
 using Azure.AI.Projects.Agents;
 using Azure.Identity;
 using KanelBrief.Functions.Agents.Analyzers;
+using KanelBrief.Functions.Infrastructure;
 using KanelBrief.Functions.Orchestration;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -46,7 +47,8 @@ public class AzureNewsBriefAnalyzerIntegrationTests
             NullLogger<AzureNewsBriefAnalyzer>.Instance,
             aiProjectClient,
             agentAdmin,
-            options);
+            options,
+            new EmbeddedPromptProvider());
     }
 
     [Test]
@@ -66,5 +68,11 @@ public class AzureNewsBriefAnalyzerIntegrationTests
         Assert.That(result.InputTokens, Is.GreaterThan(0), "input tokens should be captured from the LLM response");
         Assert.That(result.OutputTokens, Is.GreaterThan(0), "output tokens should be captured from the LLM response");
         Assert.That(result.TotalTokens, Is.GreaterThanOrEqualTo(result.InputTokens + result.OutputTokens));
+
+        // Citations come from the annotation channel. Empty is the expected outcome for the
+        // current JSON-mode agent (Foundry only attaches annotations to prose); the assertion
+        // is on shape, not population. If the agent ever switches to prose output, the same
+        // pipeline surfaces real URL citations here.
+        Assert.That(result.Citations, Is.Not.Null, "Citations list should be initialised, not null");
     }
 }

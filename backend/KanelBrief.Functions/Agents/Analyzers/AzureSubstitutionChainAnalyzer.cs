@@ -22,14 +22,17 @@ public sealed class AzureSubstitutionChainAnalyzer : ISubstitutionChainAnalyzer
 
     private readonly ILogger<AzureSubstitutionChainAnalyzer> _logger;
     private readonly AIProjectClient _aiProjectClient;
+    private readonly IPromptProvider _promptProvider;
     private readonly JsonSerializerOptions _jsonOptions = KanelJsonOptions.CamelCase;
 
     public AzureSubstitutionChainAnalyzer(
         ILogger<AzureSubstitutionChainAnalyzer> logger,
-        AIProjectClient aiProjectClient)
+        AIProjectClient aiProjectClient,
+        IPromptProvider promptProvider)
     {
         _logger = logger;
         _aiProjectClient = aiProjectClient;
+        _promptProvider = promptProvider;
     }
 
     public async Task<SubstitutionChainAnalysisResult> AnalyzeAsync(
@@ -38,22 +41,11 @@ public sealed class AzureSubstitutionChainAnalyzer : ISubstitutionChainAnalyzer
     {
         var summaryContext = $"Net Mood: {weeklySummary.NetMood}\nSummary: {weeklySummary.MoodSummary}\nThemes:\n{JsonSerializer.Serialize(weeklySummary.Themes, _jsonOptions)}";
 
+        var promptDef = _promptProvider.GetSubstitutionChainPrompt();
         var agent = _aiProjectClient.AsAIAgent(
             model: ModelId,
             name: "SubstitutionChainAnalyzer",
-            instructions: @"You are a capital rotation analyst. Based on weekly market themes, identify where capital is flowing from and to.
-Identify 2-4 rotation chains based on the sentiment data.
-
-Return ONLY a JSON object with this exact structure:
-{
-  ""chains"": [
-    {
-      ""capitalFleeing"": ""Sector losing capital"",
-      ""flowsToward"": ""Sector gaining capital"",
-      ""mechanism"": ""Why capital is rotating""
-    }
-  ]
-}");
+            instructions: promptDef.SystemPrompt);
 
         var prompt = $"Based on this weekly summary, identify capital rotation chains:\n\n{summaryContext}";
         var runOptions = new ChatClientAgentRunOptions(new ChatOptions { MaxOutputTokens = OutputTokenCap });

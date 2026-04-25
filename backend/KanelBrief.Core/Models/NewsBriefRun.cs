@@ -10,4 +10,6 @@ public class NewsBriefRun : AgentRunBase
     public string Summary { get; set; } = string.Empty;
 
     public List<CategoryAssessment> Assessments { get; set; } = [];
+
+    public List<Citation> Citations { get; set; } = [];
 }

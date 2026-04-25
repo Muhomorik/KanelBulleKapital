@@ -107,6 +107,70 @@ public class AgentRunRepositoryMapperTests
 
     [Test]
     [Category("NewsBriefRun")]
+    public void MapToNewsBriefRun_CitationsJson_DeserializesCorrectly()
+    {
+        var citations = new List<Citation>
+        {
+            new("Reuters — Intel Q1", "https://www.reuters.com/business/intel-q1-2026/", 145, 198),
+            new("FT — AMD rally", "https://www.ft.com/content/amd-2026-04-24", 210, 257)
+        };
+
+        var entity = CreateBaseEntity("2026-04-08", "run-123");
+        entity[NewsBriefColumns.DeploymentName] = "gpt-5.4-mini";
+        entity[NewsBriefColumns.Mood] = "RiskOn";
+        entity[NewsBriefColumns.Summary] = "test";
+        entity[NewsBriefColumns.Assessments] = "[]";
+        entity[NewsBriefColumns.Citations] = JsonSerializer.Serialize(citations, _jsonOptions);
+
+        var run = _sut.MapToNewsBriefRun(entity);
+
+        Assert.That(run.Citations, Has.Count.EqualTo(2));
+        Assert.That(run.Citations[0].Title, Is.EqualTo("Reuters — Intel Q1"));
+        Assert.That(run.Citations[0].Url, Is.EqualTo("https://www.reuters.com/business/intel-q1-2026/"));
+        Assert.That(run.Citations[0].StartIndex, Is.EqualTo(145));
+        Assert.That(run.Citations[0].EndIndex, Is.EqualTo(198));
+    }
+
+    [Test]
+    [Category("NewsBriefRun")]
+    public void MapToNewsBriefRun_EmptyCitationsJson_ReturnsEmptyList()
+    {
+        // Empty array is the expected payload for JSON-mode agents — the persistence
+        // layer must round-trip it as an empty list (not null) so downstream code
+        // doesn't NRE on .Count or .Any().
+        var entity = CreateBaseEntity("2026-04-08", "run-123");
+        entity[NewsBriefColumns.DeploymentName] = "gpt-5.4-mini";
+        entity[NewsBriefColumns.Mood] = "Mixed";
+        entity[NewsBriefColumns.Summary] = "test";
+        entity[NewsBriefColumns.Assessments] = "[]";
+        entity[NewsBriefColumns.Citations] = "[]";
+
+        var run = _sut.MapToNewsBriefRun(entity);
+
+        Assert.That(run.Citations, Is.Not.Null);
+        Assert.That(run.Citations, Is.Empty);
+    }
+
+    [Test]
+    [Category("NewsBriefRun")]
+    public void MapToNewsBriefRun_LegacyEntityWithoutCitationsColumn_ReturnsEmptyList()
+    {
+        // Pre-Citations rows in Azure Tables won't have the column at all. The mapper
+        // must treat that as "no citations" rather than throwing on missing key.
+        var entity = CreateBaseEntity("2026-04-08", "legacy-run");
+        entity[NewsBriefColumns.DeploymentName] = "gpt-5.4-mini";
+        entity[NewsBriefColumns.Mood] = "Mixed";
+        entity[NewsBriefColumns.Summary] = "";
+        entity[NewsBriefColumns.Assessments] = "[]";
+
+        var run = _sut.MapToNewsBriefRun(entity);
+
+        Assert.That(run.Citations, Is.Not.Null);
+        Assert.That(run.Citations, Is.Empty);
+    }
+
+    [Test]
+    [Category("NewsBriefRun")]
     public void MapToNewsBriefRun_EntityWithCreatedAt_MapsCreatedAt()
     {
         // Arrange

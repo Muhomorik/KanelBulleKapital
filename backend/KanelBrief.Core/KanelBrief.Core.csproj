@@ -15,4 +15,8 @@
     <InternalsVisibleTo Include="KanelBrief.Core.Tests" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Prompts\*.prompt.txt" />
+  </ItemGroup>
+
 </Project>

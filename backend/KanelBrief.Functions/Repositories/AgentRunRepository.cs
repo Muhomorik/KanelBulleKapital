@@ -29,6 +29,7 @@ public class AgentRunRepository : IAgentRunRepository
         public const string Mood = "Mood";
         public const string Summary = "Summary";
         public const string Assessments = "Assessments";
+        public const string Citations = "Citations";
     }
 
     internal static class WeeklySummaryColumns
@@ -85,7 +86,8 @@ public class AgentRunRepository : IAgentRunRepository
             { NewsBriefColumns.DeploymentName, run.DeploymentName },
             { NewsBriefColumns.Mood, run.Mood },
             { NewsBriefColumns.Summary, run.Summary },
-            { NewsBriefColumns.Assessments, JsonSerializer.Serialize(run.Assessments, KanelJsonOptions.CamelCase) }
+            { NewsBriefColumns.Assessments, JsonSerializer.Serialize(run.Assessments, KanelJsonOptions.CamelCase) },
+            { NewsBriefColumns.Citations, JsonSerializer.Serialize(run.Citations, KanelJsonOptions.CamelCase) }
         };
 
         await _newsBriefRunsTable.UpsertEntityAsync(entity);
@@ -336,6 +338,10 @@ public class AgentRunRepository : IAgentRunRepository
             ? []
             : JsonSerializer.Deserialize<List<CategoryAssessment>>(entity[NewsBriefColumns.Assessments]!.ToString()!, KanelJsonOptions.CamelCase) ?? [];
 
+        var citations = string.IsNullOrEmpty(entity[NewsBriefColumns.Citations]?.ToString())
+            ? []
+            : JsonSerializer.Deserialize<List<Citation>>(entity[NewsBriefColumns.Citations]!.ToString()!, KanelJsonOptions.CamelCase) ?? [];
+
         return new NewsBriefRun
         {
             RunDate = entity.PartitionKey,
@@ -350,7 +356,8 @@ public class AgentRunRepository : IAgentRunRepository
             DeploymentName = entity[NewsBriefColumns.DeploymentName]?.ToString() ?? string.Empty,
             Mood = entity[NewsBriefColumns.Mood]?.ToString() ?? string.Empty,
             Summary = entity[NewsBriefColumns.Summary]?.ToString() ?? string.Empty,
-            Assessments = assessments
+            Assessments = assessments,
+            Citations = citations
         };
     }
 

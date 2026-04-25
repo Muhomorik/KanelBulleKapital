@@ -182,15 +182,47 @@ an agent by name and scores every run automatically. An ephemeral agent that's d
 after each run has no target for evaluators to attach to and never surfaces in the portal UI.
 
 **Why groundedness matters here?** The agent uses Bing Grounding to cite news from the past
-48 hours. Groundedness measures whether the report's claims are actually supported by those
-Bing citations — catching hallucinations and drift from real-world data. Without Bing
-Grounding (and without the `source` field in the agent output), groundedness scoring has
-nothing to verify against.
+48 hours. Groundedness measures whether the report's claims are actually supported by the
+Bing tool outputs — catching hallucinations and drift from real-world data.
 
 **Why 48 hours?** At a 4-hour run cadence a 14-day window would be mostly redundant between
 consecutive runs. 48 hours is wide enough to absorb Bing indexing lag (paywalled article
 previews and smaller outlets can take up to ~24 hours to be searchable) yet narrow enough
 that each run reflects new developments rather than rehashing the same fortnight.
+
+**Citation handling — important architecture note:**
+
+URLs are **NOT** included in the model's JSON output. The model cannot reliably copy
+URLs into structured fields — it hallucinates them (confirmed in testing: a Loomis
+Sayles URL the model produced returned 404; a CNBC URL had a fabricated slug pattern).
+Microsoft's [Bing tool docs rule #7](https://learn.microsoft.com/azure/foundry/agents/how-to/tools/bing-tools#supported-capabilities-and-known-issues)
+explicitly says: *"Use the default citations pattern (the links sent in `annotation`)
+for links from the Grounding with Bing tools. Don't ask the model to generate citation
+links."*
+
+The intended flow is:
+
+1. Agent runs with Grounding with Bing Search.
+2. Foundry attaches `UriCitationMessageAnnotation` objects to the response message,
+   pinning each citation to a `start_index..end_index` span in the model's text.
+3. Analyzer code (`CitationExtractor` in `KanelBrief.Functions/Infrastructure/`)
+   walks `response.RawRepresentation` (a `ResponseResult` from `OpenAI.Responses`),
+   extracts citations, and attaches them to `NewsBriefAnalysisResult.Citations`.
+4. Persistence stores them as a JSON column in the `NewsBriefRuns` Azure Table.
+
+**Caveat: JSON-mode agents currently return empty annotations.** Foundry only attaches
+URL annotations to natural-language prose output, not structured JSON. Today's News
+Brief agent outputs JSON, so `Citations` is consistently an empty list — we still read
+it defensively because:
+
+- The Bing tool output itself is hidden from developers (rule #5: *"Grounding with Bing
+  Search tools don't return the tool output to developers and end users"*), so
+  annotations are the only mechanism to surface URLs at all.
+- If Microsoft enables JSON-mode annotations, or this agent or any other is rewritten
+  to emit prose with a structured tail, the same extraction code populates citations
+  without a code change.
+- Foundry's built-in **Groundedness** evaluator can still see the hidden tool outputs
+  and score the response — it doesn't depend on the `Citations` list.
 
 **Step 1 — Create the agent (Foundry Portal):**
 
@@ -198,54 +230,94 @@ that each run reflects new developments rather than rehashing the same fortnight
 2. Fill in:
    - **Name**: `kanelbrief-news-brief`
    - **Model**: `gpt-5.4-mini` (Global Standard)
-   - **Tools**: add **Grounding with Bing Search** → pick `<your-bing-connection>`
-   - **Instructions**: paste the prompt in Step 1a below
-3. Save.
+   - **Tools**: add **Grounding with Bing Search** ONLY → pick `<your-bing-connection>`.
+     - ⚠️ **Do NOT also attach the built-in "Web search" tool.** Having both attached
+       caused `too_many_requests` (HTTP 429) errors and tool ambiguity in the model's
+       tool-selection step. Use only **Grounding with Bing Search**.
+3. Configure Bing tool parameters (click ⋮ → **Edit** on the Bing tool):
+   - **Count**: `5`
+   - **Set language**: `en`
+   - **Market**: `en-us`
+   - **Freshness**: `Week` ← critical. Empty freshness causes Bing to return stale
+     multi-week-old articles. `Day` is too aggressive (24-hour filter loses Friday's
+     close on weekend runs and ignores the prompt's "+ ~2 days indexing lag" headroom).
+     `Week` gives a 7-day hard floor on the indexed pool while the prompt's "past 48
+     hours" wording acts as a soft filter that the model self-applies for prioritization.
+4. **Instructions**: paste the prompt in Step 1a below.
+5. Save.
 
 **Step 1a — News Brief agent instructions (source of truth, paste verbatim):**
 
 ```text
-You are a financial market analyst. Analyze global financial market conditions from the past 48 hours and produce a morning market brief.
+# Role and Objective
 
-Cover these sectors: Technology, Energy, Financials, Healthcare, Consumer Discretionary, Industrials.
-Focus on the most significant market-moving events and trends from the past 48 hours (indexing lag headroom: some stories may still surface that broke up to ~2 days ago).
+You are a financial market analyst. Analyze global financial market conditions
+from the past 48 hours and produce a morning market brief for an automated
+pipeline (no interactive user — your output is parsed as JSON).
 
-1. Determine the overall market mood (RiskOn, RiskOff, or Mixed)
-2. Write a brief 1-2 sentence market summary
-3. For each significant sector (at least 3-4), provide a sentiment assessment
+# Sectors
 
-Sourcing rules:
-- Every assessment headline must reference a specific event, data point, or named source from Bing Grounding results (e.g., "Fed held rates at 5.25%", "IEA cut 2026 demand forecast", "NVIDIA reported Q1 earnings of $X").
-- Cite the source name and URL in the `source` field. Paywalled articles are fine to cite — use the publication and URL even if only the headline preview was accessible.
-- Do NOT invent sources. If Bing returned no relevant results for a sector, label sentiment `Mixed` and set `source` to `null`.
-- Avoid hedging language ("appears", "likely", "may", "could", "tends to") — state facts with verifiable sources or omit the claim.
+Cover: Technology, Energy, Financials, Healthcare, Consumer Discretionary,
+Industrials. Include at least 3-4 in your assessments. List them in order of
+market significance (most market-moving first).
 
-Output formatting rules:
-- Do NOT include inline citation markers like 【6:2†source】 or [1] anywhere in `summary`, `headline`, or assessment `summary` fields. The `source` field is the ONLY citation mechanism.
-- The `source` field must be an article-level URL from a Bing Grounding result — NOT a homepage, section, or aggregator URL:
-  - ✅ "Reuters — https://www.reuters.com/markets/us/intel-earnings-2026-04-24/"
-  - ❌ "Reuters — https://www.reuters.com/" (homepage)
-  - ❌ "FT — https://www.ft.com/markets" (section)
-  - ❌ "Google Finance — https://www.google.com/finance/" (aggregator)
-- Pick the source whose content most directly supports the headline's specific claim.
+# Tasks
 
-Return ONLY a JSON object with this exact structure:
+1. Determine the overall market mood: RiskOn, RiskOff, or Mixed.
+2. Write a brief 1-2 sentence market summary.
+3. Provide a sentiment assessment for each significant sector.
+
+# Sourcing Rules
+
+- Use Grounding with Bing Search to find real, recent events. Do not invent.
+- Every headline must reference a specific event, data point, or named source
+  from Bing results (e.g., "Fed held rates at 5.25%", "Intel reported Q1 EPS").
+- If no Bing result supports a sector, label sentiment Mixed.
+- If Bing results are insufficient for a specific claim, omit it or keep the
+  sector Mixed.
+- Avoid hedging language (appears, likely, may, could, tends to).
+- Focus on the past 48 hours, with up to ~2 days of indexing-lag headroom.
+
+# Output Format
+
+Return JSON only. No markdown fences, no commentary, no preamble, no checklist,
+no tool-call narration.
+
+Output language: English only. Do not include tokens from non-Latin scripts
+(Cyrillic, Devanagari, Arabic, CJK, etc.).
+
+Do not include URLs, links, or domain names anywhere in the output. Citations
+are returned automatically via the annotation channel — the framework attaches
+them. Including URLs yourself produces hallucinated links.
+
+Do not include inline citation markers like 【6:2†source】 or [1].
+
+Schema (return ONLY this object):
+
 {
   "mood": "RiskOn|RiskOff|Mixed",
-  "summary": "Your market summary with specific data points where available",
+  "summary": "string",
   "assessments": [
     {
-      "category": "Sector name",
-      "headline": "Specific market-moving event or data point",
-      "summary": "Brief analysis grounded in the cited source",
-      "sentiment": "RiskOn|RiskOff|Mixed",
-      "source": "Publication name — https://article.url.example (or null when sentiment is Mixed)"
+      "category": "string",
+      "headline": "string",
+      "summary": "string",
+      "sentiment": "RiskOn|RiskOff|Mixed"
     }
   ]
 }
+
+# Stop Conditions
+
+- Finish once the JSON object is complete and valid.
+- Do not add any text outside the JSON object.
+- If you cannot fully ground a claim in Bing results, omit it or use Mixed.
 ```
 
-> Because this prompt lives in the portal rather than source code, this doc is the recovery copy. If the agent is accidentally deleted, recreate it by pasting the block above verbatim.
+> Because this prompt lives in the portal rather than source code, this doc is the
+> recovery copy. If the agent is accidentally deleted, recreate it by pasting the block
+> above verbatim — and remember to attach **only** Grounding with Bing Search (not Web
+> search) and set Freshness=`Week` on the Bing tool.
 
 **Step 2 — Enable Groundedness evaluator (built-in):**
 
@@ -255,11 +327,10 @@ Return ONLY a JSON object with this exact structure:
 
 **Step 3 — Enable Custom Evaluator (content quality):**
 
-Groundedness covers "are claims supported by sources?". To also score domain-specific content rules (brevity, source authenticity, category coverage, sentiment-label accuracy), add a custom evaluator:
-
-1. Same Monitor tab → **Custom Evaluator** → **Create**.
-2. Paste the contents of [../FikaForecast/FikaForecast.Application/Prompts/evaluation.prompt.txt](../FikaForecast/FikaForecast.Application/Prompts/evaluation.prompt.txt).
-3. Save.
+Groundedness covers "are claims supported by sources?". To also score domain-specific
+content rules (brevity, specificity, category coverage, sentiment-label accuracy, output
+language, freshness), add a custom evaluator. Setup steps and the prompt source-of-truth
+live in [NEWS-BRIEF-EVALUATOR.md](NEWS-BRIEF-EVALUATOR.md).
 
 Both evaluators run automatically on every future News Brief run — scores appear in the Monitor tab within ~5–10 min of each run.
 
