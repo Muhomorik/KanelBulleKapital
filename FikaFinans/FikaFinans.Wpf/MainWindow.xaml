@@ -1,0 +1,32 @@
+<mah:MetroWindow
+    x:Class="FikaFinans.Wpf.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:viewModels="clr-namespace:FikaFinans.Wpf.ViewModels"
+    Title="{Binding Title}"
+    Width="1080"
+    Height="1080"
+    d:DataContext="{d:DesignInstance Type=viewModels:MainWindowViewModel,
+                                     IsDesignTimeCreatable=True}"
+    WindowStartupLocation="CenterScreen"
+    mc:Ignorable="d">
+    <Grid>
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+            <TextBlock
+                HorizontalAlignment="Center"
+                FontSize="36"
+                FontWeight="Light"
+                Foreground="{DynamicResource MahApps.Brushes.Accent}"
+                Text="{Binding Title}" />
+            <TextBlock
+                Margin="0,12,0,0"
+                HorizontalAlignment="Center"
+                FontSize="14"
+                Opacity="0.7"
+                Text="{Binding Subtitle}" />
+        </StackPanel>
+    </Grid>
+</mah:MetroWindow>
