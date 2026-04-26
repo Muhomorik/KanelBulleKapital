@@ -10,12 +10,14 @@ This is a personal hobby project. Be warm, friendly, and human — like a coding
 
 This project is a **skills portfolio** — the primary goal is to demonstrate proficiency in:
 
-- **Microsoft Agent Framework** (Azure AI Agent Service)
-- **Azure AI Foundry**
+- **Microsoft Agent Framework (MAF)** — the provider-agnostic agent abstraction (`Microsoft.Agents.AI`)
+- **Azure AI Foundry** — model hosting + the Foundry Agents Service, accessed via `Azure.AI.Projects` (GA 2.0)
+
+MAF sits *on top of* AI Projects for the Foundry case (`AIProjectClient.AsAIAgent(...)`). They aren't competing choices — MAF is the wrapper, AI Projects is the underlying SDK. The portfolio narrative covers both layers.
 
 ### ⚠️ Microsoft Agent Framework — Knowledge Freshness Warning
 
-The Microsoft Agent Framework and Azure AI Foundry are newly released and evolving rapidly. Claude's training data may be outdated for these topics. **Before answering questions or generating code related to the Agent Framework or AI Foundry, always check the latest Microsoft Learn documentation via MCP docs tools.** Do not rely solely on training knowledge — verify against current docs first.
+MAF and the Foundry Agents Service are evolving rapidly (MAF is in 1.0 RC as of March 2026; the classic Persistent Agents path is retiring 2027-03-31). Claude's training data lags. **Before answering questions or generating code related to the Agent Framework or Foundry agents, always check the latest Microsoft Learn documentation via MCP docs tools.** Do not rely solely on training knowledge — verify against current docs first.
 
 ## Key Technologies
 
@@ -46,14 +48,30 @@ The Microsoft Agent Framework and Azure AI Foundry are newly released and evolvi
 | ------------ | --------- |
 | Azure Functions | Serverless compute (individual task handlers) |
 | Azure Tables | NoSQL key-value storage |
-| Microsoft Agent Framework | AI agent orchestration |
-| Azure AI Foundry | AI model hosting & management |
+| Azure AI Foundry | Model hosting + Foundry Agents Service |
+
+### .NET SDK packages for Foundry agents
+
+| Package | Status | Role |
+| --------- | -------- | ------ |
+| `Azure.AI.Projects` | **GA 2.0** | `AIProjectClient`, agent administration, the Foundry SDK foundation |
+| `Azure.AI.Extensions.OpenAI` | Active | Bridge to the OpenAI .NET SDK — provides `OpenAIFileClient` for `purpose=Assistants` uploads, `ProjectResponsesClient` for the Responses API |
+| `Microsoft.Agents.AI` | **1.0 RC** | MAF — the provider-agnostic `AIAgent` abstraction. Layer on top of AI Projects via `.AsAIAgent(...)` |
+| `Azure.Identity` | GA | `DefaultAzureCredential` for keyless auth (`az login` locally) |
+| `OpenAI` | GA | Official OpenAI .NET SDK, pulled in transitively by `Azure.AI.Extensions.OpenAI` |
+
+**Default migration target:** new code should target `Azure.AI.Projects` directly, then optionally wrap with MAF (`Microsoft.Agents.AI`) when the abstraction earns its keep (multi-provider, workflows, middleware). For the Foundry+CodeInterpreter+file-upload scenario specifically, AI Projects has a published, working C# sample; MAF's coverage of that pattern is still catching up.
+
+**Don't use:**
+
+- `Azure.AI.Agents.Persistent` / `PersistentAgentsClient` — the *classic* Foundry Agents path. **Retiring 2027-03-31.** Existing code on this SDK is on borrowed time and should be migrated.
+- `Microsoft.SemanticKernel.*` — deprecated for this org's projects.
 
 ### Additional Guidance
 
 - Keep costs low: When suggesting infrastructure, prioritize free/low-cost options (Azure free tier, free APIs). Only suggest paid upgrades if strictly necessary and mention the cost impact.
 - **Azure App Service F1 (free tier) is already in use** for the backend — do not suggest removing or replacing it. Use Azure Functions for new serverless workloads instead.
-- **Do not use or reference Semantic Kernel** — it is deprecated. Use Microsoft Agent Framework instead.
+- **Do not use or reference Semantic Kernel** — it is deprecated. Use Microsoft Agent Framework (MAF) instead, layered on `Azure.AI.Projects` for the Foundry case.
 
 ## Development Environment
 
