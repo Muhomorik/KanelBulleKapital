@@ -1,6 +1,6 @@
 # FikaFinans — Multi-Model Foundry Fund-Analytics Plan
 
-> **Status:** Draft. Iterating. Do not implement yet.
+> **Status:** Implemented (2026-04). The architecture, UX rules, and rationale below are still load-bearing, but **specific SDK references in this doc are historical** — the implementation migrated off the classic `Azure.AI.Agents.Persistent` path onto `Azure.AI.Projects` 2.0 + `Azure.AI.Projects.Agents` + the Responses API + `OpenAIFileClient` (`purpose=Assistants`). For the current SDK surface and hard contracts, read [../CLAUDE.md](../CLAUDE.md) and the actual code. Specifically outdated here: `Azure.AI.Agents.Persistent` package add, `PersistentAgentsClient`, `Files.UploadFileAsync` with `PersistentAgentFilePurpose.Agents`, `CodeInterpreterToolDefinition` + `ToolResources`, and `_aiProjectClient.AsAIAgent(...)`.
 
 ## Context
 

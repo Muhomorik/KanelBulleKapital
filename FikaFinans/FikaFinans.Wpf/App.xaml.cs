@@ -1,5 +1,7 @@
 using System.Windows;
 using Autofac;
+using FikaFinans.Infrastructure.DependencyInjection;
+using FikaFinans.Wpf.Interop;
 using FikaFinans.Wpf.Modules;
 using Microsoft.Extensions.Configuration;
 using NLog;
@@ -26,10 +28,13 @@ public partial class App : System.Windows.Application
 
         var configuration = BuildConfiguration();
 
+        WarnIfConfigurationIncomplete(configuration);
+
         var builder = new ContainerBuilder();
         builder.RegisterInstance(configuration).As<IConfiguration>();
         builder.RegisterModule<NLogModule>();
         builder.RegisterModule<ApplicationModule>();
+        builder.RegisterModule<InfrastructureModule>();
         builder.RegisterModule(new PresentationModule(configuration));
 
         _container = builder.Build();
@@ -88,5 +93,24 @@ public partial class App : System.Windows.Application
             .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
             .AddUserSecrets<App>(optional: true)
             .Build();
+    }
+
+    private static void WarnIfConfigurationIncomplete(IConfiguration configuration)
+    {
+        var missing = InfrastructureModule.FindMissingConfiguration(configuration);
+        if (missing.Count == 0) return;
+
+        Logger.Warn("Startup configuration incomplete: {Keys}", string.Join(", ", missing.Select(m => m.Key)));
+
+        var lines = missing.Select(m => $"• {m.Key}\n   {m.Hint}");
+        var body =
+            string.Join("\n\n", lines) +
+            "\n\nThe app will start, but model comparison will fail until these are set.";
+
+        TaskDialog.ShowWarning(
+            owner: null,
+            title: "FikaFinans",
+            mainInstruction: "Configuration is missing",
+            content: body);
     }
 }

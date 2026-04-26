@@ -9,6 +9,7 @@
     <PlatformTarget>x64</PlatformTarget>
     <Platforms>AnyCPU;x64</Platforms>
     <UserSecretsId>8b3a2f1d-4e5c-4a6b-9d8e-1c2f3a4b5d6e</UserSecretsId>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
 
   <ItemGroup>

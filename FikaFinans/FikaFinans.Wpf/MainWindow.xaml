@@ -6,27 +6,28 @@
     xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:viewModels="clr-namespace:FikaFinans.Wpf.ViewModels"
+    xmlns:views="clr-namespace:FikaFinans.Wpf.Views"
     Title="{Binding Title}"
-    Width="1080"
-    Height="1080"
+    Width="1500"
+    Height="1000"
     d:DataContext="{d:DesignInstance Type=viewModels:MainWindowViewModel,
                                      IsDesignTimeCreatable=True}"
     WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
-    <Grid>
-        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-            <TextBlock
-                HorizontalAlignment="Center"
-                FontSize="36"
-                FontWeight="Light"
-                Foreground="{DynamicResource MahApps.Brushes.Accent}"
-                Text="{Binding Title}" />
-            <TextBlock
-                Margin="0,12,0,0"
-                HorizontalAlignment="Center"
-                FontSize="14"
-                Opacity="0.7"
-                Text="{Binding Subtitle}" />
-        </StackPanel>
-    </Grid>
+
+    <mah:MetroWindow.RightWindowCommands>
+        <mah:WindowCommands>
+            <Button
+                Command="{Binding OpenSettingsCommand}"
+                Content="⚙"
+                FontSize="18"
+                ToolTip="Settings — data folder location" />
+        </mah:WindowCommands>
+    </mah:MetroWindow.RightWindowCommands>
+
+    <TabControl>
+        <TabItem Header="Compare Models">
+            <views:CompareModelsView DataContext="{Binding CompareModelsViewModel}" />
+        </TabItem>
+    </TabControl>
 </mah:MetroWindow>
