@@ -152,15 +152,17 @@ Azure Portal → Function App → **Environment variables** → add:
 
 ### Foundry — Security (Managed Identity + RBAC)
 
-The Function App authenticates to AI Foundry via Managed Identity.
-The Agent Framework needs permission to create and run agents.
+The Function App authenticates to AI Foundry via Managed Identity. The Foundry
+project itself ALSO has its own auto-created managed identity (named `fnd-...`)
+that runs continuous evaluation rules. Both need RBAC.
 
 **Required roles on the Foundry resource (`<your-ai-resource>`):**
 
-| Role | Why |
-| --- | --- |
-| Azure AI Developer | General access to AI Foundry project |
-| Cognitive Services User | Required for agent create/run operations |
+| Role | Assigned to | Why |
+| --- | --- | --- |
+| Azure AI Developer | Function App MI | General access to AI Foundry project |
+| Cognitive Services User | Function App MI | Required for agent create/run operations |
+| Azure AI User | Foundry project MI (`fnd-...`) | Required for continuous evaluation rules to fire on agent traffic. Without it, the rule exists but produces zero evaluation runs and the Monitor settings dialog shows a "Setup incomplete" banner. |
 
 **Setup steps:**
 
@@ -169,7 +171,12 @@ The Agent Framework needs permission to create and run agents.
 2. Search **"Azure AI Developer"** → select → **Next** →
    Assign access to: **Managed identity** → **+ Select members** →
    pick your Function App → **Review + assign**
-3. Repeat for **"Cognitive Services User"**
+3. Repeat for **"Cognitive Services User"** (Function App MI).
+4. Repeat for **"Azure AI User"** — but this time pick the **Foundry project's
+   managed identity** (named `fnd-<project>` in the picker), NOT the Function App.
+   The portal's "Resolve" button on the Monitor settings banner doesn't always work
+   (silently fails when the user lacks role-assignment permissions); manual IAM
+   assignment is the reliable path.
 
 ### Persistent Agent Setup (KanelBrief News Brief)
 
@@ -177,13 +184,16 @@ The News Brief agent is created **once** in the Foundry portal as a persistent, 
 The backend invokes it by reference on every 4-hour timer tick instead of creating and
 deleting an ephemeral agent per run.
 
-**Why persistent?** Foundry continuous evaluation (Groundedness, Custom Evaluator) targets
-an agent by name and scores every run automatically. An ephemeral agent that's deleted
-after each run has no target for evaluators to attach to and never surfaces in the portal UI.
+**Why persistent?** Foundry continuous evaluation targets an agent by name and scores
+every run automatically. An ephemeral agent that's deleted after each run has no target
+for evaluators to attach to and never surfaces in the portal UI.
 
-**Why groundedness matters here?** The agent uses Bing Grounding to cite news from the past
-48 hours. Groundedness measures whether the report's claims are actually supported by the
-Bing tool outputs — catching hallucinations and drift from real-world data.
+**Why a custom evaluator instead of Groundedness?** Microsoft's built-in Groundedness
+evaluator is structurally incompatible with `bing_grounding` — it errors with
+`bing_grounding tool call is currently not supported for GroundednessEvaluator evaluator`
+on every run. As long as the agent uses Grounding with Bing Search, only the custom
+`kanelbrief-news-brief-quality` evaluator can score the output. See
+[NEWS-BRIEF-EVALUATOR.md](NEWS-BRIEF-EVALUATOR.md) for the prompt source-of-truth.
 
 **Why 48 hours?** At a 4-hour run cadence a 14-day window would be mostly redundant between
 consecutive runs. 48 hours is wide enough to absorb Bing indexing lag (paywalled article
@@ -221,8 +231,12 @@ it defensively because:
 - If Microsoft enables JSON-mode annotations, or this agent or any other is rewritten
   to emit prose with a structured tail, the same extraction code populates citations
   without a code change.
-- Foundry's built-in **Groundedness** evaluator can still see the hidden tool outputs
-  and score the response — it doesn't depend on the `Citations` list.
+- Foundry redacts Bing tool outputs from the **eval pipeline** as well — the custom
+  evaluator sees `tool_result: ""` regardless of what Bing actually returned. Don't
+  build evaluator rules that assume an empty tool result means Bing failed; it usually
+  just means the output was redacted. The Foundry agent **playground** is the only
+  developer-visible surface for actual Bing output — use it to spot-check whether
+  specific claims are sourced or invented.
 
 **Step 1 — Create the agent (Foundry Portal):**
 
@@ -319,20 +333,23 @@ Schema (return ONLY this object):
 > above verbatim — and remember to attach **only** Grounding with Bing Search (not Web
 > search) and set Freshness=`Week` on the Bing tool.
 
-**Step 2 — Enable Groundedness evaluator (built-in):**
+**Step 2 — Continuous Evaluation Setup:**
 
-1. Foundry portal → **Build → Agents → `kanelbrief-news-brief`** → **Monitor** tab.
-2. **Set up continuous evaluation** → enable **Groundedness**. Judge model: `gpt-5.4-mini`. Accept default sampling.
-3. Save.
+1. **Prerequisites** (one-time, see [Foundry — Security (Managed Identity + RBAC)](#foundry--security-managed-identity--rbac) above):
+   - App Insights connected to the Foundry project
+   - Foundry project's MI (`fnd-...`) has the `Azure AI User` role
+2. Create the custom evaluator per [NEWS-BRIEF-EVALUATOR.md](NEWS-BRIEF-EVALUATOR.md).
+3. Foundry portal → **Build → Agents → `kanelbrief-news-brief`** → **Monitor** tab → gear icon → **Continuous evaluation** tab.
+4. Toggle **Enabled** on. **Add evaluator(s)** → pick `kanelbrief-news-brief-quality`.
+   Judge model: `gpt-5.4-mini`. Sample rate: 50% (with 6 runs/day this gives ~3 evals/day;
+   100% if you want every run scored — cost is ~$0.20/month at full coverage).
+5. **Submit**.
 
-**Step 3 — Enable Custom Evaluator (content quality):**
+**Don't add Groundedness.** It's incompatible with `bing_grounding` (see "Why a
+custom evaluator?" above) and will leave every run stuck in **Partial** status with
+a `bing_grounding tool call is currently not supported` error in the user logs.
 
-Groundedness covers "are claims supported by sources?". To also score domain-specific
-content rules (brevity, specificity, category coverage, sentiment-label accuracy, output
-language, freshness), add a custom evaluator. Setup steps and the prompt source-of-truth
-live in [NEWS-BRIEF-EVALUATOR.md](NEWS-BRIEF-EVALUATOR.md).
-
-Both evaluators run automatically on every future News Brief run — scores appear in the Monitor tab within ~5–10 min of each run.
+Evaluation results appear in the Monitor tab within ~5–10 min of each agent run.
 
 ## Storage Account
 

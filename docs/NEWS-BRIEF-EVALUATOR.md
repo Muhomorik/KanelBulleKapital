@@ -4,13 +4,36 @@ Source-of-truth recovery copy for the `kanelbrief-news-brief-quality` custom
 evaluator in Foundry. Lives in: Foundry portal → **Build** → **Evaluations** →
 **Evaluator catalog** → `kanelbrief-news-brief-quality`.
 
-The evaluator runs alongside Foundry's built-in **Groundedness** evaluator on every
-News Brief run (see [AZURE-DEPLOYMENT.md § Persistent Agent Setup](AZURE-DEPLOYMENT.md)).
+This is the **only** evaluator attached to News Brief continuous evaluation. See
+[AZURE-DEPLOYMENT.md § Persistent Agent Setup](AZURE-DEPLOYMENT.md) for the rule
+wiring.
 
-| Evaluator | Scope |
-| --- | --- |
-| **Groundedness** (built-in) | "Are claims supported by Bing tool outputs?" — Microsoft's evaluator can see the hidden Bing results we can't. |
-| **kanelbrief-news-brief-quality** (custom, this doc) | Content-quality rules Groundedness doesn't cover: brevity, specificity, sentiment accuracy, language, freshness. |
+| Evaluator | Status | Scope |
+| --- | --- | --- |
+| **Groundedness** (built-in) | ❌ Disabled — see "Why no Groundedness?" below | n/a |
+| **kanelbrief-news-brief-quality** (custom, this doc) | ✅ Active | Content quality: brevity, specificity, category coverage, sentiment accuracy, language, freshness |
+
+## Why no Groundedness?
+
+Tried and dropped. Every run errored with:
+
+```text
+(UserError) bing_grounding tool call is currently not supported for GroundednessEvaluator evaluator.
+```
+
+`bing_grounding` isn't in Microsoft's [supported tools list for agent evaluators](https://learn.microsoft.com/azure/foundry/concepts/evaluation-evaluators/agent-evaluators#supported-tools).
+As long as the agent uses Grounding with Bing Search, Groundedness can't be
+re-enabled. The custom evaluator is the only quality gate.
+
+A consequence: **fact-grounding against Bing sources isn't checked anywhere**.
+Foundry redacts Bing tool outputs from the eval pipeline (see
+[AZURE-DEPLOYMENT.md § Citation handling](AZURE-DEPLOYMENT.md)), so the custom
+evaluator can't fact-check either.
+
+**Debugging tip — if you suspect hallucination:** the Foundry portal **agent
+playground** *does* show Bing tool output to the developer (unlike the eval
+pipeline). Run the same query in the playground to see what Bing actually
+returned and confirm whether claims are sourced or invented.
 
 ## Why this lives in the portal, not in code
 
@@ -33,12 +56,14 @@ through the portal UI without redeploying code).
    - **Description**: `Content, sourcing, and sentiment checks for News Brief reports.`
    - **Evaluator type**: `Prompt based`
    - **Category**: `Quality`
-   - **Scoring method**: `Boolean [pass/fail]`
+   - **Scoring method**: `Ordinal` — `min_value: 1`, `max_value: 5`, `desirable_direction: increase`
 3. Paste the **Evaluation prompt** below verbatim.
 4. **Update** to save.
-5. Attach to the continuous evaluation for `kanelbrief-news-brief` (Monitor tab on
-   the agent — should already include `groundedness` from
-   [AZURE-DEPLOYMENT.md § Step 2](AZURE-DEPLOYMENT.md)).
+5. Attach to the continuous evaluation rule on the agent: agent → **Monitor** tab →
+   gear icon → **Continuous evaluation** → **Add evaluator(s)** → pick
+   `kanelbrief-news-brief-quality` → **Submit**. See
+   [AZURE-DEPLOYMENT.md § Continuous Evaluation Setup](AZURE-DEPLOYMENT.md) for
+   the full rule config (sample rate, role assignments).
 
 ## Evaluation prompt (paste verbatim)
 
@@ -51,7 +76,7 @@ Response: {{response}}
 
 ---
 
-JSON structure, schema compliance, enum values, and absence of extra content are already enforced by the structured-output pipeline — skip those checks. Foundry's built-in Groundedness evaluator scores fact-support against Bing tool outputs — skip that too. Focus only on content quality not covered by those.
+JSON structure, schema compliance, enum values, and absence of extra content are already enforced by the structured-output pipeline — skip those checks. Fact-grounding against Bing sources cannot be checked here — Foundry redacts tool outputs from the eval pipeline. Focus on what's verifiable from the response text alone: content quality, specificity, sentiment accuracy, language, freshness.
 
 For each requirement, report:
 - PASS — if the report follows this rule correctly
@@ -66,8 +91,13 @@ Check these areas:
 6. **Freshness**: The query contains a target date in the form "Produce the market brief for YYYY-MM-DD". Parse that date. Any dated reference in the response (explicit dates like "April 21", "Friday's close", or session-relative phrasing) should fall within 4 days of the target date (the prompt's "past 48 hours" plus up to 2 days of indexing-lag headroom). FAIL if the response sources predominantly from events older than 4 days before the target. If the response contains no dated references at all, this rule is N/A — pass.
 
 End with:
-- **Overall verdict**: PASS or FAIL
-- **Summary**: 2-3 sentences explaining the overall quality and any key issues.
+- **Score**: integer 1-5 per this rubric:
+  - 5: all six rules satisfied cleanly.
+  - 4: one minor violation (e.g., one slightly vague headline, or one dated reference outside the freshness window).
+  - 3: multiple minor violations, OR one major violation (e.g., a sentiment label contradicts the headline/summary tone in one sector, or category coverage falls below 3 sectors).
+  - 2: several violations across rules — content is usable but degraded.
+  - 1: severely broken — non-Latin tokens, fluff/background prose, multiple sentiment mismatches, or the response is unparseable.
+- **Summary**: 2-3 sentences citing the specific violations that drove the score.
 ```
 
 ## Notes on what's intentionally NOT checked
