@@ -1,22 +1,39 @@
 "use client";
 
 import { useState } from "react";
-import { FlaskConical, X } from "lucide-react";
+import { AlertTriangle, X } from "lucide-react";
 
-export function DemoBanner() {
+interface DemoBannerProps {
+  /** Show the banner. False when real data is loaded successfully. */
+  visible: boolean;
+  /**
+   * Why we're showing demo data. `error` = backend unreachable / threw,
+   * `no-data` = backend responded but has nothing for this date.
+   */
+  reason: "error" | "no-data" | null;
+}
+
+export function DemoBanner({ visible, reason }: DemoBannerProps) {
   const [dismissed, setDismissed] = useState(false);
 
-  if (dismissed) return null;
+  if (!visible || dismissed) return null;
+
+  const detail =
+    reason === "error"
+      ? "the backend is unreachable. Azure Functions cold start takes ~30s — try refreshing in a moment."
+      : "no real analysis exists for this date yet.";
 
   return (
-    <div className="relative border-b border-primary/20 bg-primary/5 px-4 py-2.5 text-center text-sm">
+    <div
+      role="alert"
+      className="relative border-b border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-center text-sm"
+    >
       <div className="mx-auto flex max-w-6xl items-center justify-center gap-2">
-        <FlaskConical className="h-3.5 w-3.5 shrink-0 text-primary" />
+        <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
         <p className="text-muted-foreground">
-          <span className="font-medium text-foreground">Demo mode</span>
+          <span className="font-medium text-foreground">Sample data</span>
           {" — "}
-          This is a portfolio project showing sample data. The AI pipeline runs
-          on Azure Functions with ~30s cold start.
+          The figures below are fake; {detail}
         </p>
         <button
           onClick={() => setDismissed(true)}
