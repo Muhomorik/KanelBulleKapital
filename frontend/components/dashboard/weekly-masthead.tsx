@@ -2,12 +2,15 @@
 
 import { useSyncExternalStore } from "react";
 import { CalendarRange } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const WEEKLY_MASTHEAD_PANEL_ID = "weekly-masthead";
 
 interface WeeklyMastheadProps {
   periodStart: string | null;
   periodEnd: string | null;
+  /** Render a placeholder skeleton instead of the range while data is loading. */
+  loading?: boolean;
 }
 
 // Client-only gate — same pattern as app/page.tsx. The date range uses
@@ -18,7 +21,11 @@ const noopSubscribe = () => () => {};
 const getClientMounted = () => true;
 const getServerMounted = () => false;
 
-export function WeeklyMasthead({ periodStart, periodEnd }: WeeklyMastheadProps) {
+export function WeeklyMasthead({
+  periodStart,
+  periodEnd,
+  loading,
+}: WeeklyMastheadProps) {
   const isMounted = useSyncExternalStore(
     noopSubscribe,
     getClientMounted,
@@ -39,25 +46,35 @@ export function WeeklyMasthead({ periodStart, periodEnd }: WeeklyMastheadProps) 
           The analysis below covers
         </p>
 
-        {/* Week selector — visual affordance only, not yet wired to data */}
-        <button
-          type="button"
-          disabled
-          aria-label="Select week (historical weeks coming soon)"
-          title="Historical weeks coming soon"
-          className="group mt-3 flex w-full flex-wrap items-baseline justify-center gap-x-4 gap-y-2"
-        >
-          <span className="font-serif text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-            {range ?? (
-              <span className="text-muted-foreground">— awaiting data —</span>
-            )}
-          </span>
-          {weekNumber !== null && (
-            <span className="rounded-sm bg-primary/20 px-2.5 py-1 text-xs font-bold uppercase tracking-[0.14em] text-primary">
-              Week {weekNumber}
+        {loading ? (
+          <div
+            className="mt-3 flex w-full flex-wrap items-baseline justify-center gap-x-4 gap-y-2"
+            aria-hidden="true"
+          >
+            <Skeleton className="h-10 w-72 sm:h-12 sm:w-96" />
+            <Skeleton className="h-5 w-20 rounded-sm" />
+          </div>
+        ) : (
+          /* Week selector — visual affordance only, not yet wired to data */
+          <button
+            type="button"
+            disabled
+            aria-label="Select week (historical weeks coming soon)"
+            title="Historical weeks coming soon"
+            className="group mt-3 flex w-full flex-wrap items-baseline justify-center gap-x-4 gap-y-2"
+          >
+            <span className="font-serif text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
+              {range ?? (
+                <span className="text-muted-foreground">— awaiting data —</span>
+              )}
             </span>
-          )}
-        </button>
+            {weekNumber !== null && (
+              <span className="rounded-sm bg-primary/20 px-2.5 py-1 text-xs font-bold uppercase tracking-[0.14em] text-primary">
+                Week {weekNumber}
+              </span>
+            )}
+          </button>
+        )}
 
         <p className="mt-4 text-sm text-muted-foreground">
           Includes{" "}

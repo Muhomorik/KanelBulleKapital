@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { SentimentBadge } from "./sentiment-badge";
 import { ConfidenceBadge } from "./confidence-badge";
 import { BriefMeta } from "./brief-meta";
@@ -13,9 +14,20 @@ import { Bookmark, Layers } from "lucide-react";
 
 interface WeeklyThemesProps {
   data: WeeklySummaryRun | null;
+  /** Render placeholder skeletons instead of content while data is loading. */
+  loading?: boolean;
 }
 
-export function WeeklyThemes({ data }: WeeklyThemesProps) {
+export function WeeklyThemes({ data, loading }: WeeklyThemesProps) {
+  if (loading) {
+    return (
+      <section className="animate-fade-up stagger-2">
+        <SectionHeader />
+        <WeeklyThemesSkeleton />
+      </section>
+    );
+  }
+
   if (!data) {
     return (
       <section className="animate-fade-up stagger-2">
@@ -114,6 +126,49 @@ function EmptyCard({ message }: { message: string }) {
         {message}
       </CardContent>
     </Card>
+  );
+}
+
+function WeeklyThemesSkeleton() {
+  return (
+    <>
+      <Card className="mb-4" aria-hidden="true">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between gap-3">
+            <Skeleton className="h-7 w-44" />
+            <Skeleton className="h-7 w-24 rounded-full" />
+          </div>
+          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+            <Skeleton className="h-3.5 w-20" />
+            <Skeleton className="h-3.5 w-24" />
+            <Skeleton className="h-3.5 w-16" />
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Skeleton className="h-3.5 w-full" />
+          <Skeleton className="h-3.5 w-3/4" />
+        </CardContent>
+      </Card>
+      <div className="grid gap-3 sm:grid-cols-2" aria-hidden="true">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Card key={i}>
+            <CardHeader className="pb-2">
+              <div className="flex items-start justify-between gap-3">
+                <Skeleton className="h-7 w-32" />
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <Skeleton className="h-5 w-16 rounded-full" />
+                  <Skeleton className="h-5 w-12 rounded-full" />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Skeleton className="h-3.5 w-full" />
+              <Skeleton className="h-3.5 w-5/6" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </>
   );
 }
 

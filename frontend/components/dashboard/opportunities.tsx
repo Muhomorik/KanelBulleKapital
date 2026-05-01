@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { SignalBadge } from "./signal-badge";
 import { BriefMeta } from "./brief-meta";
 import { Target, Gem } from "lucide-react";
@@ -18,6 +19,8 @@ export const OPPORTUNITIES_PANEL_ID = "opportunities";
 
 interface OpportunitiesProps {
   data: OpportunityScanRun | null;
+  /** Render placeholder skeletons instead of content while data is loading. */
+  loading?: boolean;
 }
 
 const GROUP_ORDER: SignalStrength[] = ["Strong", "Moderate", "Weak"];
@@ -27,7 +30,16 @@ const GROUP_LABEL: Record<SignalStrength, string> = {
   Weak: "Weak conviction",
 };
 
-export function Opportunities({ data }: OpportunitiesProps) {
+export function Opportunities({ data, loading }: OpportunitiesProps) {
+  if (loading) {
+    return (
+      <section id={OPPORTUNITIES_PANEL_ID} className="animate-fade-up stagger-4 scroll-mt-20">
+        <SectionHeader />
+        <OpportunitiesSkeleton />
+      </section>
+    );
+  }
+
   if (!data) {
     return (
       <section id={OPPORTUNITIES_PANEL_ID} className="animate-fade-up stagger-4 scroll-mt-20">
@@ -154,5 +166,56 @@ function EmptyCard({ message }: { message: string }) {
         {message}
       </CardContent>
     </Card>
+  );
+}
+
+function OpportunitiesSkeleton() {
+  const groups = [
+    { label: GROUP_LABEL.Strong, count: 2 },
+    { label: GROUP_LABEL.Moderate, count: 2 },
+  ];
+  return (
+    <>
+      <div
+        className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1"
+        aria-hidden="true"
+      >
+        <Skeleton className="h-3.5 w-20" />
+        <Skeleton className="h-3.5 w-24" />
+        <Skeleton className="h-3.5 w-16" />
+      </div>
+      <div className="space-y-6" aria-hidden="true">
+        {groups.map(({ label, count }) => (
+          <div key={label}>
+            <p className="mb-2 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.14em] text-foreground">
+              <span>{label}</span>
+              <span className="h-px flex-1 bg-border" aria-hidden="true" />
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {Array.from({ length: count }).map((_, i) => (
+                <Card key={i}>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <Skeleton className="h-7 w-32" />
+                      <Skeleton className="h-5 w-16 rounded-full" />
+                    </div>
+                    <div className="mt-3 space-y-2">
+                      <Skeleton className="h-3.5 w-full" />
+                      <Skeleton className="h-3.5 w-5/6" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="border-t border-border pt-3">
+                      <Skeleton className="mb-2 h-3 w-10" />
+                      <Skeleton className="h-3.5 w-4/5" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
   );
 }
