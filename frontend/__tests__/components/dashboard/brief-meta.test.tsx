@@ -5,7 +5,7 @@ describe("BriefTimestamp staleness disclosure", () => {
   beforeEach(() => {
     jest.useFakeTimers();
     // Wed 2026-04-29 noon UTC — between weekly cron firings (Thu 17 UTC).
-    jest.setSystemTime(new Date("2026-04-29T12:00:00Z"));
+    jest.setSystemTime(new Date("2026-04-29T12:00:00Z").getTime());
   });
 
   afterEach(() => {

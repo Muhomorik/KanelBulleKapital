@@ -249,8 +249,8 @@ export default function DashboardPage() {
             }
           />
           <WeeklyMasthead
-            weekStart={data.weeklySummary?.weekStart ?? null}
-            weekEnd={data.weeklySummary?.weekEnd ?? null}
+            periodStart={data.weeklySummary?.periodStart ?? null}
+            periodEnd={data.weeklySummary?.periodEnd ?? null}
           />
           <WeeklyThemes data={data.weeklySummary} />
           <CapitalFlows data={data.substitutionChain} />

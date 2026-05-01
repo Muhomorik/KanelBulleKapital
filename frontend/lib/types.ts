@@ -47,8 +47,8 @@ export interface WeeklySummaryRun {
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;
-  weekStart: string;
-  weekEnd: string;
+  periodStart: string;
+  periodEnd: string;
   netMood: MarketSentiment;
   moodSummary: string;
   themes: MarketTheme[];

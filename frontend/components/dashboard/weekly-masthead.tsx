@@ -6,8 +6,8 @@ import { CalendarRange } from "lucide-react";
 export const WEEKLY_MASTHEAD_PANEL_ID = "weekly-masthead";
 
 interface WeeklyMastheadProps {
-  weekStart: string | null;
-  weekEnd: string | null;
+  periodStart: string | null;
+  periodEnd: string | null;
 }
 
 // Client-only gate — same pattern as app/page.tsx. The date range uses
@@ -18,14 +18,14 @@ const noopSubscribe = () => () => {};
 const getClientMounted = () => true;
 const getServerMounted = () => false;
 
-export function WeeklyMasthead({ weekStart, weekEnd }: WeeklyMastheadProps) {
+export function WeeklyMasthead({ periodStart, periodEnd }: WeeklyMastheadProps) {
   const isMounted = useSyncExternalStore(
     noopSubscribe,
     getClientMounted,
     getServerMounted,
   );
-  const range = isMounted ? formatRange(weekStart, weekEnd) : null;
-  const weekNumber = isoWeekNumber(weekStart);
+  const range = isMounted ? formatRange(periodStart, periodEnd) : null;
+  const weekNumber = isoWeekNumber(periodStart);
 
   return (
     <section
