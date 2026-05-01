@@ -44,8 +44,8 @@ public class AgentRunRepositorySaveTests
             CreatedAt = createdAt,
             ModelId = "gpt-5.4-mini",
             Status = RunStatus.Success,
-            WeekStart = DateTimeOffset.MinValue,
-            WeekEnd = DateTimeOffset.MinValue,
+            PeriodStart = DateTimeOffset.MinValue,
+            PeriodEnd = DateTimeOffset.MinValue,
             NetMood = MarketSentiment.Mixed,
             MoodSummary = "",
             Themes = []
@@ -62,6 +62,45 @@ public class AgentRunRepositorySaveTests
         Assert.That(captured, Is.Not.Null);
         Assert.That(captured!.ContainsKey(BaseColumns.CreatedAt), Is.True, "CreatedAt column must be written to the table entity");
         Assert.That(captured.GetDateTimeOffset(BaseColumns.CreatedAt), Is.EqualTo(createdAt));
+    }
+
+    [Test]
+    [Category("WeeklySummaryRun")]
+    public async Task SaveWeeklySummaryRunAsync_RunWithPeriod_PersistsPeriodColumns()
+    {
+        var periodStart = new DateTimeOffset(2026, 4, 20, 0, 0, 0, TimeSpan.Zero);
+        var periodEnd = new DateTimeOffset(2026, 4, 26, 0, 0, 0, TimeSpan.Zero);
+        var run = new WeeklySummaryRun
+        {
+            RunDate = "2026-04-27",
+            RunId = "weekly-002",
+            CreatedAt = new DateTimeOffset(2026, 4, 27, 17, 0, 0, TimeSpan.Zero),
+            ModelId = "gpt-5.4-mini",
+            Status = RunStatus.Success,
+            PeriodStart = periodStart,
+            PeriodEnd = periodEnd,
+            PeriodIsoWeek = "2026-W17",
+            NetMood = MarketSentiment.Mixed,
+            MoodSummary = "",
+            Themes = []
+        };
+
+        TableEntity? captured = null;
+        _weeklyTable
+            .Setup(t => t.UpsertEntityAsync(It.IsAny<TableEntity>(), It.IsAny<TableUpdateMode>(), It.IsAny<CancellationToken>()))
+            .Callback<TableEntity, TableUpdateMode, CancellationToken>((e, _, _) => captured = e)
+            .ReturnsAsync(Mock.Of<Response>());
+
+        await _sut.SaveWeeklySummaryRunAsync(run);
+
+        Assert.That(captured, Is.Not.Null);
+        Assert.That(captured!.GetDateTimeOffset(WeeklySummaryColumns.PeriodStart), Is.EqualTo(periodStart));
+        Assert.That(captured.GetDateTimeOffset(WeeklySummaryColumns.PeriodEnd), Is.EqualTo(periodEnd));
+        Assert.That(captured[WeeklySummaryColumns.PeriodIsoWeek], Is.EqualTo("2026-W17"));
+        Assert.That(captured.ContainsKey(WeeklySummaryColumns.LegacyWeekStart), Is.False,
+            "Legacy WeekStart column must NOT be written for new rows");
+        Assert.That(captured.ContainsKey(WeeklySummaryColumns.LegacyWeekEnd), Is.False,
+            "Legacy WeekEnd column must NOT be written for new rows");
     }
 
     [Test]

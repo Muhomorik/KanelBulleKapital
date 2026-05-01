@@ -31,8 +31,8 @@ public class WeeklySummaryAgentTests
 
     private static WeeklySummaryRequest SampleRequest() => new()
     {
-        WeekStart = new DateTimeOffset(2026, 3, 30, 0, 0, 0, TimeSpan.Zero),
-        WeekEnd = new DateTimeOffset(2026, 4, 5, 0, 0, 0, TimeSpan.Zero),
+        PeriodStart = new DateTimeOffset(2026, 3, 30, 0, 0, 0, TimeSpan.Zero),
+        PeriodEnd = new DateTimeOffset(2026, 4, 5, 0, 0, 0, TimeSpan.Zero),
         DailyBriefRunIds = []
     };
 

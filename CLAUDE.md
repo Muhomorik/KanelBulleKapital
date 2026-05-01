@@ -19,6 +19,22 @@ MAF sits *on top of* AI Projects for the Foundry case (`AIProjectClient.AsAIAgen
 
 MAF and the Foundry Agents Service are evolving rapidly (MAF is in 1.0 RC as of March 2026; the classic Persistent Agents path is retiring 2027-03-31). Claude's training data lags. **Before answering questions or generating code related to the Agent Framework or Foundry agents, always check the latest Microsoft Learn documentation via MCP docs tools.** Do not rely solely on training knowledge — verify against current docs first.
 
+## Naming Conventions
+
+Two formats, two community conventions — they don't try to match. Stick to each format's idiom:
+
+| Format                                              | Convention   | Example                                            |
+| --------------------------------------------------- | ------------ | -------------------------------------------------- |
+| **JSON** (wire / API responses, in-memory POCOs)    | `camelCase`  | `periodStart`, `weeklySummaryRunId`, `reportType`  |
+| **YAML** (markdown frontmatter in `analytics-*.md`) | `snake_case` | `period_start`, `iso_week`, `report_type`          |
+
+The .NET side uses `KanelBrief.Core.Serialization.KanelJsonOptions.CamelCase`
+(PascalCase C# properties → camelCase wire). YAML keys are emitted by
+[`ReportExportMarkdownFormatter`](FikaForecast/FikaForecast.Application/Services/ReportExportMarkdownFormatter.cs)
+and consumed by the FikaFinans agent — they follow YAML idiom, not JSON.
+
+The semantic mapping is trivial (`period_start` ↔ `periodStart`); don't try to unify the casing across formats.
+
 ## Key Technologies
 
 ### Desktop (existing)
