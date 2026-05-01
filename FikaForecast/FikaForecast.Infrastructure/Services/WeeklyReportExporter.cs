@@ -50,7 +50,7 @@ public class WeeklyReportExporter : IWeeklyReportExporter
 
         try
         {
-            var ctx = BuildContext(ReportType.WeeklySummary, run.WeekStart, run.WeekEnd, run.Timestamp, run.ModelId, run.RunId, run.RawMarkdownOutput);
+            var ctx = BuildContext(ReportType.WeeklySummary, run.PeriodStart, run.PeriodEnd, run.Timestamp, run.ModelId, run.RunId, run.RawMarkdownOutput);
             await WriteAsync(folder, ctx, cancellationToken);
         }
         catch (Exception ex)
@@ -73,7 +73,7 @@ public class WeeklyReportExporter : IWeeklyReportExporter
                 return;
             }
 
-            var ctx = BuildContext(ReportType.SubstitutionChain, weekly.WeekStart, weekly.WeekEnd, run.Timestamp, run.ModelId, run.RunId, run.RawMarkdownOutput);
+            var ctx = BuildContext(ReportType.SubstitutionChain, weekly.PeriodStart, weekly.PeriodEnd, run.Timestamp, run.ModelId, run.RunId, run.RawMarkdownOutput);
             await WriteAsync(folder, ctx, cancellationToken);
         }
         catch (Exception ex)
@@ -102,7 +102,7 @@ public class WeeklyReportExporter : IWeeklyReportExporter
                 return;
             }
 
-            var ctx = BuildContext(ReportType.RotationTargets, weekly.WeekStart, weekly.WeekEnd, run.Timestamp, run.ModelId, run.RunId, run.RawMarkdownOutput);
+            var ctx = BuildContext(ReportType.RotationTargets, weekly.PeriodStart, weekly.PeriodEnd, run.Timestamp, run.ModelId, run.RunId, run.RawMarkdownOutput);
             await WriteAsync(folder, ctx, cancellationToken);
         }
         catch (Exception ex)
@@ -122,7 +122,7 @@ public class WeeklyReportExporter : IWeeklyReportExporter
 
         var allWeekly = await _weeklyRepo.GetAllAsync(cancellationToken);
         var weekly = allWeekly
-            .Where(r => r.Status == RunStatus.Success && MatchesIsoWeek(r.WeekStart, year, week))
+            .Where(r => r.Status == RunStatus.Success && MatchesIsoWeek(r.PeriodStart, year, week))
             .OrderByDescending(r => r.Timestamp)
             .FirstOrDefault();
 
@@ -133,7 +133,7 @@ public class WeeklyReportExporter : IWeeklyReportExporter
         }
 
         written.Add(await WriteAsync(folder,
-            BuildContext(ReportType.WeeklySummary, weekly.WeekStart, weekly.WeekEnd, weekly.Timestamp, weekly.ModelId, weekly.RunId, weekly.RawMarkdownOutput),
+            BuildContext(ReportType.WeeklySummary, weekly.PeriodStart, weekly.PeriodEnd, weekly.Timestamp, weekly.ModelId, weekly.RunId, weekly.RawMarkdownOutput),
             cancellationToken));
 
         var allChains = await _chainRepo.GetAllAsync(cancellationToken);
@@ -145,7 +145,7 @@ public class WeeklyReportExporter : IWeeklyReportExporter
         if (chain is not null)
         {
             written.Add(await WriteAsync(folder,
-                BuildContext(ReportType.SubstitutionChain, weekly.WeekStart, weekly.WeekEnd, chain.Timestamp, chain.ModelId, chain.RunId, chain.RawMarkdownOutput),
+                BuildContext(ReportType.SubstitutionChain, weekly.PeriodStart, weekly.PeriodEnd, chain.Timestamp, chain.ModelId, chain.RunId, chain.RawMarkdownOutput),
                 cancellationToken));
 
             var allScans = await _scanRepo.GetAllAsync(cancellationToken);
@@ -157,7 +157,7 @@ public class WeeklyReportExporter : IWeeklyReportExporter
             if (scan is not null)
             {
                 written.Add(await WriteAsync(folder,
-                    BuildContext(ReportType.RotationTargets, weekly.WeekStart, weekly.WeekEnd, scan.Timestamp, scan.ModelId, scan.RunId, scan.RawMarkdownOutput),
+                    BuildContext(ReportType.RotationTargets, weekly.PeriodStart, weekly.PeriodEnd, scan.Timestamp, scan.ModelId, scan.RunId, scan.RawMarkdownOutput),
                     cancellationToken));
             }
         }
@@ -214,7 +214,7 @@ public class WeeklyReportExporter : IWeeklyReportExporter
 
     private static string BuildFileName(ExportReportContext ctx)
     {
-        var (year, week) = IsoWeek.Compute(ctx.WeekStart);
+        var (year, week) = IsoWeek.Compute(ctx.PeriodStart);
         var slug = ReportExportMarkdownFormatter.FileSlug(ctx.Type);
         return string.Create(CultureInfo.InvariantCulture, $"{year:0000}-W{week:00}-{slug}.md");
     }

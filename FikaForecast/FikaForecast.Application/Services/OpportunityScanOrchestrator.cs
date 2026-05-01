@@ -51,7 +51,12 @@ public class OpportunityScanOrchestrator
         if (substitutionChainRun.Chains.Count == 0)
             return Result.Fail<OpportunityScanRun>("Substitution chain run has no chains to analyze");
 
-        var run = OpportunityScanRun.Start(model, substitutionChainRun.RunId);
+        var run = OpportunityScanRun.Start(
+            model,
+            substitutionChainRun.RunId,
+            substitutionChainRun.PeriodStart,
+            substitutionChainRun.PeriodEnd,
+            substitutionChainRun.PeriodIsoWeek);
 
         // Format substitution chain data into text input
         var inputText = _inputFormatter.Format(substitutionChainRun);

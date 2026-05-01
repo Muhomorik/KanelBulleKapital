@@ -235,8 +235,8 @@ public class SubstitutionChainViewModel : ViewModelBase
         {
             // Load the linked weekly summary for date range
             var summary = await _summaryRepository.GetByIdAsync(run.WeeklySummaryRunId);
-            var weekStart = summary?.WeekStart ?? run.Timestamp;
-            var weekEnd = summary?.WeekEnd ?? run.Timestamp;
+            var weekStart = summary?.PeriodStart ?? run.Timestamp;
+            var weekEnd = summary?.PeriodEnd ?? run.Timestamp;
 
             // Re-render from existing structured data (no LLM call)
             var parseResult = new SubstitutionChainParseResult(run.Chains, true, []);
@@ -286,7 +286,7 @@ public class SubstitutionChainViewModel : ViewModelBase
                 return;
             }
 
-            LatestSummaryInfo = $"{latest.WeekStart:MMM dd} – {latest.WeekEnd:MMM dd, yyyy}";
+            LatestSummaryInfo = $"{latest.PeriodStart:MMM dd} – {latest.PeriodEnd:MMM dd, yyyy}";
             LatestSummaryThemeCount = latest.Themes.Count;
 
             var moodEmoji = latest.NetMood switch

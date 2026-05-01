@@ -64,7 +64,7 @@ public class WeeklyReportExporterTests
 
     private static SubstitutionChainRun SuccessfulChainRun(Guid weeklyId, string body = "chain body")
     {
-        var run = SubstitutionChainRun.Start(TestModel, weeklyId);
+        var run = SubstitutionChainRun.Start(TestModel, weeklyId, WeekStart, WeekEnd, "2026-W15");
         run.Complete("{}", TimeSpan.FromSeconds(1), 10, 20);
         run.SetDisplayMarkdown(body);
         return run;
@@ -72,7 +72,7 @@ public class WeeklyReportExporterTests
 
     private static OpportunityScanRun SuccessfulScanRun(Guid chainId, string body = "scan body")
     {
-        var run = OpportunityScanRun.Start(TestModel, chainId);
+        var run = OpportunityScanRun.Start(TestModel, chainId, WeekStart, WeekEnd, "2026-W15");
         run.Complete("{}", TimeSpan.FromSeconds(1), 10, 20);
         run.SetDisplayMarkdown(body);
         return run;
@@ -288,7 +288,7 @@ public class WeeklyReportExporterTests
         var otherWeekStart = WeekStart.AddDays(14);
         var otherWeekEnd = WeekEnd.AddDays(14);
         var other = WeeklySummaryRun.Rehydrate(
-            Guid.NewGuid(), otherWeekStart, otherWeekEnd,
+            Guid.NewGuid(), otherWeekStart, otherWeekEnd, "2026-W17",
             DateTimeOffset.Now, TestModel.ModelId, TimeSpan.Zero, 0, 0, 0,
             RunStatus.Success, "{}", "OTHER body", MarketSentiment.Mixed, "", Array.Empty<WeeklySummaryTheme>());
 

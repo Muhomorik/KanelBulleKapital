@@ -125,12 +125,12 @@ public class ExportViewModel : ViewModelBase
         {
             var runs = await _weeklyRepo.GetAllAsync(CancellationToken.None);
             var weeks = runs
-                .Select(r => (r.WeekStart, r.WeekEnd, Iso: IsoWeek.Compute(r.WeekStart)))
+                .Select(r => (r.PeriodStart, r.PeriodEnd, Iso: IsoWeek.Compute(r.PeriodStart)))
                 .GroupBy(x => (x.Iso.Year, x.Iso.Week))
                 .Select(g =>
                 {
-                    var latest = g.OrderByDescending(x => x.WeekStart).First();
-                    return new WeekOption(latest.WeekStart, latest.WeekEnd);
+                    var latest = g.OrderByDescending(x => x.PeriodStart).First();
+                    return new WeekOption(latest.PeriodStart, latest.PeriodEnd);
                 })
                 .OrderByDescending(o => (o.IsoYear, o.IsoWeekNumber))
                 .ToList();

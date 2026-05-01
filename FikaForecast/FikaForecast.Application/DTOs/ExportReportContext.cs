@@ -7,8 +7,8 @@ namespace FikaForecast.Application.DTOs;
 /// </summary>
 public record ExportReportContext(
     ReportType Type,
-    DateTimeOffset WeekStart,
-    DateTimeOffset WeekEnd,
+    DateTimeOffset PeriodStart,
+    DateTimeOffset PeriodEnd,
     DateTimeOffset GeneratedAt,
     string ModelId,
     Guid RunId,

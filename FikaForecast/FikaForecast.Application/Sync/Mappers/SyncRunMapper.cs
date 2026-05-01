@@ -67,12 +67,13 @@ public class SyncRunMapper
 
         var netMood = MapSentiment(dto.NetMood);
         var parseResult = new WeeklySummaryParseResult(netMood, dto.MoodSummary, themes, IsComplete: true, Warnings: []);
-        var markdown = _weeklySummaryRenderer.Render(parseResult, dto.WeekStart, dto.WeekEnd);
+        var markdown = _weeklySummaryRenderer.Render(parseResult, dto.PeriodStart, dto.PeriodEnd);
 
         return WeeklySummaryRun.Rehydrate(
             runId: Guid.Parse(dto.RunId),
-            weekStart: dto.WeekStart,
-            weekEnd: dto.WeekEnd,
+            periodStart: dto.PeriodStart,
+            periodEnd: dto.PeriodEnd,
+            periodIsoWeek: dto.PeriodIsoWeek,
             timestamp: dto.CreatedAt,
             modelId: dto.ModelId,
             duration: TimeSpan.FromSeconds(dto.DurationSeconds),
@@ -94,12 +95,15 @@ public class SyncRunMapper
             .ToList();
 
         var parseResult = new SubstitutionChainParseResult(chains, IsComplete: true, Warnings: []);
-        // Renderer accepts weekStart/weekEnd but doesn't use them in current implementation.
-        var markdown = _substitutionChainRenderer.Render(parseResult, dto.CreatedAt, dto.CreatedAt);
+        // Renderer takes period for header rendering — backend now ships these via lazy-fill.
+        var markdown = _substitutionChainRenderer.Render(parseResult, dto.PeriodStart, dto.PeriodEnd);
 
         return SubstitutionChainRun.Rehydrate(
             runId: Guid.Parse(dto.RunId),
             weeklySummaryRunId: Guid.Parse(dto.WeeklySummaryRunId),
+            periodStart: dto.PeriodStart,
+            periodEnd: dto.PeriodEnd,
+            periodIsoWeek: dto.PeriodIsoWeek,
             timestamp: dto.CreatedAt,
             modelId: dto.ModelId,
             duration: TimeSpan.FromSeconds(dto.DurationSeconds),
@@ -124,6 +128,9 @@ public class SyncRunMapper
         return OpportunityScanRun.Rehydrate(
             runId: Guid.Parse(dto.RunId),
             substitutionChainRunId: Guid.Parse(dto.SubstitutionChainRunId),
+            periodStart: dto.PeriodStart,
+            periodEnd: dto.PeriodEnd,
+            periodIsoWeek: dto.PeriodIsoWeek,
             timestamp: dto.CreatedAt,
             modelId: dto.ModelId,
             duration: TimeSpan.FromSeconds(dto.DurationSeconds),

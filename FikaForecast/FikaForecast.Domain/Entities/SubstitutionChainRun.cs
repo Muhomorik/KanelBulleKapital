@@ -9,7 +9,7 @@ namespace FikaForecast.Domain.Entities;
 /// Identifies what sectors, commodities, or themes benefit as capital rotates
 /// away from affected areas, based on the weekly summary.
 /// </summary>
-[DebuggerDisplay("SubChain {Timestamp:yyyy-MM-dd} — {Status} ({TotalTokens} tokens)")]
+[DebuggerDisplay("SubChain {PeriodIsoWeek} {Timestamp:yyyy-MM-dd} — {Status} ({TotalTokens} tokens)")]
 public class SubstitutionChainRun
 {
     private readonly List<RotationChain> _chains = [];
@@ -18,6 +18,16 @@ public class SubstitutionChainRun
 
     /// <summary>FK to the <see cref="WeeklySummaryRun"/> this analysis is based on.</summary>
     public Guid WeeklySummaryRunId { get; private set; }
+
+    /// <summary>
+    /// Period this chain analysis covers — denormalized from the parent
+    /// <see cref="WeeklySummaryRun"/> at construction so the entity is self-describing.
+    /// </summary>
+    public DateTimeOffset PeriodStart { get; private set; }
+    public DateTimeOffset PeriodEnd { get; private set; }
+
+    /// <summary>ISO 8601 week tag of <see cref="PeriodStart"/>, e.g. <c>"2026-W17"</c>.</summary>
+    public string PeriodIsoWeek { get; private set; }
 
     public DateTimeOffset Timestamp { get; private set; }
     public string ModelId { get; private set; }
@@ -41,18 +51,28 @@ public class SubstitutionChainRun
         ModelId = null!;
         RawAgentOutput = null!;
         RawMarkdownOutput = null!;
+        PeriodIsoWeek = null!;
     }
 
     /// <summary>
     /// Creates a new run in <see cref="RunStatus.Partial"/> state.
     /// Call <see cref="Complete"/> or <see cref="Fail"/> when the agent finishes.
+    /// Period fields are denormalized from the parent <see cref="WeeklySummaryRun"/>.
     /// </summary>
-    public static SubstitutionChainRun Start(ModelConfig model, Guid weeklySummaryRunId)
+    public static SubstitutionChainRun Start(
+        ModelConfig model,
+        Guid weeklySummaryRunId,
+        DateTimeOffset periodStart,
+        DateTimeOffset periodEnd,
+        string periodIsoWeek)
     {
         return new SubstitutionChainRun
         {
             RunId = Guid.NewGuid(),
             WeeklySummaryRunId = weeklySummaryRunId,
+            PeriodStart = periodStart,
+            PeriodEnd = periodEnd,
+            PeriodIsoWeek = periodIsoWeek,
             Timestamp = DateTimeOffset.Now,
             ModelId = model.ModelId,
             Status = RunStatus.Partial,
@@ -119,6 +139,9 @@ public class SubstitutionChainRun
     public static SubstitutionChainRun Rehydrate(
         Guid runId,
         Guid weeklySummaryRunId,
+        DateTimeOffset periodStart,
+        DateTimeOffset periodEnd,
+        string periodIsoWeek,
         DateTimeOffset timestamp,
         string modelId,
         TimeSpan duration,
@@ -134,6 +157,9 @@ public class SubstitutionChainRun
         {
             RunId = runId,
             WeeklySummaryRunId = weeklySummaryRunId,
+            PeriodStart = periodStart,
+            PeriodEnd = periodEnd,
+            PeriodIsoWeek = periodIsoWeek ?? string.Empty,
             Timestamp = timestamp,
             ModelId = modelId,
             Duration = duration,

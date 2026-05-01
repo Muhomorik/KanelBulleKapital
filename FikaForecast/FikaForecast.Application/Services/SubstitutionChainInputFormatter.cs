@@ -21,7 +21,7 @@ public class SubstitutionChainInputFormatter
 
         var sb = new StringBuilder();
 
-        sb.AppendLine($"WEEKLY MARKET SUMMARY — Week of {summaryRun.WeekStart:MMMM dd}--{summaryRun.WeekEnd:MMMM dd, yyyy}");
+        sb.AppendLine($"WEEKLY MARKET SUMMARY — Week of {summaryRun.PeriodStart:MMMM dd}--{summaryRun.PeriodEnd:MMMM dd, yyyy}");
         sb.AppendLine();
         sb.AppendLine("---");
 
