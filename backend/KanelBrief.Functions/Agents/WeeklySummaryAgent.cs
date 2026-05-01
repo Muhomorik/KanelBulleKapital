@@ -5,6 +5,7 @@ using KanelBrief.Core.Models;
 using KanelBrief.Core.Parsers;
 using KanelBrief.Core.Repositories;
 using KanelBrief.Core.Serialization;
+using KanelBrief.Core.Time;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
@@ -61,14 +62,14 @@ public sealed class WeeklySummaryAgent(
     internal async Task<WeeklySummaryRun> ExecuteAsync(WeeklySummaryRequest request, CancellationToken ct = default)
     {
         logger.LogInformation(
-            "Processing weekly summary for week {WeekStart} → {WeekEnd}",
-            request.WeekStart, request.WeekEnd);
+            "Processing weekly summary for period {PeriodStart} → {PeriodEnd}",
+            request.PeriodStart, request.PeriodEnd);
 
         var startTime = timeProvider.GetUtcNow();
 
         var dailyBriefs = new List<NewsBriefRun>();
-        for (var date = request.WeekStart.UtcDateTime.Date;
-             date <= request.WeekEnd.UtcDateTime.Date;
+        for (var date = request.PeriodStart.UtcDateTime.Date;
+             date <= request.PeriodEnd.UtcDateTime.Date;
              date = date.AddDays(1))
         {
             var briefsForDate = await repository.GetNewsBriefRunsByDateAsync(date.ToString("yyyy-MM-dd"));
@@ -77,11 +78,11 @@ public sealed class WeeklySummaryAgent(
 
         if (dailyBriefs.Count == 0)
             throw new InvalidOperationException(
-                $"No daily briefs found for week {request.WeekStart:yyyy-MM-dd} → {request.WeekEnd:yyyy-MM-dd}");
+                $"No daily briefs found for period {request.PeriodStart:yyyy-MM-dd} → {request.PeriodEnd:yyyy-MM-dd}");
 
         var analysis = await analyzer.AnalyzeAsync(
-            request.WeekStart.UtcDateTime.Date,
-            request.WeekEnd.UtcDateTime.Date,
+            request.PeriodStart.UtcDateTime.Date,
+            request.PeriodEnd.UtcDateTime.Date,
             dailyBriefs,
             ct);
 
@@ -92,8 +93,9 @@ public sealed class WeeklySummaryAgent(
             CreatedAt = startTime,
             ModelId = ModelId,
             Status = RunStatus.Success,
-            WeekStart = request.WeekStart,
-            WeekEnd = request.WeekEnd,
+            PeriodStart = request.PeriodStart,
+            PeriodEnd = request.PeriodEnd,
+            PeriodIsoWeek = IsoWeek.Format(request.PeriodStart),
             NetMood = AgentResponseParser.ParseSentiment(analysis.Mood),
             MoodSummary = analysis.Summary,
             Themes = analysis.Themes,

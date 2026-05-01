@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { SentimentBadge } from "./sentiment-badge";
 import { BriefMeta } from "./brief-meta";
 import { Activity, Newspaper } from "lucide-react";
@@ -16,9 +17,24 @@ interface MarketPulseProps {
   data: NewsBriefRun | null;
   /** Optional toolbar rendered above the brief — typically a <BriefSelector />. */
   selector?: React.ReactNode;
+  /** Render placeholder skeletons instead of content while data is loading. */
+  loading?: boolean;
 }
 
-export function MarketPulse({ data, selector }: MarketPulseProps) {
+export function MarketPulse({ data, selector, loading }: MarketPulseProps) {
+  if (loading) {
+    return (
+      <section className="animate-fade-up stagger-1 scroll-mt-20" id={MARKET_PULSE_PANEL_ID}>
+        <SectionHeader
+          title="Market Pulse"
+          subtitle="News brief · every 4 hours"
+          icon={<Newspaper className="h-6 w-6" />}
+        />
+        <MarketPulseSkeleton />
+      </section>
+    );
+  }
+
   if (!data) {
     return (
       <section className="animate-fade-up stagger-1 scroll-mt-20" id={MARKET_PULSE_PANEL_ID}>
@@ -137,5 +153,47 @@ function EmptyState({ message }: { message: string }) {
         {message}
       </CardContent>
     </Card>
+  );
+}
+
+function MarketPulseSkeleton() {
+  return (
+    <>
+      <Card className="mb-4" aria-hidden="true">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between gap-3">
+            <Skeleton className="h-7 w-44" />
+            <Skeleton className="h-7 w-24 rounded-full" />
+          </div>
+          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+            <Skeleton className="h-3.5 w-20" />
+            <Skeleton className="h-3.5 w-24" />
+            <Skeleton className="h-3.5 w-16" />
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Skeleton className="h-3.5 w-full" />
+          <Skeleton className="h-3.5 w-11/12" />
+          <Skeleton className="h-3.5 w-3/4" />
+        </CardContent>
+      </Card>
+      <div className="grid gap-3 sm:grid-cols-2" aria-hidden="true">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Card key={i}>
+            <CardHeader className="pb-3">
+              <div className="flex items-start justify-between gap-3">
+                <Skeleton className="h-7 w-32" />
+                <Skeleton className="h-5 w-16 rounded-full" />
+              </div>
+              <Skeleton className="mt-2 h-4 w-2/3" />
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Skeleton className="h-3.5 w-full" />
+              <Skeleton className="h-3.5 w-5/6" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </>
   );
 }

@@ -143,6 +143,16 @@ namespace FikaForecast.Infrastructure.Persistence.Migrations
                     b.Property<int>("OutputTokens")
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTimeOffset>("PeriodEnd")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PeriodIsoWeek")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("PeriodStart")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("RawAgentOutput")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -248,6 +258,16 @@ namespace FikaForecast.Infrastructure.Persistence.Migrations
                     b.Property<int>("OutputTokens")
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTimeOffset>("PeriodEnd")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PeriodIsoWeek")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("PeriodStart")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("RawAgentOutput")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -301,6 +321,16 @@ namespace FikaForecast.Infrastructure.Persistence.Migrations
                     b.Property<int>("OutputTokens")
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTimeOffset>("PeriodEnd")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PeriodIsoWeek")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("PeriodStart")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("RawAgentOutput")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -318,12 +348,6 @@ namespace FikaForecast.Infrastructure.Persistence.Migrations
 
                     b.Property<int>("TotalTokens")
                         .HasColumnType("INTEGER");
-
-                    b.Property<DateTimeOffset>("WeekEnd")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTimeOffset>("WeekStart")
-                        .HasColumnType("TEXT");
 
                     b.HasKey("RunId");
 

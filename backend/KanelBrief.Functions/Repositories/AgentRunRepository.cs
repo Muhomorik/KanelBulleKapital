@@ -3,6 +3,7 @@ using Azure.Data.Tables;
 using KanelBrief.Core.Models;
 using KanelBrief.Core.Repositories;
 using KanelBrief.Core.Serialization;
+using KanelBrief.Core.Time;
 
 namespace KanelBrief.Functions.Repositories;
 
@@ -29,12 +30,18 @@ public class AgentRunRepository : IAgentRunRepository
         public const string Mood = "Mood";
         public const string Summary = "Summary";
         public const string Assessments = "Assessments";
+        public const string Citations = "Citations";
     }
 
     internal static class WeeklySummaryColumns
     {
-        public const string WeekStart = "WeekStart";
-        public const string WeekEnd = "WeekEnd";
+        public const string PeriodStart = "PeriodStart";
+        public const string PeriodEnd = "PeriodEnd";
+        public const string PeriodIsoWeek = "PeriodIsoWeek";
+        // Legacy column names kept for read-fallback against rows written before the
+        // period rename. Never written for new rows.
+        public const string LegacyWeekStart = "WeekStart";
+        public const string LegacyWeekEnd = "WeekEnd";
         public const string NetMood = "NetMood";
         public const string MoodSummary = "MoodSummary";
         public const string Themes = "Themes";
@@ -85,7 +92,8 @@ public class AgentRunRepository : IAgentRunRepository
             { NewsBriefColumns.DeploymentName, run.DeploymentName },
             { NewsBriefColumns.Mood, run.Mood },
             { NewsBriefColumns.Summary, run.Summary },
-            { NewsBriefColumns.Assessments, JsonSerializer.Serialize(run.Assessments, KanelJsonOptions.CamelCase) }
+            { NewsBriefColumns.Assessments, JsonSerializer.Serialize(run.Assessments, KanelJsonOptions.CamelCase) },
+            { NewsBriefColumns.Citations, JsonSerializer.Serialize(run.Citations, KanelJsonOptions.CamelCase) }
         };
 
         await _newsBriefRunsTable.UpsertEntityAsync(entity);
@@ -152,8 +160,9 @@ public class AgentRunRepository : IAgentRunRepository
             { BaseColumns.OutputTokens, run.OutputTokens },
             { BaseColumns.TotalTokens, run.TotalTokens },
             { BaseColumns.CreatedAt, run.CreatedAt },
-            { WeeklySummaryColumns.WeekStart, run.WeekStart },
-            { WeeklySummaryColumns.WeekEnd, run.WeekEnd },
+            { WeeklySummaryColumns.PeriodStart, run.PeriodStart },
+            { WeeklySummaryColumns.PeriodEnd, run.PeriodEnd },
+            { WeeklySummaryColumns.PeriodIsoWeek, run.PeriodIsoWeek },
             { WeeklySummaryColumns.NetMood, run.NetMood.ToString() },
             { WeeklySummaryColumns.MoodSummary, run.MoodSummary },
             { WeeklySummaryColumns.Themes, JsonSerializer.Serialize(run.Themes, KanelJsonOptions.CamelCase) }
@@ -229,7 +238,9 @@ public class AgentRunRepository : IAgentRunRepository
         try
         {
             var entity = await _substitutionChainRunsTable.GetEntityAsync<TableEntity>(runDate, runId);
-            return MapToSubstitutionChainRun(entity.Value);
+            var run = MapToSubstitutionChainRun(entity.Value);
+            await PopulateChainPeriodAsync(run);
+            return run;
         }
         catch (Azure.RequestFailedException ex) when (ex.Status == 404)
         {
@@ -247,6 +258,7 @@ public class AgentRunRepository : IAgentRunRepository
             results.Add(MapToSubstitutionChainRun(entity));
         }
 
+        await PopulateChainPeriodsAsync(results);
         results.Sort(static (a, b) => b.CreatedAt.CompareTo(a.CreatedAt));
         return results;
     }
@@ -262,6 +274,7 @@ public class AgentRunRepository : IAgentRunRepository
             results.Add(MapToSubstitutionChainRun(entity));
         }
 
+        await PopulateChainPeriodsAsync(results);
         results.Sort(static (a, b) => b.CreatedAt.CompareTo(a.CreatedAt));
         return results;
     }
@@ -291,7 +304,9 @@ public class AgentRunRepository : IAgentRunRepository
         try
         {
             var entity = await _opportunityScanRunsTable.GetEntityAsync<TableEntity>(runDate, runId);
-            return MapToOpportunityScanRun(entity.Value);
+            var run = MapToOpportunityScanRun(entity.Value);
+            await PopulateScanPeriodAsync(run);
+            return run;
         }
         catch (Azure.RequestFailedException ex) when (ex.Status == 404)
         {
@@ -309,6 +324,7 @@ public class AgentRunRepository : IAgentRunRepository
             results.Add(MapToOpportunityScanRun(entity));
         }
 
+        await PopulateScanPeriodsAsync(results);
         results.Sort(static (a, b) => b.CreatedAt.CompareTo(a.CreatedAt));
         return results;
     }
@@ -324,6 +340,7 @@ public class AgentRunRepository : IAgentRunRepository
             results.Add(MapToOpportunityScanRun(entity));
         }
 
+        await PopulateScanPeriodsAsync(results);
         results.Sort(static (a, b) => b.CreatedAt.CompareTo(a.CreatedAt));
         return results;
     }
@@ -335,6 +352,10 @@ public class AgentRunRepository : IAgentRunRepository
         var assessments = string.IsNullOrEmpty(entity[NewsBriefColumns.Assessments]?.ToString())
             ? []
             : JsonSerializer.Deserialize<List<CategoryAssessment>>(entity[NewsBriefColumns.Assessments]!.ToString()!, KanelJsonOptions.CamelCase) ?? [];
+
+        var citations = string.IsNullOrEmpty(entity[NewsBriefColumns.Citations]?.ToString())
+            ? []
+            : JsonSerializer.Deserialize<List<Citation>>(entity[NewsBriefColumns.Citations]!.ToString()!, KanelJsonOptions.CamelCase) ?? [];
 
         return new NewsBriefRun
         {
@@ -350,7 +371,8 @@ public class AgentRunRepository : IAgentRunRepository
             DeploymentName = entity[NewsBriefColumns.DeploymentName]?.ToString() ?? string.Empty,
             Mood = entity[NewsBriefColumns.Mood]?.ToString() ?? string.Empty,
             Summary = entity[NewsBriefColumns.Summary]?.ToString() ?? string.Empty,
-            Assessments = assessments
+            Assessments = assessments,
+            Citations = citations
         };
     }
 
@@ -359,6 +381,20 @@ public class AgentRunRepository : IAgentRunRepository
         var themes = string.IsNullOrEmpty(entity[WeeklySummaryColumns.Themes]?.ToString())
             ? []
             : JsonSerializer.Deserialize<List<WeeklySummaryTheme>>(entity[WeeklySummaryColumns.Themes]!.ToString()!, KanelJsonOptions.CamelCase) ?? [];
+
+        // Read new column first; fall back to legacy column for rows written before the rename.
+        var periodStart = entity.GetDateTimeOffset(WeeklySummaryColumns.PeriodStart)
+                          ?? entity.GetDateTimeOffset(WeeklySummaryColumns.LegacyWeekStart)
+                          ?? DateTimeOffset.MinValue;
+        var periodEnd = entity.GetDateTimeOffset(WeeklySummaryColumns.PeriodEnd)
+                        ?? entity.GetDateTimeOffset(WeeklySummaryColumns.LegacyWeekEnd)
+                        ?? DateTimeOffset.MinValue;
+        var periodIsoWeek = entity[WeeklySummaryColumns.PeriodIsoWeek]?.ToString();
+        if (string.IsNullOrEmpty(periodIsoWeek) && periodStart != DateTimeOffset.MinValue)
+        {
+            // Compute on the fly for legacy rows that pre-date the column.
+            periodIsoWeek = IsoWeek.Format(periodStart);
+        }
 
         return new WeeklySummaryRun
         {
@@ -371,8 +407,9 @@ public class AgentRunRepository : IAgentRunRepository
             InputTokens = (int)(entity[BaseColumns.InputTokens] ?? 0),
             OutputTokens = (int)(entity[BaseColumns.OutputTokens] ?? 0),
             TotalTokens = (int)(entity[BaseColumns.TotalTokens] ?? 0),
-            WeekStart = (DateTimeOffset)(entity[WeeklySummaryColumns.WeekStart] ?? DateTimeOffset.MinValue),
-            WeekEnd = (DateTimeOffset)(entity[WeeklySummaryColumns.WeekEnd] ?? DateTimeOffset.MinValue),
+            PeriodStart = periodStart,
+            PeriodEnd = periodEnd,
+            PeriodIsoWeek = periodIsoWeek ?? string.Empty,
             NetMood = Enum.Parse<MarketSentiment>(entity[WeeklySummaryColumns.NetMood]?.ToString() ?? "Mixed"),
             MoodSummary = entity[WeeklySummaryColumns.MoodSummary]?.ToString() ?? string.Empty,
             Themes = themes
@@ -398,6 +435,7 @@ public class AgentRunRepository : IAgentRunRepository
             TotalTokens = (int)(entity[BaseColumns.TotalTokens] ?? 0),
             WeeklySummaryRunId = entity[SubstitutionChainColumns.WeeklySummaryRunId]?.ToString() ?? string.Empty,
             Chains = chains
+            // PeriodStart / PeriodEnd / PeriodIsoWeek lazy-filled by PopulateChainPeriodAsync.
         };
     }
 
@@ -420,6 +458,131 @@ public class AgentRunRepository : IAgentRunRepository
             TotalTokens = (int)(entity[BaseColumns.TotalTokens] ?? 0),
             SubstitutionChainRunId = entity[OpportunityScanColumns.SubstitutionChainRunId]?.ToString() ?? string.Empty,
             Targets = targets
+            // PeriodStart / PeriodEnd / PeriodIsoWeek lazy-filled by PopulateScanPeriodAsync.
         };
+    }
+
+    // Lazy-fill: walk FK to parent WeeklySummaryRun, copy period fields onto chain/scan rows.
+    // Storage stays normalized; the wire shape is self-describing.
+
+    private async Task PopulateChainPeriodAsync(SubstitutionChainRun chain)
+    {
+        if (string.IsNullOrEmpty(chain.WeeklySummaryRunId)) return;
+        var parent = await FindWeeklySummaryRunByIdAsync(chain.WeeklySummaryRunId, chain.RunDate);
+        if (parent != null)
+        {
+            chain.PeriodStart = parent.PeriodStart;
+            chain.PeriodEnd = parent.PeriodEnd;
+            chain.PeriodIsoWeek = parent.PeriodIsoWeek;
+        }
+    }
+
+    private async Task PopulateChainPeriodsAsync(IReadOnlyList<SubstitutionChainRun> chains)
+    {
+        if (chains.Count == 0) return;
+        var cache = new Dictionary<string, WeeklySummaryRun?>();
+        foreach (var chain in chains)
+        {
+            if (string.IsNullOrEmpty(chain.WeeklySummaryRunId)) continue;
+            if (!cache.TryGetValue(chain.WeeklySummaryRunId, out var parent))
+            {
+                parent = await FindWeeklySummaryRunByIdAsync(chain.WeeklySummaryRunId, chain.RunDate);
+                cache[chain.WeeklySummaryRunId] = parent;
+            }
+            if (parent != null)
+            {
+                chain.PeriodStart = parent.PeriodStart;
+                chain.PeriodEnd = parent.PeriodEnd;
+                chain.PeriodIsoWeek = parent.PeriodIsoWeek;
+            }
+        }
+    }
+
+    private async Task PopulateScanPeriodAsync(OpportunityScanRun scan)
+    {
+        if (string.IsNullOrEmpty(scan.SubstitutionChainRunId)) return;
+        var chain = await FindSubstitutionChainRunByIdAsync(scan.SubstitutionChainRunId, scan.RunDate);
+        if (chain == null || string.IsNullOrEmpty(chain.WeeklySummaryRunId)) return;
+        var parent = await FindWeeklySummaryRunByIdAsync(chain.WeeklySummaryRunId, chain.RunDate);
+        if (parent != null)
+        {
+            scan.PeriodStart = parent.PeriodStart;
+            scan.PeriodEnd = parent.PeriodEnd;
+            scan.PeriodIsoWeek = parent.PeriodIsoWeek;
+        }
+    }
+
+    private async Task PopulateScanPeriodsAsync(IReadOnlyList<OpportunityScanRun> scans)
+    {
+        if (scans.Count == 0) return;
+        var chainCache = new Dictionary<string, SubstitutionChainRun?>();
+        var weeklyCache = new Dictionary<string, WeeklySummaryRun?>();
+        foreach (var scan in scans)
+        {
+            if (string.IsNullOrEmpty(scan.SubstitutionChainRunId)) continue;
+            if (!chainCache.TryGetValue(scan.SubstitutionChainRunId, out var chain))
+            {
+                chain = await FindSubstitutionChainRunByIdAsync(scan.SubstitutionChainRunId, scan.RunDate);
+                chainCache[scan.SubstitutionChainRunId] = chain;
+            }
+            if (chain == null || string.IsNullOrEmpty(chain.WeeklySummaryRunId)) continue;
+            if (!weeklyCache.TryGetValue(chain.WeeklySummaryRunId, out var parent))
+            {
+                parent = await FindWeeklySummaryRunByIdAsync(chain.WeeklySummaryRunId, chain.RunDate);
+                weeklyCache[chain.WeeklySummaryRunId] = parent;
+            }
+            if (parent != null)
+            {
+                scan.PeriodStart = parent.PeriodStart;
+                scan.PeriodEnd = parent.PeriodEnd;
+                scan.PeriodIsoWeek = parent.PeriodIsoWeek;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Looks up a WeeklySummaryRun by RunId. Tries the preferred partition (same-day as the
+    /// child) first as a fast path; falls back to a RowKey scan across all partitions when the
+    /// child and parent crossed a UTC midnight boundary.
+    /// </summary>
+    private async Task<WeeklySummaryRun?> FindWeeklySummaryRunByIdAsync(string runId, string preferredPartitionKey)
+    {
+        if (!string.IsNullOrEmpty(preferredPartitionKey))
+        {
+            try
+            {
+                var entity = await _weeklySummaryRunsTable.GetEntityAsync<TableEntity>(preferredPartitionKey, runId);
+                return MapToWeeklySummaryRun(entity.Value);
+            }
+            catch (Azure.RequestFailedException ex) when (ex.Status == 404) { /* fall through */ }
+        }
+
+        var query = _weeklySummaryRunsTable.QueryAsync<TableEntity>(e => e.RowKey == runId);
+        await foreach (var entity in query)
+        {
+            return MapToWeeklySummaryRun(entity);
+        }
+        return null;
+    }
+
+    /// <inheritdoc cref="FindWeeklySummaryRunByIdAsync"/>
+    private async Task<SubstitutionChainRun?> FindSubstitutionChainRunByIdAsync(string runId, string preferredPartitionKey)
+    {
+        if (!string.IsNullOrEmpty(preferredPartitionKey))
+        {
+            try
+            {
+                var entity = await _substitutionChainRunsTable.GetEntityAsync<TableEntity>(preferredPartitionKey, runId);
+                return MapToSubstitutionChainRun(entity.Value);
+            }
+            catch (Azure.RequestFailedException ex) when (ex.Status == 404) { /* fall through */ }
+        }
+
+        var query = _substitutionChainRunsTable.QueryAsync<TableEntity>(e => e.RowKey == runId);
+        await foreach (var entity in query)
+        {
+            return MapToSubstitutionChainRun(entity);
+        }
+        return null;
     }
 }

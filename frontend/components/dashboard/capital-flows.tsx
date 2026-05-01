@@ -4,6 +4,7 @@ import {
   CardContent,
   CardHeader,
 } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { BriefMeta } from "./brief-meta";
 import { ArrowRight, GitBranch } from "lucide-react";
 
@@ -11,9 +12,20 @@ export const CAPITAL_FLOWS_PANEL_ID = "capital-flows";
 
 interface CapitalFlowsProps {
   data: SubstitutionChainRun | null;
+  /** Render placeholder skeletons instead of content while data is loading. */
+  loading?: boolean;
 }
 
-export function CapitalFlows({ data }: CapitalFlowsProps) {
+export function CapitalFlows({ data, loading }: CapitalFlowsProps) {
+  if (loading) {
+    return (
+      <section id={CAPITAL_FLOWS_PANEL_ID} className="animate-fade-up stagger-3 scroll-mt-20">
+        <SectionHeader />
+        <CapitalFlowsSkeleton />
+      </section>
+    );
+  }
+
   if (!data) {
     return (
       <section id={CAPITAL_FLOWS_PANEL_ID} className="animate-fade-up stagger-3 scroll-mt-20">
@@ -100,5 +112,46 @@ function EmptyCard({ message }: { message: string }) {
         {message}
       </CardContent>
     </Card>
+  );
+}
+
+function CapitalFlowsSkeleton() {
+  return (
+    <>
+      <div
+        className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1"
+        aria-hidden="true"
+      >
+        <Skeleton className="h-3.5 w-20" />
+        <Skeleton className="h-3.5 w-24" />
+        <Skeleton className="h-3.5 w-16" />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2" aria-hidden="true">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Card key={i}>
+            <CardHeader className="pb-3">
+              <div className="flex flex-wrap items-end gap-2">
+                <div className="flex flex-col gap-1">
+                  <Skeleton className="h-3 w-12" />
+                  <Skeleton className="h-7 w-24" />
+                </div>
+                <ArrowRight
+                  aria-hidden="true"
+                  className="mb-2 h-4 w-4 shrink-0 text-muted-foreground/40"
+                />
+                <div className="flex flex-col gap-1">
+                  <Skeleton className="h-3 w-12" />
+                  <Skeleton className="h-7 w-24" />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Skeleton className="h-3.5 w-full" />
+              <Skeleton className="h-3.5 w-4/5" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </>
   );
 }

@@ -43,28 +43,11 @@ namespace MyApp.ViewModels
 {
     public sealed class MainViewModel : ViewModelBase, IDisposable
     {
-        private readonly ILogger _logger;
-        private readonly IScheduler _uiScheduler;
+        private readonly ILogger? _logger;
+        private readonly IScheduler? _uiScheduler;
         private readonly CompositeDisposable _disposables = new();
 
-        private string _title = "My Application";
-
-        // Runtime constructor (DI)
-        public MainViewModel(ILogger logger, IScheduler uiScheduler)
-        {
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _uiScheduler = uiScheduler ?? throw new ArgumentNullException(nameof(uiScheduler));
-
-            LoadedCommand = new DelegateCommand(OnLoaded);
-        }
-
-        // Design-time constructor
-        public MainViewModel()
-        {
-            _logger = LogManager.GetCurrentClassLogger();
-            _uiScheduler = DispatcherScheduler.Current;
-            LoadedCommand = new DelegateCommand(() => { });
-        }
+        private string _title = string.Empty;
 
         public string Title
         {
@@ -74,8 +57,35 @@ namespace MyApp.ViewModels
 
         public ICommand LoadedCommand { get; }
 
+        /// <summary>Runtime constructor (DI). Chains to the parameterless ctor so OnInitializeInRuntime fires.</summary>
+        public MainViewModel(ILogger logger, IScheduler uiScheduler) : this()
+        {
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _uiScheduler = uiScheduler ?? throw new ArgumentNullException(nameof(uiScheduler));
+        }
+
+        /// <summary>Designer ctor — required by d:DataContext IsDesignTimeCreatable=True.</summary>
+        public MainViewModel()
+        {
+            LoadedCommand = new DelegateCommand(OnLoaded);
+        }
+
+        // ViewModelBase auto-dispatches to one of these from its ctor based on IsInDesignMode.
+        protected override void OnInitializeInDesignMode()
+        {
+            base.OnInitializeInDesignMode();
+            Title = "Design-Time Preview";
+        }
+
+        protected override void OnInitializeInRuntime()
+        {
+            base.OnInitializeInRuntime();
+            Title = "My Application";
+        }
+
         private void OnLoaded()
         {
+            if (_logger == null) return; // running under the designer
             _logger.Info("ViewModel loaded");
             // Initialize subscriptions, load data
         }
@@ -116,7 +126,7 @@ namespace MyApp.ViewModels
 ViewModels inherit from `DevExpress.Mvvm.ViewModelBase`, implement `IDisposable`, and follow this structure:
 
 - **Field order**: `ILogger` → `IScheduler` → `CompositeDisposable` → backing fields
-- **Two constructors**: runtime (DI with null-checks) + design-time (parameterless, safe defaults)
+- **Design-time / runtime split**: override `OnInitializeInDesignMode()` and `OnInitializeInRuntime()` — `ViewModelBase` auto-dispatches based on `IsInDesignMode`. Use a parameterless ctor for the designer and chain the DI ctor with `: this()`. Don't duplicate property assignments across two constructors.
 - **Properties**: use `SetProperty(ref _field, value, nameof(Prop))` for change notification
 - **Subscriptions**: always `ObserveOn(_uiScheduler)` before updating UI-bound properties, always `.DisposeWith(_disposables)`
 
@@ -382,7 +392,7 @@ Uses Autofac with one module per layer. Key conventions:
 3. **DisposeWith for all subscriptions** — every `.Subscribe()` must end with `.DisposeWith(_disposables)`
 4. **No logic in code-behind** — use commands and bindings; code-behind only for view-owned resources (HWND, native controls)
 5. **Testable ViewModels** — inject all dependencies, use `TestScheduler` in tests
-6. **Design-time constructors** — parameterless constructor with safe defaults for XAML designer
+6. **Design-time / runtime split** — override `OnInitializeInDesignMode()` / `OnInitializeInRuntime()` instead of duplicating property assignments across two constructors. Keep these overrides to property assignments only — DI services aren't available yet when they run.
 
 ## Checklist
 
@@ -390,7 +400,8 @@ Uses Autofac with one module per layer. Key conventions:
 - [ ] `ILogger` is first constructor parameter
 - [ ] `IScheduler` is second constructor parameter
 - [ ] Constructor parameters null-checked with `?? throw new ArgumentNullException`
-- [ ] Design-time constructor provided (parameterless)
+- [ ] Parameterless ctor provided for the designer; runtime ctor chained `: this()`
+- [ ] `OnInitializeInDesignMode()` / `OnInitializeInRuntime()` set design-time vs runtime property values
 - [ ] `CompositeDisposable` for subscription management
 - [ ] `ObserveOn(_uiScheduler)` before updating UI-bound properties
 - [ ] Subscriptions added to `_disposables`

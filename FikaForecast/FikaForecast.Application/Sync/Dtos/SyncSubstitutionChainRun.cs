@@ -17,7 +17,11 @@ public sealed class SyncSubstitutionChainRun
     public int TotalTokens { get; set; }
 
     // SubstitutionChainRun-specific
+    public string ReportType { get; set; } = "substitution-chain";
     public string WeeklySummaryRunId { get; set; } = "";
+    public DateTimeOffset PeriodStart { get; set; }
+    public DateTimeOffset PeriodEnd { get; set; }
+    public string PeriodIsoWeek { get; set; } = "";
     public List<SyncRotationChain> Chains { get; set; } = [];
 }
 

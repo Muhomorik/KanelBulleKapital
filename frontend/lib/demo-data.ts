@@ -58,8 +58,8 @@ export const demoDashboard: DashboardData = {
     inputTokens: 3200,
     outputTokens: 1100,
     totalTokens: 4300,
-    weekStart: "2026-03-31T00:00:00+00:00",
-    weekEnd: "2026-04-04T00:00:00+00:00",
+    periodStart: "2026-03-31T00:00:00+00:00",
+    periodEnd: "2026-04-04T00:00:00+00:00",
     netMood: "Mixed",
     moodSummary:
       "Markets oscillated between trade-war anxiety and AI-led optimism, with capital rotating defensively into healthcare and gold while hyperscaler capex kept secular growth themes intact.",

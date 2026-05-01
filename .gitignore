@@ -532,3 +532,7 @@ local.settings.json
 # Claude Code artifacts (Windows null device files)
 nul
 **/nul
+
+# FikaFinans local-only data examples (real holdings, not for public repo)
+FikaFinans/DataExamples/*
+!FikaFinans/DataExamples/.gitkeep

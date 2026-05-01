@@ -199,11 +199,22 @@ Azure Tables, partitioned by date. Nested types (`CategoryAssessment[]`, `Rotati
 | Table | PartitionKey | RowKey | Key payload columns |
 |-------|--------------|--------|---------------------|
 | `NewsBriefRuns` | `RunDate` (`yyyy-MM-dd`) | `RunId` | `Mood`, `Summary`, `AssessmentsJson` |
-| `WeeklySummaryRuns` | `RunDate` | `RunId` | `NetMood`, `MoodSummary`, `ThemesJson` |
+| `WeeklySummaryRuns` | `RunDate` | `RunId` | `PeriodStart`, `PeriodEnd`, `PeriodIsoWeek`, `NetMood`, `MoodSummary`, `ThemesJson` |
 | `SubstitutionChainRuns` | `RunDate` | `RunId` | `ChainsJson`, `WeeklySummaryRunId` |
 | `OpportunityScanRuns` | `RunDate` | `RunId` | `TargetsJson`, `SubstitutionChainRunId` |
 
 All runs share `AgentRunBase` fields: `RunId`, `RunDate`, `CreatedAt` (`DateTimeOffset`), `ModelId`, `Status`, `DurationSeconds`, token counters.
+
+**Period fields on chain/scan are lazy-filled on read.** `SubstitutionChainRun` and
+`OpportunityScanRun` carry `PeriodStart`/`PeriodEnd`/`PeriodIsoWeek` on the wire (so any
+single record is self-describing), but those columns are NOT persisted on chain/scan
+rows. The repository walks the FK back to the parent `WeeklySummaryRun` at read time and
+stamps the period onto the materialized POCO. Storage stays normalized; the wire stays
+self-describing.
+
+**Legacy column fallback.** Rows written before the rename have `WeekStart`/`WeekEnd`
+columns instead of `PeriodStart`/`PeriodEnd` on `WeeklySummaryRuns`. The repository reads
+the new columns first and falls back to the legacy ones — no data migration script needed.
 
 **Enums:**
 

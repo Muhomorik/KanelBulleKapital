@@ -2,6 +2,7 @@ using KanelBrief.Core.Agents;
 using KanelBrief.Core.Models;
 using KanelBrief.Core.Parsers;
 using KanelBrief.Core.Repositories;
+using KanelBrief.Core.Time;
 using Microsoft.Extensions.Logging;
 
 namespace KanelBrief.Core.Pipelines;
@@ -46,7 +47,7 @@ public sealed class WeeklyAggregationPipeline : IWeeklyAggregationPipeline
 
         var (prevMonday, prevSunday) = CalculateWeekBoundaries(_timeProvider.GetUtcNow());
 
-        _logger.LogInformation("Processing week from {WeekStart} to {WeekEnd}",
+        _logger.LogInformation("Processing week from {PeriodStart} to {PeriodEnd}",
             prevMonday.ToString("yyyy-MM-dd"), prevSunday.ToString("yyyy-MM-dd"));
 
         var dailyBriefs = new List<NewsBriefRun>();
@@ -75,7 +76,7 @@ public sealed class WeeklyAggregationPipeline : IWeeklyAggregationPipeline
         catch (Exception ex)
         {
             _logger.LogError(ex,
-                "Weekly aggregation pipeline failed for week {WeekStart} → {WeekEnd}",
+                "Weekly aggregation pipeline failed for week {PeriodStart} → {PeriodEnd}",
                 prevMonday.ToString("yyyy-MM-dd"), prevSunday.ToString("yyyy-MM-dd"));
             throw;
         }
@@ -87,6 +88,8 @@ public sealed class WeeklyAggregationPipeline : IWeeklyAggregationPipeline
         var startTime = _timeProvider.GetUtcNow();
         var analysis = await _weeklySummaryAnalyzer.AnalyzeAsync(weekStart, weekEnd, dailyBriefs, ct);
 
+        var periodStart = new DateTimeOffset(weekStart, TimeSpan.Zero);
+        var periodEnd = new DateTimeOffset(weekEnd, TimeSpan.Zero);
         var run = new WeeklySummaryRun
         {
             RunDate = startTime.ToString("yyyy-MM-dd"),
@@ -94,8 +97,9 @@ public sealed class WeeklyAggregationPipeline : IWeeklyAggregationPipeline
             CreatedAt = startTime,
             ModelId = ModelId,
             Status = RunStatus.Success,
-            WeekStart = new DateTimeOffset(weekStart, TimeSpan.Zero),
-            WeekEnd = new DateTimeOffset(weekEnd, TimeSpan.Zero),
+            PeriodStart = periodStart,
+            PeriodEnd = periodEnd,
+            PeriodIsoWeek = IsoWeek.Format(periodStart),
             NetMood = AgentResponseParser.ParseSentiment(analysis.Mood),
             MoodSummary = analysis.Summary,
             Themes = analysis.Themes,

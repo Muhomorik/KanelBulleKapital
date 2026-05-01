@@ -360,8 +360,9 @@ public class SyncEndpointsIntegrationTests
             { "OutputTokens", 500 },
             { "TotalTokens", 900 },
             { "CreatedAt", DateTimeOffset.Parse("2026-04-16T12:00:00Z") },
-            { "WeekStart", DateTimeOffset.Parse("2026-04-10T00:00:00Z") },
-            { "WeekEnd", DateTimeOffset.Parse("2026-04-16T23:59:59Z") },
+            { "PeriodStart", DateTimeOffset.Parse("2026-04-10T00:00:00Z") },
+            { "PeriodEnd", DateTimeOffset.Parse("2026-04-16T23:59:59Z") },
+            { "PeriodIsoWeek", "2026-W15" },
             { "NetMood", "RiskOff" },
             { "MoodSummary", "Risk-off week" },
             {

@@ -17,8 +17,10 @@ public sealed class SyncWeeklySummaryRun
     public int TotalTokens { get; set; }
 
     // WeeklySummaryRun-specific
-    public DateTimeOffset WeekStart { get; set; }
-    public DateTimeOffset WeekEnd { get; set; }
+    public string ReportType { get; set; } = "weekly-summary";
+    public DateTimeOffset PeriodStart { get; set; }
+    public DateTimeOffset PeriodEnd { get; set; }
+    public string PeriodIsoWeek { get; set; } = "";
     public string NetMood { get; set; } = "";
     public string MoodSummary { get; set; } = "";
     public List<SyncWeeklySummaryTheme> Themes { get; set; } = [];

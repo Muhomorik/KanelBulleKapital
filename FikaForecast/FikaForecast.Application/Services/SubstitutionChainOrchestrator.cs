@@ -51,7 +51,12 @@ public class SubstitutionChainOrchestrator
         if (weeklySummaryRun.Themes.Count == 0)
             return Result.Fail<SubstitutionChainRun>("Weekly summary has no themes to analyze");
 
-        var run = SubstitutionChainRun.Start(model, weeklySummaryRun.RunId);
+        var run = SubstitutionChainRun.Start(
+            model,
+            weeklySummaryRun.RunId,
+            weeklySummaryRun.PeriodStart,
+            weeklySummaryRun.PeriodEnd,
+            weeklySummaryRun.PeriodIsoWeek);
 
         // Format weekly summary into text input
         var inputText = _inputFormatter.Format(weeklySummaryRun);
@@ -92,7 +97,7 @@ public class SubstitutionChainOrchestrator
 
         // Render display markdown from structured data
         var displayMarkdown = _renderer.Render(
-            parseResult, weeklySummaryRun.WeekStart, weeklySummaryRun.WeekEnd);
+            parseResult, weeklySummaryRun.PeriodStart, weeklySummaryRun.PeriodEnd);
         if (!string.IsNullOrEmpty(displayMarkdown))
             run.SetDisplayMarkdown(displayMarkdown);
 

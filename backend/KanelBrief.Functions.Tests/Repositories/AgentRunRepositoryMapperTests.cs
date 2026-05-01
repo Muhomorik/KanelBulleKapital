@@ -107,6 +107,70 @@ public class AgentRunRepositoryMapperTests
 
     [Test]
     [Category("NewsBriefRun")]
+    public void MapToNewsBriefRun_CitationsJson_DeserializesCorrectly()
+    {
+        var citations = new List<Citation>
+        {
+            new("Reuters — Intel Q1", "https://www.reuters.com/business/intel-q1-2026/", 145, 198),
+            new("FT — AMD rally", "https://www.ft.com/content/amd-2026-04-24", 210, 257)
+        };
+
+        var entity = CreateBaseEntity("2026-04-08", "run-123");
+        entity[NewsBriefColumns.DeploymentName] = "gpt-5.4-mini";
+        entity[NewsBriefColumns.Mood] = "RiskOn";
+        entity[NewsBriefColumns.Summary] = "test";
+        entity[NewsBriefColumns.Assessments] = "[]";
+        entity[NewsBriefColumns.Citations] = JsonSerializer.Serialize(citations, _jsonOptions);
+
+        var run = _sut.MapToNewsBriefRun(entity);
+
+        Assert.That(run.Citations, Has.Count.EqualTo(2));
+        Assert.That(run.Citations[0].Title, Is.EqualTo("Reuters — Intel Q1"));
+        Assert.That(run.Citations[0].Url, Is.EqualTo("https://www.reuters.com/business/intel-q1-2026/"));
+        Assert.That(run.Citations[0].StartIndex, Is.EqualTo(145));
+        Assert.That(run.Citations[0].EndIndex, Is.EqualTo(198));
+    }
+
+    [Test]
+    [Category("NewsBriefRun")]
+    public void MapToNewsBriefRun_EmptyCitationsJson_ReturnsEmptyList()
+    {
+        // Empty array is the expected payload for JSON-mode agents — the persistence
+        // layer must round-trip it as an empty list (not null) so downstream code
+        // doesn't NRE on .Count or .Any().
+        var entity = CreateBaseEntity("2026-04-08", "run-123");
+        entity[NewsBriefColumns.DeploymentName] = "gpt-5.4-mini";
+        entity[NewsBriefColumns.Mood] = "Mixed";
+        entity[NewsBriefColumns.Summary] = "test";
+        entity[NewsBriefColumns.Assessments] = "[]";
+        entity[NewsBriefColumns.Citations] = "[]";
+
+        var run = _sut.MapToNewsBriefRun(entity);
+
+        Assert.That(run.Citations, Is.Not.Null);
+        Assert.That(run.Citations, Is.Empty);
+    }
+
+    [Test]
+    [Category("NewsBriefRun")]
+    public void MapToNewsBriefRun_LegacyEntityWithoutCitationsColumn_ReturnsEmptyList()
+    {
+        // Pre-Citations rows in Azure Tables won't have the column at all. The mapper
+        // must treat that as "no citations" rather than throwing on missing key.
+        var entity = CreateBaseEntity("2026-04-08", "legacy-run");
+        entity[NewsBriefColumns.DeploymentName] = "gpt-5.4-mini";
+        entity[NewsBriefColumns.Mood] = "Mixed";
+        entity[NewsBriefColumns.Summary] = "";
+        entity[NewsBriefColumns.Assessments] = "[]";
+
+        var run = _sut.MapToNewsBriefRun(entity);
+
+        Assert.That(run.Citations, Is.Not.Null);
+        Assert.That(run.Citations, Is.Empty);
+    }
+
+    [Test]
+    [Category("NewsBriefRun")]
     public void MapToNewsBriefRun_EntityWithCreatedAt_MapsCreatedAt()
     {
         // Arrange
@@ -201,24 +265,68 @@ public class AgentRunRepositoryMapperTests
 
     [Test]
     [Category("WeeklySummaryRun")]
-    public void MapToWeeklySummaryRun_ValidEntity_MapsWeekDatesAndMood()
+    public void MapToWeeklySummaryRun_ValidEntity_MapsPeriodDatesAndMood()
     {
-        var weekStart = new DateTimeOffset(2026, 3, 30, 0, 0, 0, TimeSpan.Zero);
-        var weekEnd = new DateTimeOffset(2026, 4, 6, 0, 0, 0, TimeSpan.Zero);
+        var periodStart = new DateTimeOffset(2026, 3, 30, 0, 0, 0, TimeSpan.Zero);
+        var periodEnd = new DateTimeOffset(2026, 4, 6, 0, 0, 0, TimeSpan.Zero);
 
         var entity = CreateBaseEntity("2026-04-07", "weekly-001");
-        entity[WeeklySummaryColumns.WeekStart] = weekStart;
-        entity[WeeklySummaryColumns.WeekEnd] = weekEnd;
+        entity[WeeklySummaryColumns.PeriodStart] = periodStart;
+        entity[WeeklySummaryColumns.PeriodEnd] = periodEnd;
+        entity[WeeklySummaryColumns.PeriodIsoWeek] = "2026-W14";
         entity[WeeklySummaryColumns.NetMood] = "RiskOff";
         entity[WeeklySummaryColumns.MoodSummary] = "Cautious week";
         entity[WeeklySummaryColumns.Themes] = "[]";
 
         var run = _sut.MapToWeeklySummaryRun(entity);
 
-        Assert.That(run.WeekStart, Is.EqualTo(weekStart));
-        Assert.That(run.WeekEnd, Is.EqualTo(weekEnd));
+        Assert.That(run.PeriodStart, Is.EqualTo(periodStart));
+        Assert.That(run.PeriodEnd, Is.EqualTo(periodEnd));
+        Assert.That(run.PeriodIsoWeek, Is.EqualTo("2026-W14"));
         Assert.That(run.NetMood, Is.EqualTo(MarketSentiment.RiskOff));
         Assert.That(run.MoodSummary, Is.EqualTo("Cautious week"));
+    }
+
+    [Test]
+    [Category("WeeklySummaryRun")]
+    public void MapToWeeklySummaryRun_LegacyRowWithOnlyWeekStartWeekEndColumns_FallsBackAndPopulatesPeriod()
+    {
+        // Legacy rows written before the rename only carry WeekStart/WeekEnd columns.
+        // The mapper must read them as a fallback so the wire shape stays consistent.
+        var weekStart = new DateTimeOffset(2026, 4, 13, 0, 0, 0, TimeSpan.Zero);
+        var weekEnd = new DateTimeOffset(2026, 4, 19, 0, 0, 0, TimeSpan.Zero);
+
+        var entity = CreateBaseEntity("2026-04-20", "legacy-weekly");
+        entity[WeeklySummaryColumns.LegacyWeekStart] = weekStart;
+        entity[WeeklySummaryColumns.LegacyWeekEnd] = weekEnd;
+        // Note: no PeriodStart, PeriodEnd, or PeriodIsoWeek columns.
+        entity[WeeklySummaryColumns.NetMood] = "Mixed";
+        entity[WeeklySummaryColumns.MoodSummary] = "";
+        entity[WeeklySummaryColumns.Themes] = "[]";
+
+        var run = _sut.MapToWeeklySummaryRun(entity);
+
+        Assert.That(run.PeriodStart, Is.EqualTo(weekStart));
+        Assert.That(run.PeriodEnd, Is.EqualTo(weekEnd));
+        // PeriodIsoWeek must be computed from PeriodStart when the column is missing.
+        Assert.That(run.PeriodIsoWeek, Is.EqualTo("2026-W16"));
+    }
+
+    [Test]
+    [Category("WeeklySummaryRun")]
+    public void MapToWeeklySummaryRun_ReportTypeProperty_DefaultsToWeeklySummary()
+    {
+        // ReportType is a property default — the column doesn't need to be stored.
+        var entity = CreateBaseEntity("2026-04-07", "weekly-001");
+        entity[WeeklySummaryColumns.PeriodStart] = DateTimeOffset.MinValue;
+        entity[WeeklySummaryColumns.PeriodEnd] = DateTimeOffset.MinValue;
+        entity[WeeklySummaryColumns.NetMood] = "Mixed";
+        entity[WeeklySummaryColumns.MoodSummary] = "";
+        entity[WeeklySummaryColumns.Themes] = "[]";
+
+        var run = _sut.MapToWeeklySummaryRun(entity);
+
+        Assert.That(run.ReportType, Is.EqualTo("weekly-summary"));
     }
 
     [Test]
@@ -231,8 +339,8 @@ public class AgentRunRepositoryMapperTests
         };
 
         var entity = CreateBaseEntity("2026-04-07", "weekly-001");
-        entity[WeeklySummaryColumns.WeekStart] = DateTimeOffset.MinValue;
-        entity[WeeklySummaryColumns.WeekEnd] = DateTimeOffset.MinValue;
+        entity[WeeklySummaryColumns.PeriodStart] = DateTimeOffset.MinValue;
+        entity[WeeklySummaryColumns.PeriodEnd] = DateTimeOffset.MinValue;
         entity[WeeklySummaryColumns.NetMood] = "Mixed";
         entity[WeeklySummaryColumns.MoodSummary] = "";
         entity[WeeklySummaryColumns.Themes] = JsonSerializer.Serialize(themes, _jsonOptions);
@@ -249,8 +357,8 @@ public class AgentRunRepositoryMapperTests
     public void MapToWeeklySummaryRun_EmptyThemesJson_ReturnsEmptyList()
     {
         var entity = CreateBaseEntity("2026-04-07", "weekly-001");
-        entity[WeeklySummaryColumns.WeekStart] = DateTimeOffset.MinValue;
-        entity[WeeklySummaryColumns.WeekEnd] = DateTimeOffset.MinValue;
+        entity[WeeklySummaryColumns.PeriodStart] = DateTimeOffset.MinValue;
+        entity[WeeklySummaryColumns.PeriodEnd] = DateTimeOffset.MinValue;
         entity[WeeklySummaryColumns.NetMood] = "Mixed";
         entity[WeeklySummaryColumns.MoodSummary] = "";
         entity[WeeklySummaryColumns.Themes] = "";
@@ -268,8 +376,8 @@ public class AgentRunRepositoryMapperTests
         var createdAt = new DateTimeOffset(2026, 4, 16, 19, 0, 0, TimeSpan.Zero);
         var entity = CreateBaseEntity("2026-04-16", "weekly-001");
         entity[BaseColumns.CreatedAt] = createdAt;
-        entity[WeeklySummaryColumns.WeekStart] = DateTimeOffset.MinValue;
-        entity[WeeklySummaryColumns.WeekEnd] = DateTimeOffset.MinValue;
+        entity[WeeklySummaryColumns.PeriodStart] = DateTimeOffset.MinValue;
+        entity[WeeklySummaryColumns.PeriodEnd] = DateTimeOffset.MinValue;
         entity[WeeklySummaryColumns.NetMood] = "Mixed";
         entity[WeeklySummaryColumns.MoodSummary] = "";
         entity[WeeklySummaryColumns.Themes] = "[]";
@@ -292,8 +400,8 @@ public class AgentRunRepositoryMapperTests
             { BaseColumns.InputTokens, 100 },
             { BaseColumns.OutputTokens, 200 },
             { BaseColumns.TotalTokens, 300 },
-            { WeeklySummaryColumns.WeekStart, DateTimeOffset.MinValue },
-            { WeeklySummaryColumns.WeekEnd, DateTimeOffset.MinValue },
+            { WeeklySummaryColumns.PeriodStart, DateTimeOffset.MinValue },
+            { WeeklySummaryColumns.PeriodEnd, DateTimeOffset.MinValue },
             { WeeklySummaryColumns.NetMood, "Mixed" },
             { WeeklySummaryColumns.MoodSummary, "" },
             { WeeklySummaryColumns.Themes, "[]" }
@@ -336,6 +444,36 @@ public class AgentRunRepositoryMapperTests
         var run = _sut.MapToSubstitutionChainRun(entity);
 
         Assert.That(run.WeeklySummaryRunId, Is.EqualTo("weekly-ref-123"));
+    }
+
+    [Test]
+    [Category("SubstitutionChainRun")]
+    public void MapToSubstitutionChainRun_ReportTypeProperty_DefaultsToSubstitutionChain()
+    {
+        var entity = CreateBaseEntity("2026-04-07", "chain-001");
+        entity[SubstitutionChainColumns.WeeklySummaryRunId] = "weekly-001";
+        entity[SubstitutionChainColumns.Chains] = "[]";
+
+        var run = _sut.MapToSubstitutionChainRun(entity);
+
+        Assert.That(run.ReportType, Is.EqualTo("substitution-chain"));
+    }
+
+    [Test]
+    [Category("SubstitutionChainRun")]
+    public void MapToSubstitutionChainRun_DoesNotPopulatePeriod_ThatHappensInLazyFill()
+    {
+        // The synchronous mapper is intentionally storage-only. Period fields stay at default
+        // until the public Get/List methods invoke the lazy-fill helper.
+        var entity = CreateBaseEntity("2026-04-07", "chain-001");
+        entity[SubstitutionChainColumns.WeeklySummaryRunId] = "weekly-001";
+        entity[SubstitutionChainColumns.Chains] = "[]";
+
+        var run = _sut.MapToSubstitutionChainRun(entity);
+
+        Assert.That(run.PeriodStart, Is.EqualTo(default(DateTimeOffset)));
+        Assert.That(run.PeriodEnd, Is.EqualTo(default(DateTimeOffset)));
+        Assert.That(run.PeriodIsoWeek, Is.Empty);
     }
 
     [Test]
@@ -383,6 +521,34 @@ public class AgentRunRepositoryMapperTests
         var run = _sut.MapToOpportunityScanRun(entity);
 
         Assert.That(run.SubstitutionChainRunId, Is.EqualTo("chain-ref-456"));
+    }
+
+    [Test]
+    [Category("OpportunityScanRun")]
+    public void MapToOpportunityScanRun_ReportTypeProperty_DefaultsToRotationTargets()
+    {
+        var entity = CreateBaseEntity("2026-04-07", "opp-001");
+        entity[OpportunityScanColumns.SubstitutionChainRunId] = "chain-001";
+        entity[OpportunityScanColumns.Targets] = "[]";
+
+        var run = _sut.MapToOpportunityScanRun(entity);
+
+        Assert.That(run.ReportType, Is.EqualTo("rotation-targets"));
+    }
+
+    [Test]
+    [Category("OpportunityScanRun")]
+    public void MapToOpportunityScanRun_DoesNotPopulatePeriod_ThatHappensInLazyFill()
+    {
+        var entity = CreateBaseEntity("2026-04-07", "opp-001");
+        entity[OpportunityScanColumns.SubstitutionChainRunId] = "chain-001";
+        entity[OpportunityScanColumns.Targets] = "[]";
+
+        var run = _sut.MapToOpportunityScanRun(entity);
+
+        Assert.That(run.PeriodStart, Is.EqualTo(default(DateTimeOffset)));
+        Assert.That(run.PeriodEnd, Is.EqualTo(default(DateTimeOffset)));
+        Assert.That(run.PeriodIsoWeek, Is.Empty);
     }
 
     [Test]

@@ -354,6 +354,56 @@ public class WeeklyAggregationPipelineTests
     }
 
     [Test]
+    public async Task ExecuteAsync_WhenAnalyzerSucceeds_StampsPeriodFieldsAndReportTypeOnWeeklySummaryRun()
+    {
+        // Arrange
+        SetupBriefsForPreviousWeek();
+        SetupAllAnalyzersSucceed();
+
+        WeeklySummaryRun? savedSummary = null;
+        _repository.Setup(r => r.SaveWeeklySummaryRunAsync(It.IsAny<WeeklySummaryRun>()))
+            .Callback<WeeklySummaryRun>(r => savedSummary = r)
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await _sut.ExecuteAsync();
+
+        // Assert
+        Assert.That(savedSummary, Is.Not.Null);
+        // Previous week is Mar 30 (Mon) → exclusive Apr 6.
+        Assert.That(savedSummary!.PeriodStart, Is.EqualTo(new DateTimeOffset(2026, 3, 30, 0, 0, 0, TimeSpan.Zero)));
+        Assert.That(savedSummary.PeriodEnd, Is.EqualTo(new DateTimeOffset(2026, 4, 6, 0, 0, 0, TimeSpan.Zero)));
+        Assert.That(savedSummary.PeriodIsoWeek, Is.EqualTo("2026-W14"));
+        Assert.That(savedSummary.ReportType, Is.EqualTo("weekly-summary"));
+    }
+
+    [Test]
+    public async Task ExecuteAsync_WhenAnalyzersSucceed_ReportTypeConstantsAreSetOnAllThreeRuns()
+    {
+        // Arrange
+        SetupBriefsForPreviousWeek();
+        SetupAllAnalyzersSucceed();
+
+        WeeklySummaryRun? summary = null;
+        SubstitutionChainRun? chain = null;
+        OpportunityScanRun? scan = null;
+        _repository.Setup(r => r.SaveWeeklySummaryRunAsync(It.IsAny<WeeklySummaryRun>()))
+            .Callback<WeeklySummaryRun>(r => summary = r).Returns(Task.CompletedTask);
+        _repository.Setup(r => r.SaveSubstitutionChainRunAsync(It.IsAny<SubstitutionChainRun>()))
+            .Callback<SubstitutionChainRun>(r => chain = r).Returns(Task.CompletedTask);
+        _repository.Setup(r => r.SaveOpportunityScanRunAsync(It.IsAny<OpportunityScanRun>()))
+            .Callback<OpportunityScanRun>(r => scan = r).Returns(Task.CompletedTask);
+
+        // Act
+        await _sut.ExecuteAsync();
+
+        // Assert
+        Assert.That(summary!.ReportType, Is.EqualTo("weekly-summary"));
+        Assert.That(chain!.ReportType, Is.EqualTo("substitution-chain"));
+        Assert.That(scan!.ReportType, Is.EqualTo("rotation-targets"));
+    }
+
+    [Test]
     public async Task ExecuteAsync_WhenAnalyzerSucceeds_MapsWeeklySummaryNetMoodViaParser()
     {
         // Arrange

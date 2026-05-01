@@ -78,6 +78,7 @@ public sealed class NewsBriefAgent(
             Mood = analysis.Mood,
             Summary = analysis.Summary,
             Assessments = analysis.Assessments,
+            Citations = analysis.Citations,
             DurationSeconds = (timeProvider.GetUtcNow() - startTime).TotalSeconds
         };
 

@@ -81,101 +81,125 @@ Dispose is triggered by `CurrentWindowService.ClosingCommand` — the ViewModel 
 
 ## Constructor Patterns
 
-### Runtime Constructor (DI)
+### The DevExpress design-time / runtime split
 
-Used when the ViewModel is resolved from the DI container at runtime:
+`DevExpress.Mvvm.ViewModelBase` provides two virtual hooks that the base constructor automatically dispatches to based on its built-in `IsInDesignMode` static property:
 
-```csharp
-public MyViewModel(
-    ILogger logger,                    // First parameter (convention)
-    IScheduler uiScheduler,            // UI thread marshalling
-    IDataService dataService,          // Business logic services
-    IEventAggregator eventAggregator)  // Other dependencies
-{
-    // Validate required dependencies
-    _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    _uiScheduler = uiScheduler ?? throw new ArgumentNullException(nameof(uiScheduler));
-    _dataService = dataService ?? throw new ArgumentNullException(nameof(dataService));
-    _eventAggregator = eventAggregator ?? throw new ArgumentNullException(nameof(eventAggregator));
+- `OnInitializeInDesignMode()` — runs when the XAML designer instantiates the VM (via `d:DataContext IsDesignTimeCreatable=True`)
+- `OnInitializeInRuntime()` — runs in production
 
-    // Initialize commands
-    LoadedCommand = new DelegateCommand(OnLoaded);
-    SaveCommand = new AsyncCommand(SaveAsync, CanSave);
-    CancelCommand = new DelegateCommand(OnCancel);
+This is the [canonical DevExpress pattern](https://docs.devexpress.com/WPF/17351). Use it instead of duplicating property assignments across two constructors — single source of truth per mode, no drift.
 
-    // Initialize collections
-    Items = new ObservableCollection<ItemViewModel>();
-
-    // DO NOT start subscriptions here - wait for OnLoaded
-}
-```
-
-### Design-Time Constructor
-
-Used by Visual Studio/Rider XAML designer for preview and IntelliSense:
+### Canonical pattern
 
 ```csharp
-public MyViewModel()
+public sealed class MyViewModel : ViewModelBase, IDisposable
 {
-    // Provide safe defaults for designer
-    _logger = LogManager.GetCurrentClassLogger();
-    _uiScheduler = DispatcherScheduler.Current;
+    private readonly ILogger? _logger;
+    private readonly IScheduler? _uiScheduler;
+    private readonly IDataService? _dataService;
+    private readonly CompositeDisposable _disposables = new();
 
-    // Initialize commands with no-ops
-    LoadedCommand = new DelegateCommand(() => { });
-    SaveCommand = new AsyncCommand(async () => { });
-    CancelCommand = new DelegateCommand(() => { });
+    private string _title = string.Empty;
+    private string _status = string.Empty;
 
-    // Initialize collections with sample data
-    Items = new ObservableCollection<ItemViewModel>
+    public string Title
     {
-        new ItemViewModel { Name = "Sample Item 1" },
-        new ItemViewModel { Name = "Sample Item 2" }
-    };
-
-    // Set sample property values
-    Title = "Design-Time Preview";
-    Status = "Ready";
-}
-```
-
-**Design-time constructor best practices:**
-- Never throw exceptions
-- Provide reasonable default values
-- Use sample data for collections
-- Keep logic minimal
-- Don't make network calls or access files
-
-### Detecting Design-Time vs Runtime
-
-If you need to conditionally execute logic:
-
-```csharp
-public MyViewModel(ILogger logger, IScheduler uiScheduler)
-{
-    _logger = logger;
-    _uiScheduler = uiScheduler;
-
-    if (IsInDesignMode())
-    {
-        // Design-time specific logic
-        Items = CreateSampleData();
+        get => _title;
+        set => SetProperty(ref _title, value, nameof(Title));
     }
-    else
+
+    public string Status
     {
-        // Runtime specific logic
-        Items = new ObservableCollection<Item>();
+        get => _status;
+        set => SetProperty(ref _status, value, nameof(Status));
+    }
+
+    public ObservableCollection<ItemViewModel> Items { get; } = new();
+
+    public ICommand LoadedCommand { get; }
+    public ICommand SaveCommand { get; }
+
+    /// <summary>Runtime constructor (DI). Chains to the parameterless ctor so the base ctor + OnInitializeInRuntime fire first.</summary>
+    public MyViewModel(ILogger logger, IScheduler uiScheduler, IDataService dataService) : this()
+    {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _uiScheduler = uiScheduler ?? throw new ArgumentNullException(nameof(uiScheduler));
+        _dataService = dataService ?? throw new ArgumentNullException(nameof(dataService));
+    }
+
+    /// <summary>Designer ctor — required by d:DataContext IsDesignTimeCreatable=True.</summary>
+    public MyViewModel()
+    {
+        LoadedCommand = new DelegateCommand(OnLoaded);
+        SaveCommand = new AsyncCommand(SaveAsync, CanSave);
+    }
+
+    protected override void OnInitializeInDesignMode()
+    {
+        base.OnInitializeInDesignMode();
+        Title = "Design-Time Preview";
+        Status = "Ready (designer)";
+        Items.Add(new ItemViewModel { Name = "Sample Item 1" });
+        Items.Add(new ItemViewModel { Name = "Sample Item 2" });
+    }
+
+    protected override void OnInitializeInRuntime()
+    {
+        base.OnInitializeInRuntime();
+        Title = "My Application";
+        Status = "Ready";
+    }
+
+    private void OnLoaded()
+    {
+        if (_logger == null) return; // running in designer — services aren't injected
+        _logger.Info("ViewModel loaded");
+        // Start subscriptions, load real data
     }
 }
+```
 
-private bool IsInDesignMode()
+### Why constructor chaining matters
+
+`OnInitialize*` is invoked by the **base** `ViewModelBase` constructor — *before* the derived constructor body runs. That means inside `OnInitializeInRuntime` you cannot read `_logger`, `_uiScheduler`, or any other DI field set in the parameterized ctor body. Two consequences:
+
+1. **Keep `OnInitialize*` overrides to property assignments only.** Anything that needs services (logging, subscriptions, network calls) belongs in `OnLoaded` (wired via `LoadedCommand`).
+2. **Chain the runtime ctor with `: this()`** so the parameterless ctor (and therefore the base ctor and `OnInitialize*`) runs first; the parameterized ctor body just stores DI services.
+
+### Field initializers are the implicit third tier
+
+If a default is the same in both modes, set it via field initializer and skip the override — no need to write the same line twice:
+
+```csharp
+private string _title = "My Application";   // identical in design + runtime
+```
+
+Only override `OnInitialize*` for properties whose values **differ** between modes (or whose runtime defaults need computation).
+
+### Detecting design-time mode in code
+
+Use the framework-provided `ViewModelBase.IsInDesignMode` static property — don't roll your own with `System.ComponentModel.DesignerProperties.GetIsInDesignMode`:
+
+```csharp
+if (ViewModelBase.IsInDesignMode)
 {
-    return System.ComponentModel.DesignerProperties.GetIsInDesignMode(
-        new System.Windows.DependencyObject());
+    // designer-only branch
 }
 ```
 
-However, prefer separate constructors over conditional logic.
+Prefer `OnInitializeIn*` overrides over inline `IsInDesignMode` checks when you're branching on initialization. Keep `IsInDesignMode` for the rare case where mid-method behavior must diverge.
+
+### `OnInitialize*` best practices
+
+- Set property values only — do not call services, network, or file system
+- Never throw — exceptions break the XAML designer's preview pane
+- Sample data for `ObservableCollection<T>` belongs in `OnInitializeInDesignMode`
+- Always call `base.OnInitializeInDesignMode()` / `base.OnInitializeInRuntime()` first
+
+### When to skip the parameterless ctor entirely
+
+For ViewModels that will never be created by the XAML designer (e.g., dialog VMs always resolved through DI), drop the parameterless ctor and use `IsDesignTimeCreatable=False` in XAML. You still get binding-IntelliSense from the type metadata, just no live preview.
 
 ## Property Change Notification
 

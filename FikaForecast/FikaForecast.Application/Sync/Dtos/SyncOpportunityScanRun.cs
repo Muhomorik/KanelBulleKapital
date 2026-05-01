@@ -17,7 +17,11 @@ public sealed class SyncOpportunityScanRun
     public int TotalTokens { get; set; }
 
     // OpportunityScanRun-specific
+    public string ReportType { get; set; } = "rotation-targets";
     public string SubstitutionChainRunId { get; set; } = "";
+    public DateTimeOffset PeriodStart { get; set; }
+    public DateTimeOffset PeriodEnd { get; set; }
+    public string PeriodIsoWeek { get; set; } = "";
     public List<SyncRotationTarget> Targets { get; set; } = [];
 }
 

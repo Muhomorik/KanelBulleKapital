@@ -112,9 +112,9 @@
 
                                 <StackPanel Grid.Column="0">
                                     <TextBlock x:Name="PrimaryText" Style="{StaticResource ff.BodyStrongStyle}">
-                                        <Run Text="{Binding WeekStart, Mode=OneWay, StringFormat='MMM dd'}"/>
+                                        <Run Text="{Binding PeriodStart, Mode=OneWay, StringFormat='MMM dd'}"/>
                                         <Run Text="–"/>
-                                        <Run Text="{Binding WeekEnd, Mode=OneWay, StringFormat='MMM dd'}"/>
+                                        <Run Text="{Binding PeriodEnd, Mode=OneWay, StringFormat='MMM dd'}"/>
                                         <Run Text=" — "/>
                                         <Run Text="{Binding Status, Mode=OneWay}"/>
                                     </TextBlock>
@@ -222,9 +222,9 @@
 
                             <TextBlock Grid.Row="0" Style="{StaticResource ff.TitleStyle}" Margin="{StaticResource ff.CompactSpacing}">
                                 <Run Text="Week of "/>
-                                <Run Text="{Binding WeekStart, Mode=OneWay, StringFormat='MMM dd'}"/>
+                                <Run Text="{Binding PeriodStart, Mode=OneWay, StringFormat='MMM dd'}"/>
                                 <Run Text=" – "/>
-                                <Run Text="{Binding WeekEnd, Mode=OneWay, StringFormat='MMM dd, yyyy'}"/>
+                                <Run Text="{Binding PeriodEnd, Mode=OneWay, StringFormat='MMM dd, yyyy'}"/>
                             </TextBlock>
 
                             <TextBlock Grid.Row="1" Style="{StaticResource ff.CaptionStyle}" Margin="{StaticResource ff.LabelSpacing}">

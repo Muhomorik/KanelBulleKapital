@@ -21,9 +21,9 @@ public class ReportExportMarkdownFormatter
     {
         var label = TypeLabel(ctx.Type);
         var slug = FileSlug(ctx.Type);
-        var (year, week) = IsoWeek.Compute(ctx.WeekStart);
+        var (year, week) = IsoWeek.Compute(ctx.PeriodStart);
         var weekTag = string.Create(CultureInfo.InvariantCulture, $"{year:0000}-W{week:00}");
-        var range = FormatRange(ctx.WeekStart, ctx.WeekEnd);
+        var range = FormatRange(ctx.PeriodStart, ctx.PeriodEnd);
 
         var sb = new StringBuilder();
         sb.Append(CultureInfo.InvariantCulture, $"# {label} — Week {week} ({range})");
@@ -35,9 +35,9 @@ public class ReportExportMarkdownFormatter
         sb.AppendLine();
         sb.Append(CultureInfo.InvariantCulture, $"iso_week: {weekTag}");
         sb.AppendLine();
-        sb.Append(CultureInfo.InvariantCulture, $"period_start: {ctx.WeekStart:yyyy-MM-dd}");
+        sb.Append(CultureInfo.InvariantCulture, $"period_start: {ctx.PeriodStart:yyyy-MM-dd}");
         sb.AppendLine();
-        sb.Append(CultureInfo.InvariantCulture, $"period_end: {ctx.WeekEnd:yyyy-MM-dd}");
+        sb.Append(CultureInfo.InvariantCulture, $"period_end: {ctx.PeriodEnd:yyyy-MM-dd}");
         sb.AppendLine();
         sb.Append(CultureInfo.InvariantCulture, $"generated_at: {ctx.GeneratedAt:yyyy-MM-ddTHH:mm:sszzz}");
         sb.AppendLine();

@@ -89,8 +89,10 @@ public class SyncDtoContractTests
               "inputTokens": 400,
               "outputTokens": 500,
               "totalTokens": 900,
-              "weekStart": "2026-04-10T00:00:00+00:00",
-              "weekEnd": "2026-04-16T23:59:59+00:00",
+              "reportType": "weekly-summary",
+              "periodStart": "2026-04-10T00:00:00+00:00",
+              "periodEnd": "2026-04-16T23:59:59+00:00",
+              "periodIsoWeek": "2026-W15",
               "netMood": "RiskOff",
               "moodSummary": "Risk-off week",
               "themes": [
@@ -134,7 +136,11 @@ public class SyncDtoContractTests
               "inputTokens": 10,
               "outputTokens": 20,
               "totalTokens": 30,
+              "reportType": "substitution-chain",
               "weeklySummaryRunId": "weekly-001",
+              "periodStart": "2026-04-10T00:00:00+00:00",
+              "periodEnd": "2026-04-16T23:59:59+00:00",
+              "periodIsoWeek": "2026-W15",
               "chains": [
                 { "capitalFleeing": "Tech", "flowsToward": "Energy", "mechanism": "Rates" }
               ]
@@ -175,7 +181,11 @@ public class SyncDtoContractTests
               "inputTokens": 1,
               "outputTokens": 2,
               "totalTokens": 3,
+              "reportType": "rotation-targets",
               "substitutionChainRunId": "chain-001",
+              "periodStart": "2026-04-10T00:00:00+00:00",
+              "periodEnd": "2026-04-16T23:59:59+00:00",
+              "periodIsoWeek": "2026-W15",
               "targets": [
                 { "category": "Energy", "signalStrength": "Strong", "rationale": "Rotation intact", "riskCaveat": "OPEC" }
               ]

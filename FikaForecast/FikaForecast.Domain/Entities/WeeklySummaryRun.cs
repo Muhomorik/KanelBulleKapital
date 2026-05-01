@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using FikaForecast.Domain.Enums;
 using FikaForecast.Domain.ValueObjects;
 
@@ -8,14 +9,18 @@ namespace FikaForecast.Domain.Entities;
 /// Aggregate root representing a single execution of the Weekly Summary Agent.
 /// Consolidates daily briefs into confidence-weighted themes.
 /// </summary>
-[DebuggerDisplay("Weekly {WeekStart:yyyy-MM-dd}..{WeekEnd:yyyy-MM-dd} — {Status} ({TotalTokens} tokens)")]
+[DebuggerDisplay("Weekly {PeriodStart:yyyy-MM-dd}..{PeriodEnd:yyyy-MM-dd} ({PeriodIsoWeek}) — {Status} ({TotalTokens} tokens)")]
 public class WeeklySummaryRun
 {
     private readonly List<WeeklySummaryTheme> _themes = [];
 
     public Guid RunId { get; private set; }
-    public DateTimeOffset WeekStart { get; private set; }
-    public DateTimeOffset WeekEnd { get; private set; }
+    public DateTimeOffset PeriodStart { get; private set; }
+    public DateTimeOffset PeriodEnd { get; private set; }
+
+    /// <summary>ISO 8601 week tag of <see cref="PeriodStart"/>, e.g. <c>"2026-W17"</c>.</summary>
+    public string PeriodIsoWeek { get; private set; }
+
     public DateTimeOffset Timestamp { get; private set; }
     public string ModelId { get; private set; }
     public RunStatus Status { get; private set; }
@@ -45,19 +50,21 @@ public class WeeklySummaryRun
         RawAgentOutput = null!;
         RawMarkdownOutput = null!;
         MoodSummary = null!;
+        PeriodIsoWeek = null!;
     }
 
     /// <summary>
     /// Creates a new run in <see cref="RunStatus.Partial"/> state.
     /// Call <see cref="Complete"/> or <see cref="Fail"/> when the agent finishes.
     /// </summary>
-    public static WeeklySummaryRun Start(ModelConfig model, DateTimeOffset weekStart, DateTimeOffset weekEnd)
+    public static WeeklySummaryRun Start(ModelConfig model, DateTimeOffset periodStart, DateTimeOffset periodEnd)
     {
         return new WeeklySummaryRun
         {
             RunId = Guid.NewGuid(),
-            WeekStart = weekStart,
-            WeekEnd = weekEnd,
+            PeriodStart = periodStart,
+            PeriodEnd = periodEnd,
+            PeriodIsoWeek = FormatIsoWeek(periodStart),
             Timestamp = DateTimeOffset.Now,
             ModelId = model.ModelId,
             Status = RunStatus.Partial,
@@ -133,8 +140,9 @@ public class WeeklySummaryRun
     /// </summary>
     public static WeeklySummaryRun Rehydrate(
         Guid runId,
-        DateTimeOffset weekStart,
-        DateTimeOffset weekEnd,
+        DateTimeOffset periodStart,
+        DateTimeOffset periodEnd,
+        string periodIsoWeek,
         DateTimeOffset timestamp,
         string modelId,
         TimeSpan duration,
@@ -151,8 +159,11 @@ public class WeeklySummaryRun
         var run = new WeeklySummaryRun
         {
             RunId = runId,
-            WeekStart = weekStart,
-            WeekEnd = weekEnd,
+            PeriodStart = periodStart,
+            PeriodEnd = periodEnd,
+            PeriodIsoWeek = string.IsNullOrEmpty(periodIsoWeek)
+                ? FormatIsoWeek(periodStart)
+                : periodIsoWeek,
             Timestamp = timestamp,
             ModelId = modelId,
             Duration = duration,
@@ -167,5 +178,13 @@ public class WeeklySummaryRun
         };
         run._themes.AddRange(themes);
         return run;
+    }
+
+    private static string FormatIsoWeek(DateTimeOffset instant)
+    {
+        var date = instant.DateTime.Date;
+        var year = ISOWeek.GetYear(date);
+        var week = ISOWeek.GetWeekOfYear(date);
+        return string.Create(CultureInfo.InvariantCulture, $"{year:0000}-W{week:00}");
     }
 }

@@ -22,14 +22,17 @@ public sealed class AzureOpportunityScanAnalyzer : IOpportunityScanAnalyzer
 
     private readonly ILogger<AzureOpportunityScanAnalyzer> _logger;
     private readonly AIProjectClient _aiProjectClient;
+    private readonly IPromptProvider _promptProvider;
     private readonly JsonSerializerOptions _jsonOptions;
 
     public AzureOpportunityScanAnalyzer(
         ILogger<AzureOpportunityScanAnalyzer> logger,
-        AIProjectClient aiProjectClient)
+        AIProjectClient aiProjectClient,
+        IPromptProvider promptProvider)
     {
         _logger = logger;
         _aiProjectClient = aiProjectClient;
+        _promptProvider = promptProvider;
         _jsonOptions = KanelJsonOptions.CamelCase;
     }
 
@@ -39,23 +42,11 @@ public sealed class AzureOpportunityScanAnalyzer : IOpportunityScanAnalyzer
     {
         var chainsContext = JsonSerializer.Serialize(substitutionChain.Chains, _jsonOptions);
 
+        var promptDef = _promptProvider.GetOpportunityScanPrompt();
         var agent = _aiProjectClient.AsAIAgent(
             model: ModelId,
             name: "OpportunityScanAnalyzer",
-            instructions: @"You are an investment analyst. Evaluate capital rotation opportunities and identify actionable targets.
-Identify 2-4 opportunities with varying signal strengths.
-
-Return ONLY a JSON object with this exact structure:
-{
-  ""targets"": [
-    {
-      ""category"": ""Asset or sector"",
-      ""signalStrength"": ""Strong|Moderate|Weak"",
-      ""rationale"": ""Why this is an opportunity"",
-      ""riskCaveat"": ""Key risks to watch""
-    }
-  ]
-}");
+            instructions: promptDef.SystemPrompt);
 
         var prompt = $"Based on these capital rotation chains, identify investment opportunities:\n\n{chainsContext}";
         var runOptions = new ChatClientAgentRunOptions(new ChatOptions { MaxOutputTokens = OutputTokenCap });

@@ -22,13 +22,16 @@ public sealed class AzureWeeklySummaryAnalyzer : IWeeklySummaryAnalyzer
 
     private readonly ILogger<AzureWeeklySummaryAnalyzer> _logger;
     private readonly AIProjectClient _aiProjectClient;
+    private readonly IPromptProvider _promptProvider;
 
     public AzureWeeklySummaryAnalyzer(
         ILogger<AzureWeeklySummaryAnalyzer> logger,
-        AIProjectClient aiProjectClient)
+        AIProjectClient aiProjectClient,
+        IPromptProvider promptProvider)
     {
         _logger = logger;
         _aiProjectClient = aiProjectClient;
+        _promptProvider = promptProvider;
     }
 
     public async Task<WeeklySummaryAnalysisResult> AnalyzeAsync(
@@ -40,27 +43,11 @@ public sealed class AzureWeeklySummaryAnalyzer : IWeeklySummaryAnalyzer
         var briefsContext = string.Join("\n\n", dailyBriefs.Select(b =>
             $"[{b.RunDate}] Mood: {b.Mood}\nSummary: {b.Summary}\nAssessments: {JsonSerializer.Serialize(b.Assessments, KanelJsonOptions.CamelCase)}"));
 
+        var promptDef = _promptProvider.GetWeeklySummaryPrompt();
         var agent = _aiProjectClient.AsAIAgent(
             model: ModelId,
             name: "WeeklySummaryAnalyzer",
-            instructions: @"You are a financial market analyst. Analyze a week of daily market briefs and:
-1. Determine the net market mood for the week (RiskOn, RiskOff, or Mixed)
-2. Write a 1-2 sentence weekly summary
-3. Identify 2-3 key themes that emerged
-
-Return ONLY a JSON object with this exact structure:
-{
-  ""mood"": ""RiskOn|RiskOff|Mixed"",
-  ""summary"": ""Weekly assessment"",
-  ""themes"": [
-    {
-      ""category"": ""Theme name"",
-      ""summary"": ""Description"",
-      ""confidence"": ""High|Medium|Low"",
-      ""sentiment"": ""RiskOn|RiskOff|Mixed""
-    }
-  ]
-}");
+            instructions: promptDef.SystemPrompt);
 
         var prompt = $"Analyze this week's market briefs ({weekStart:yyyy-MM-dd} to {weekEnd:yyyy-MM-dd}):\n\n{briefsContext}";
         var runOptions = new ChatClientAgentRunOptions(new ChatOptions { MaxOutputTokens = OutputTokenCap });

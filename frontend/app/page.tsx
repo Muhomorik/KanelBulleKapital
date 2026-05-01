@@ -30,15 +30,16 @@ const SCROLL_TARGETS: Record<string, string> = {
 };
 
 export default function DashboardPage() {
-  const [data, setData] = useState<DashboardData>(demoDashboard);
-  const [briefs, setBriefs] = useState<NewsBriefRun[]>(
-    demoDashboard.newsBrief ? [demoDashboard.newsBrief] : [],
-  );
-  const [selectedRunId, setSelectedRunId] = useState<string | null>(
-    demoDashboard.newsBrief?.runId ?? null,
-  );
-  const [isDemo, setIsDemo] = useState(true);
-  const [loading, setLoading] = useState(false);
+  // data starts as null so each section renders a skeleton on first paint.
+  // We only fall back to `demoDashboard` if the fetch fails or the backend
+  // reports no real run for the selected date — and in that case we surface
+  // a banner that tells the user the figures are fake.
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [briefs, setBriefs] = useState<NewsBriefRun[]>([]);
+  const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
+  const [isDemo, setIsDemo] = useState(false);
+  const [demoReason, setDemoReason] = useState<"error" | "no-data" | null>(null);
+  const [loading, setLoading] = useState(true);
   const [coldStart, setColdStart] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // today = "" until after hydration — keeps server HTML in sync with client's first
@@ -53,7 +54,9 @@ export default function DashboardPage() {
 
   // Derived during render — not via useEffect — per rerender-derived-state-no-effect.
   const selectedBrief =
-    briefs.find((b) => b.runId === selectedRunId) ?? data.newsBrief ?? null;
+    briefs.find((b) => b.runId === selectedRunId) ?? data?.newsBrief ?? null;
+  // Skeletons stay up until we have *something* to render — real or fake.
+  const isInitialLoad = data === null;
 
   const handleSelectBrief = useCallback((runId: string) => {
     startSelectionTransition(() => {
@@ -83,12 +86,14 @@ export default function DashboardPage() {
         if (dashboardResult.hasData) {
           setData(dashboardResult);
           setIsDemo(false);
+          setDemoReason(null);
           if (dashboardResult.runDate) setDataDate(dashboardResult.runDate);
           setBriefs(briefList);
           setSelectedRunId(briefList[0]?.runId ?? dashboardResult.newsBrief?.runId ?? null);
         } else {
           setData(demoDashboard);
           setIsDemo(true);
+          setDemoReason("no-data");
           setDataDate(date ?? toLocalDateString(new Date()));
           const demoList = demoDashboard.newsBrief ? [demoDashboard.newsBrief] : [];
           setBriefs(demoList);
@@ -100,6 +105,7 @@ export default function DashboardPage() {
         setError(err instanceof Error ? err.message : "Failed to fetch data");
         setData(demoDashboard);
         setIsDemo(true);
+        setDemoReason("error");
         const demoList = demoDashboard.newsBrief ? [demoDashboard.newsBrief] : [];
         setBriefs(demoList);
         setSelectedRunId(demoList[0]?.runId ?? null);
@@ -156,7 +162,7 @@ export default function DashboardPage() {
 
   return (
     <>
-      <DemoBanner />
+      <DemoBanner visible={isDemo} reason={demoReason} />
       <ColdStartBanner visible={coldStart} />
       <Header />
 
@@ -169,11 +175,6 @@ export default function DashboardPage() {
           <p className="mt-1.5 text-sm text-muted-foreground">
             AI-generated analysis for{" "}
             <time className="font-medium text-foreground">{dataDate || today}</time>
-            {isDemo && (
-              <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                Demo data
-              </span>
-            )}
           </p>
 
           {/* Date picker & controls */}
@@ -239,6 +240,7 @@ export default function DashboardPage() {
         <div className="space-y-10">
           <MarketPulse
             data={selectedBrief}
+            loading={isInitialLoad}
             selector={
               <BriefSelector
                 briefs={briefs}
@@ -249,12 +251,13 @@ export default function DashboardPage() {
             }
           />
           <WeeklyMasthead
-            weekStart={data.weeklySummary?.weekStart ?? null}
-            weekEnd={data.weeklySummary?.weekEnd ?? null}
+            periodStart={data?.weeklySummary?.periodStart ?? null}
+            periodEnd={data?.weeklySummary?.periodEnd ?? null}
+            loading={isInitialLoad}
           />
-          <WeeklyThemes data={data.weeklySummary} />
-          <CapitalFlows data={data.substitutionChain} />
-          <Opportunities data={data.opportunityScan} />
+          <WeeklyThemes data={data?.weeklySummary ?? null} loading={isInitialLoad} />
+          <CapitalFlows data={data?.substitutionChain ?? null} loading={isInitialLoad} />
+          <Opportunities data={data?.opportunityScan ?? null} loading={isInitialLoad} />
         </div>
       </main>
 

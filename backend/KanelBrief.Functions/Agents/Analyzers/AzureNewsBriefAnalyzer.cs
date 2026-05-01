@@ -7,6 +7,7 @@ using KanelBrief.Core.Agents;
 using KanelBrief.Core.Models;
 using KanelBrief.Core.Parsers;
 using KanelBrief.Core.Serialization;
+using KanelBrief.Functions.Infrastructure;
 using KanelBrief.Functions.Orchestration;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Foundry;
@@ -31,18 +32,21 @@ public sealed class AzureNewsBriefAnalyzer : INewsBriefAnalyzer
     private readonly AIProjectClient _aiProjectClient;
     private readonly AgentAdministrationClient _agentAdmin;
     private readonly OrchestratorOptions _options;
+    private readonly IPromptProvider _promptProvider;
     private readonly JsonSerializerOptions _jsonOptions;
 
     public AzureNewsBriefAnalyzer(
         ILogger<AzureNewsBriefAnalyzer> logger,
         AIProjectClient aiProjectClient,
         AgentAdministrationClient agentAdmin,
-        OrchestratorOptions options)
+        OrchestratorOptions options,
+        IPromptProvider promptProvider)
     {
         _logger = logger;
         _aiProjectClient = aiProjectClient;
         _agentAdmin = agentAdmin;
         _options = options;
+        _promptProvider = promptProvider;
         _jsonOptions = KanelJsonOptions.CamelCase;
     }
 
@@ -122,6 +126,10 @@ public sealed class AzureNewsBriefAnalyzer : INewsBriefAnalyzer
         var result = JsonSerializer.Deserialize<NewsBriefAnalysisResult>(analysisJson, _jsonOptions)
             ?? throw new InvalidOperationException("Failed to parse agent response");
 
+#pragma warning disable OPENAI001
+        result.Citations = CitationExtractor.Extract(response);
+#pragma warning restore OPENAI001
+
         var usage = response.Usage;
         if (usage is not null)
         {
@@ -136,27 +144,11 @@ public sealed class AzureNewsBriefAnalyzer : INewsBriefAnalyzer
         IReadOnlyList<NewsArticle> articles,
         CancellationToken ct = default)
     {
+        var promptDef = _promptProvider.GetNewsBriefArticlesPrompt();
         var agent = _aiProjectClient.AsAIAgent(
             model: ModelId,
             name: "NewsBriefAnalyzer",
-            instructions: @"You are a financial market analyst. Analyze the provided news articles and:
-1. Determine the overall market mood (RiskOn, RiskOff, or Mixed)
-2. Generate a brief market summary (1-2 sentences)
-3. For each category/sector, provide sentiment assessment
-
-Return ONLY a JSON object with this exact structure:
-{
-  ""mood"": ""RiskOn|RiskOff|Mixed"",
-  ""summary"": ""Your analysis summary"",
-  ""assessments"": [
-    {
-      ""category"": ""Sector name"",
-      ""headline"": ""Key headline"",
-      ""summary"": ""Analysis summary"",
-      ""sentiment"": ""RiskOn|RiskOff|Mixed""
-    }
-  ]
-}");
+            instructions: promptDef.SystemPrompt);
 
         var articlesText = string.Join("\n\n", articles.Select((a, i) =>
             $"[Article {i + 1}]\nCategory: {a.Category}\nTitle: {a.Title}\nContent: {a.Content}"));

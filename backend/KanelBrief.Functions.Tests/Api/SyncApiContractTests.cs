@@ -128,8 +128,9 @@ public class SyncApiContractTests
                     InputTokens = 400,
                     OutputTokens = 500,
                     TotalTokens = 900,
-                    WeekStart = DateTimeOffset.Parse("2026-04-10T00:00:00Z"),
-                    WeekEnd = DateTimeOffset.Parse("2026-04-16T23:59:59Z"),
+                    PeriodStart = DateTimeOffset.Parse("2026-04-10T00:00:00Z"),
+                    PeriodEnd = DateTimeOffset.Parse("2026-04-16T23:59:59Z"),
+                    PeriodIsoWeek = "2026-W15",
                     NetMood = MarketSentiment.RiskOff,
                     MoodSummary = "Risk-off week",
                     Themes =

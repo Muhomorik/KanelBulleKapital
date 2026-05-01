@@ -7,6 +7,7 @@ using KanelBrief.Core.Agents;
 using KanelBrief.Core.Pipelines;
 using KanelBrief.Core.Repositories;
 using KanelBrief.Functions.Agents.Analyzers;
+using KanelBrief.Functions.Infrastructure;
 using KanelBrief.Functions.Middleware;
 using KanelBrief.Functions.Orchestration;
 using KanelBrief.Functions.Repositories;
@@ -98,6 +99,9 @@ builder.Services.AddSingleton(new OrchestratorOptions
 
 // Time source — injected into pipelines so tests can freeze time.
 builder.Services.AddSingleton(TimeProvider.System);
+
+// Prompt provider — loads embedded prompts from KanelBrief.Core
+builder.Services.AddSingleton<IPromptProvider, EmbeddedPromptProvider>();
 
 // Domain analyzers (Azure SDK glue behind Core ports)
 builder.Services.AddScoped<INewsBriefAnalyzer, AzureNewsBriefAnalyzer>();

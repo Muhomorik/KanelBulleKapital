@@ -9,7 +9,7 @@ namespace FikaForecast.Domain.Entities;
 /// Flags the strongest capital rotation destinations worth watching,
 /// based on Step 3's substitution chain analysis.
 /// </summary>
-[DebuggerDisplay("OpScan {Timestamp:yyyy-MM-dd} — {Status} ({TotalTokens} tokens)")]
+[DebuggerDisplay("OpScan {PeriodIsoWeek} {Timestamp:yyyy-MM-dd} — {Status} ({TotalTokens} tokens)")]
 public class OpportunityScanRun
 {
     private readonly List<RotationTarget> _targets = [];
@@ -18,6 +18,17 @@ public class OpportunityScanRun
 
     /// <summary>FK to the <see cref="SubstitutionChainRun"/> this analysis is based on.</summary>
     public Guid SubstitutionChainRunId { get; private set; }
+
+    /// <summary>
+    /// Period this opportunity scan covers — denormalized from the parent
+    /// <see cref="SubstitutionChainRun"/> (and ultimately the <see cref="WeeklySummaryRun"/>)
+    /// at construction so the entity is self-describing.
+    /// </summary>
+    public DateTimeOffset PeriodStart { get; private set; }
+    public DateTimeOffset PeriodEnd { get; private set; }
+
+    /// <summary>ISO 8601 week tag of <see cref="PeriodStart"/>, e.g. <c>"2026-W17"</c>.</summary>
+    public string PeriodIsoWeek { get; private set; }
 
     public DateTimeOffset Timestamp { get; private set; }
     public string ModelId { get; private set; }
@@ -41,18 +52,27 @@ public class OpportunityScanRun
         ModelId = null!;
         RawAgentOutput = null!;
         RawMarkdownOutput = null!;
+        PeriodIsoWeek = null!;
     }
 
     /// <summary>
     /// Creates a new run in <see cref="RunStatus.Partial"/> state.
-    /// Call <see cref="Complete"/> or <see cref="Fail"/> when the agent finishes.
+    /// Period fields are denormalized from the parent chain (which inherited them from the weekly summary).
     /// </summary>
-    public static OpportunityScanRun Start(ModelConfig model, Guid substitutionChainRunId)
+    public static OpportunityScanRun Start(
+        ModelConfig model,
+        Guid substitutionChainRunId,
+        DateTimeOffset periodStart,
+        DateTimeOffset periodEnd,
+        string periodIsoWeek)
     {
         return new OpportunityScanRun
         {
             RunId = Guid.NewGuid(),
             SubstitutionChainRunId = substitutionChainRunId,
+            PeriodStart = periodStart,
+            PeriodEnd = periodEnd,
+            PeriodIsoWeek = periodIsoWeek,
             Timestamp = DateTimeOffset.Now,
             ModelId = model.ModelId,
             Status = RunStatus.Partial,
@@ -119,6 +139,9 @@ public class OpportunityScanRun
     public static OpportunityScanRun Rehydrate(
         Guid runId,
         Guid substitutionChainRunId,
+        DateTimeOffset periodStart,
+        DateTimeOffset periodEnd,
+        string periodIsoWeek,
         DateTimeOffset timestamp,
         string modelId,
         TimeSpan duration,
@@ -134,6 +157,9 @@ public class OpportunityScanRun
         {
             RunId = runId,
             SubstitutionChainRunId = substitutionChainRunId,
+            PeriodStart = periodStart,
+            PeriodEnd = periodEnd,
+            PeriodIsoWeek = periodIsoWeek ?? string.Empty,
             Timestamp = timestamp,
             ModelId = modelId,
             Duration = duration,

@@ -39,10 +39,22 @@ export function BriefTimestamp({ iso }: { iso: string }) {
   );
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return null;
-  const label =
+  const now = new Date();
+  const sameDay =
+    mode === "local"
+      ? d.toDateString() === now.toDateString()
+      : d.getUTCFullYear() === now.getUTCFullYear() &&
+        d.getUTCMonth() === now.getUTCMonth() &&
+        d.getUTCDate() === now.getUTCDate();
+  const time =
     mode === "local"
       ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
       : `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")} UTC`;
+  const label = sameDay
+    ? time
+    : mode === "local"
+      ? `${d.toLocaleDateString([], { month: "short", day: "numeric" })} ${time}`
+      : `${d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })} ${time}`;
   return (
     <span className="font-mono uppercase tracking-[0.12em] tabular-nums text-foreground/80">
       {label}

@@ -10,6 +10,7 @@ public class NewsBriefAnalysisResult
     public string Mood { get; set; } = MarketSentiment.Mixed.ToString();
     public string Summary { get; set; } = string.Empty;
     public List<CategoryAssessment> Assessments { get; set; } = [];
+    public List<Citation> Citations { get; set; } = [];
     public int InputTokens { get; set; }
     public int OutputTokens { get; set; }
     public int TotalTokens { get; set; }

@@ -2,11 +2,11 @@ import { render, screen } from "@testing-library/react";
 import { WeeklyMasthead } from "@/components/dashboard/weekly-masthead";
 
 describe("WeeklyMasthead date formatting", () => {
-  it("renders ISO 8601 weekStart/weekEnd from the backend without 'Invalid Date'", () => {
+  it("renders ISO 8601 periodStart/periodEnd from the backend without 'Invalid Date'", () => {
     render(
       <WeeklyMasthead
-        weekStart="2026-04-06T00:00:00+00:00"
-        weekEnd="2026-04-13T00:00:00+00:00"
+        periodStart="2026-04-06T00:00:00+00:00"
+        periodEnd="2026-04-13T00:00:00+00:00"
       />,
     );
 
@@ -25,8 +25,8 @@ describe("WeeklyMasthead date formatting", () => {
   it("renders the ISO week number", () => {
     render(
       <WeeklyMasthead
-        weekStart="2026-04-06T00:00:00+00:00"
-        weekEnd="2026-04-13T00:00:00+00:00"
+        periodStart="2026-04-06T00:00:00+00:00"
+        periodEnd="2026-04-13T00:00:00+00:00"
       />,
     );
 
@@ -37,8 +37,8 @@ describe("WeeklyMasthead date formatting", () => {
   it("names the three sections it groups", () => {
     render(
       <WeeklyMasthead
-        weekStart="2026-04-06T00:00:00+00:00"
-        weekEnd="2026-04-13T00:00:00+00:00"
+        periodStart="2026-04-06T00:00:00+00:00"
+        periodEnd="2026-04-13T00:00:00+00:00"
       />,
     );
 
@@ -48,7 +48,7 @@ describe("WeeklyMasthead date formatting", () => {
   });
 
   it("falls back gracefully when week dates are missing", () => {
-    render(<WeeklyMasthead weekStart={null} weekEnd={null} />);
+    render(<WeeklyMasthead periodStart={null} periodEnd={null} />);
     expect(screen.queryByText(/Invalid Date/)).toBeNull();
   });
 });

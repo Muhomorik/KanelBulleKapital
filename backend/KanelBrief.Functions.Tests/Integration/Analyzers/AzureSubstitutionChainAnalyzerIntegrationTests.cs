@@ -2,6 +2,7 @@ using Azure.AI.Projects;
 using Azure.Identity;
 using KanelBrief.Core.Models;
 using KanelBrief.Functions.Agents.Analyzers;
+using KanelBrief.Functions.Infrastructure;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace KanelBrief.Functions.Tests.Integration.Analyzers;
@@ -26,7 +27,8 @@ public class AzureSubstitutionChainAnalyzerIntegrationTests
 
         _sut = new AzureSubstitutionChainAnalyzer(
             NullLogger<AzureSubstitutionChainAnalyzer>.Instance,
-            aiProjectClient);
+            aiProjectClient,
+            new EmbeddedPromptProvider());
     }
 
     [Test]
