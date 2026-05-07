@@ -1,7 +1,7 @@
 namespace KanelBrief.Core.Models;
 
 /// <summary>Result of a Weekly Summary agent run. Stored in the <c>WeeklySummaryRuns</c> Azure Table.</summary>
-public class WeeklySummaryRun : AgentRunBase
+public class WeeklySummaryRun : AgentRunBase<WeeklySummaryRunId>
 {
     /// <summary>Discriminator constant — identifies this run shape on the wire and in YAML metadata.</summary>
     public string ReportType { get; set; } = "weekly-summary";

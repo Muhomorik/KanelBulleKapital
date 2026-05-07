@@ -66,7 +66,7 @@ public class SubstitutionChainAgentTests
         // Assert
         Assert.That(saved, Is.Not.Null);
         Assert.That(result, Is.SameAs(saved));
-        Assert.That(result.WeeklySummaryRunId, Is.EqualTo("summary-123"));
+        Assert.That(result.WeeklySummaryRunId.Value, Is.EqualTo("summary-123"));
         Assert.That(result.Chains, Has.Count.EqualTo(1));
     }
 

@@ -1,12 +1,12 @@
 namespace KanelBrief.Core.Models;
 
 /// <summary>Result of a Substitution Chain agent run. Stored in the <c>SubstitutionChainRuns</c> Azure Table.</summary>
-public class SubstitutionChainRun : AgentRunBase
+public class SubstitutionChainRun : AgentRunBase<SubstitutionChainRunId>
 {
     /// <summary>Discriminator constant — identifies this run shape on the wire and in YAML metadata.</summary>
     public string ReportType { get; set; } = "substitution-chain";
 
-    public string WeeklySummaryRunId { get; set; } = string.Empty;
+    public WeeklySummaryRunId WeeklySummaryRunId { get; set; }
 
     /// <summary>
     /// Period this chain analysis covers. Not stored in Azure Tables — lazy-filled on read

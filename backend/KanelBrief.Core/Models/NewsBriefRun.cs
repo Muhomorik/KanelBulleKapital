@@ -1,7 +1,7 @@
 namespace KanelBrief.Core.Models;
 
 /// <summary>Result of a single News Brief agent run. Stored in the <c>NewsBriefRuns</c> Azure Table.</summary>
-public class NewsBriefRun : AgentRunBase
+public class NewsBriefRun : AgentRunBase<NewsBriefRunId>
 {
     public string DeploymentName { get; set; } = string.Empty;
 

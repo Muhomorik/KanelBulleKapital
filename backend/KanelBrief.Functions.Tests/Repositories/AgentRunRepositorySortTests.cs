@@ -74,7 +74,7 @@ public class AgentRunRepositorySortTests
 
         var result = await _sut.GetWeeklySummaryRunsByDateAsync("2026-04-16");
 
-        Assert.That(result.Select(r => r.RunId), Is.EqualTo(new[] { "run-late", "run-middle", "run-early" }));
+        Assert.That(result.Select(r => r.RunId.Value), Is.EqualTo(new[] { "run-late", "run-middle", "run-early" }));
     }
 
     [Test]
@@ -96,7 +96,7 @@ public class AgentRunRepositorySortTests
 
         var result = await _sut.GetSubstitutionChainRunsByDateAsync("2026-04-16");
 
-        Assert.That(result.Select(r => r.RunId), Is.EqualTo(new[] { "chain-late", "chain-early" }));
+        Assert.That(result.Select(r => r.RunId.Value), Is.EqualTo(new[] { "chain-late", "chain-early" }));
     }
 
     [Test]
@@ -118,7 +118,7 @@ public class AgentRunRepositorySortTests
 
         var result = await _sut.GetOpportunityScanRunsByDateAsync("2026-04-16");
 
-        Assert.That(result.Select(r => r.RunId), Is.EqualTo(new[] { "opp-late", "opp-early" }));
+        Assert.That(result.Select(r => r.RunId.Value), Is.EqualTo(new[] { "opp-late", "opp-early" }));
     }
 
     [Test]

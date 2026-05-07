@@ -226,7 +226,7 @@ public class AgentRunRepository : IAgentRunRepository
             { BaseColumns.OutputTokens, run.OutputTokens },
             { BaseColumns.TotalTokens, run.TotalTokens },
             { BaseColumns.CreatedAt, run.CreatedAt },
-            { SubstitutionChainColumns.WeeklySummaryRunId, run.WeeklySummaryRunId },
+            { SubstitutionChainColumns.WeeklySummaryRunId, run.WeeklySummaryRunId.Value },
             { SubstitutionChainColumns.Chains, JsonSerializer.Serialize(run.Chains, KanelJsonOptions.CamelCase) }
         };
 
@@ -292,7 +292,7 @@ public class AgentRunRepository : IAgentRunRepository
             { BaseColumns.OutputTokens, run.OutputTokens },
             { BaseColumns.TotalTokens, run.TotalTokens },
             { BaseColumns.CreatedAt, run.CreatedAt },
-            { OpportunityScanColumns.SubstitutionChainRunId, run.SubstitutionChainRunId },
+            { OpportunityScanColumns.SubstitutionChainRunId, run.SubstitutionChainRunId.Value },
             { OpportunityScanColumns.Targets, JsonSerializer.Serialize(run.Targets, KanelJsonOptions.CamelCase) }
         };
 
@@ -467,7 +467,7 @@ public class AgentRunRepository : IAgentRunRepository
 
     private async Task PopulateChainPeriodAsync(SubstitutionChainRun chain)
     {
-        if (string.IsNullOrEmpty(chain.WeeklySummaryRunId)) return;
+        if (chain.WeeklySummaryRunId.IsEmpty) return;
         var parent = await FindWeeklySummaryRunByIdAsync(chain.WeeklySummaryRunId, chain.RunDate);
         if (parent != null)
         {
@@ -483,11 +483,11 @@ public class AgentRunRepository : IAgentRunRepository
         var cache = new Dictionary<string, WeeklySummaryRun?>();
         foreach (var chain in chains)
         {
-            if (string.IsNullOrEmpty(chain.WeeklySummaryRunId)) continue;
-            if (!cache.TryGetValue(chain.WeeklySummaryRunId, out var parent))
+            if (chain.WeeklySummaryRunId.IsEmpty) continue;
+            if (!cache.TryGetValue(chain.WeeklySummaryRunId.Value, out var parent))
             {
                 parent = await FindWeeklySummaryRunByIdAsync(chain.WeeklySummaryRunId, chain.RunDate);
-                cache[chain.WeeklySummaryRunId] = parent;
+                cache[chain.WeeklySummaryRunId.Value] = parent;
             }
             if (parent != null)
             {
@@ -500,9 +500,9 @@ public class AgentRunRepository : IAgentRunRepository
 
     private async Task PopulateScanPeriodAsync(OpportunityScanRun scan)
     {
-        if (string.IsNullOrEmpty(scan.SubstitutionChainRunId)) return;
+        if (scan.SubstitutionChainRunId.IsEmpty) return;
         var chain = await FindSubstitutionChainRunByIdAsync(scan.SubstitutionChainRunId, scan.RunDate);
-        if (chain == null || string.IsNullOrEmpty(chain.WeeklySummaryRunId)) return;
+        if (chain == null || chain.WeeklySummaryRunId.IsEmpty) return;
         var parent = await FindWeeklySummaryRunByIdAsync(chain.WeeklySummaryRunId, chain.RunDate);
         if (parent != null)
         {
@@ -519,17 +519,17 @@ public class AgentRunRepository : IAgentRunRepository
         var weeklyCache = new Dictionary<string, WeeklySummaryRun?>();
         foreach (var scan in scans)
         {
-            if (string.IsNullOrEmpty(scan.SubstitutionChainRunId)) continue;
-            if (!chainCache.TryGetValue(scan.SubstitutionChainRunId, out var chain))
+            if (scan.SubstitutionChainRunId.IsEmpty) continue;
+            if (!chainCache.TryGetValue(scan.SubstitutionChainRunId.Value, out var chain))
             {
                 chain = await FindSubstitutionChainRunByIdAsync(scan.SubstitutionChainRunId, scan.RunDate);
-                chainCache[scan.SubstitutionChainRunId] = chain;
+                chainCache[scan.SubstitutionChainRunId.Value] = chain;
             }
-            if (chain == null || string.IsNullOrEmpty(chain.WeeklySummaryRunId)) continue;
-            if (!weeklyCache.TryGetValue(chain.WeeklySummaryRunId, out var parent))
+            if (chain == null || chain.WeeklySummaryRunId.IsEmpty) continue;
+            if (!weeklyCache.TryGetValue(chain.WeeklySummaryRunId.Value, out var parent))
             {
                 parent = await FindWeeklySummaryRunByIdAsync(chain.WeeklySummaryRunId, chain.RunDate);
-                weeklyCache[chain.WeeklySummaryRunId] = parent;
+                weeklyCache[chain.WeeklySummaryRunId.Value] = parent;
             }
             if (parent != null)
             {

@@ -93,7 +93,7 @@ public sealed class WeeklyAggregationPipeline : IWeeklyAggregationPipeline
         var run = new WeeklySummaryRun
         {
             RunDate = startTime.ToString("yyyy-MM-dd"),
-            RunId = Guid.NewGuid().ToString(),
+            RunId = WeeklySummaryRunId.NewId(),
             CreatedAt = startTime,
             ModelId = ModelId,
             Status = RunStatus.Success,
@@ -124,7 +124,7 @@ public sealed class WeeklyAggregationPipeline : IWeeklyAggregationPipeline
         var run = new SubstitutionChainRun
         {
             RunDate = startTime.ToString("yyyy-MM-dd"),
-            RunId = Guid.NewGuid().ToString(),
+            RunId = SubstitutionChainRunId.NewId(),
             CreatedAt = startTime,
             ModelId = ModelId,
             Status = RunStatus.Success,
@@ -150,7 +150,7 @@ public sealed class WeeklyAggregationPipeline : IWeeklyAggregationPipeline
         var run = new OpportunityScanRun
         {
             RunDate = startTime.ToString("yyyy-MM-dd"),
-            RunId = Guid.NewGuid().ToString(),
+            RunId = OpportunityScanRunId.NewId(),
             CreatedAt = startTime,
             ModelId = ModelId,
             Status = RunStatus.Success,

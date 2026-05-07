@@ -40,7 +40,7 @@ public sealed class SubstitutionChainAgent(
             var run = await ExecuteAsync(request, ct);
 
             var response = req.CreateResponse(HttpStatusCode.OK);
-            await response.WriteAsJsonAsync(new { runId = run.RunId, status = run.Status });
+            await response.WriteAsJsonAsync(new { runId = run.RunId.Value, status = run.Status });
             return response;
         }
         catch (Exception ex)
@@ -59,7 +59,7 @@ public sealed class SubstitutionChainAgent(
     internal async Task<SubstitutionChainRun> ExecuteAsync(SubstitutionChainRequest request, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(request.WeeklySummaryRunDate)
-            || string.IsNullOrWhiteSpace(request.WeeklySummaryRunId))
+            || string.IsNullOrWhiteSpace(request.WeeklySummaryRunId.Value))
             throw new ArgumentException("WeeklySummaryRunDate and WeeklySummaryRunId are required", nameof(request));
 
         logger.LogInformation(
@@ -80,7 +80,7 @@ public sealed class SubstitutionChainAgent(
         var run = new SubstitutionChainRun
         {
             RunDate = startTime.ToString("yyyy-MM-dd"),
-            RunId = Guid.NewGuid().ToString(),
+            RunId = SubstitutionChainRunId.NewId(),
             CreatedAt = startTime,
             ModelId = ModelId,
             Status = RunStatus.Success,

@@ -61,9 +61,31 @@ through the portal UI without redeploying code).
 4. **Update** to save.
 5. Attach to the continuous evaluation rule on the agent: agent → **Monitor** tab →
    gear icon → **Continuous evaluation** → **Add evaluator(s)** → pick
-   `kanelbrief-news-brief-quality` → **Submit**. See
+   `kanelbrief-news-brief-quality` → **Submit**. When prompted for the
+   evaluator's init parameters, set **threshold** = `3` (scores ≥ 3 count as
+   pass; see § Reading the dashboard below for why this matters). See
    [AZURE-DEPLOYMENT.md § Continuous Evaluation Setup](AZURE-DEPLOYMENT.md) for
    the full rule config (sample rate, role assignments).
+
+## Reading the dashboard
+
+Foundry's continuous-eval UI shows two things that look like they should agree
+but don't:
+
+- **"Overall metric results" panel** (the one with the red `0% / 0 of 1` bar) —
+  this is **pass rate**, not score. Foundry binarizes every non-binary score
+  using the `threshold` init parameter (set to `3` per step 5 above). A run
+  scoring `1` or `2` shows `0% / 0 of 1`; a run scoring `3`, `4`, or `5` shows
+  `100% / 1 of 1`. On a single-run page this is always 0% or 100% — it's not
+  useful in isolation.
+- **Evaluation metrics trend chart** (under **Monitor** → AI quality & safety) —
+  this plots the raw ordinal `result` integer (1–5) over time. **This is the
+  source of truth** for what the rubric actually emitted. Read this, not the
+  pass-rate panel, when judging whether scores are trending up or down.
+
+The `0%` / `100%` framing is a built-in Foundry display, not a bug — see
+[Microsoft Learn — Cloud evaluation: interpret results](https://learn.microsoft.com/azure/foundry/how-to/develop/cloud-evaluation#get-results)
+for the binarization contract.
 
 ## Evaluation prompt (paste verbatim)
 
@@ -86,20 +108,19 @@ Response: {{response}}
 
 ---
 
-JSON structure, schema compliance, enum values, and absence of extra content are already enforced by the structured-output pipeline — skip those checks. Fact-grounding against Bing sources cannot be checked here — Foundry redacts tool outputs from the eval pipeline. Focus on what's verifiable from the response text alone: content quality, specificity, sentiment accuracy, language, freshness.
+JSON structure, schema compliance, enum values, and absence of extra content are already enforced by the structured-output pipeline — skip those checks. Fact-grounding against Bing sources cannot be checked here — Foundry redacts tool outputs from the eval pipeline. Focus on what's verifiable from the response text alone: content quality, specificity, sentiment accuracy, language.
 
 For each requirement below, internally note PASS or FAIL with a specific example from the response, then aggregate to a final integer score per the rubric. Emit ONLY the JSON object specified at the end — no preamble, no per-rule list, no markdown.
 
-1. **Content rules**: One sentence max per headline, no fluff/background/history, market implications only. No inline citation markers like `【6:2†source】` or `[1]` should appear in any text field — FAIL if present.
-2. **Specificity**: Each headline must reference a specific named event, data point, or source (e.g., "Fed held rates at 5.25%", "Intel reported Q1 EPS"). Vague claims without an anchoring fact count as FAIL.
-3. **Category coverage**: Relevant sectors from the past 48 hours are represented (at least 3-4).
+1. **Content rules**: No fluff, background, or history — market implications only.
+2. **Specificity**: Each headline must reference a specific named event, data point, or source (e.g., "Fed held rates at 5.25%", "Intel reported Q1 EPS"). Vague claims without an anchoring fact count as FAIL. **Exemption**: sectors labeled `Mixed` with a stated reason (e.g., "no grounded catalyst", "search results did not include a sector-moving outcome") are exempt from this check — the agent is correctly declining to invent a catalyst, not failing to anchor one.
+3. **Category coverage**: Relevant sectors are represented (at least 2 distinct sectors). A single-theme brief is acceptable on dominant-news days (Fed decision, geopolitical shock, etc.) — only flag when the model fixates on one story while the response itself shows broader context.
 4. **Sentiment accuracy (per-sector)**: Labels (RiskOn/RiskOff/Mixed) describe the SECTOR's own trajectory, NOT the overall market regime. Flag mismatches where headline/summary tone contradicts the label.
 5. **Output language**: English only. Tokens from non-Latin scripts (Cyrillic, Devanagari, Arabic, CJK, etc.) are FAIL — flag specific words.
-6. **Freshness**: The query contains a target date in the form "Produce the market brief for YYYY-MM-DD". Parse that date. Any dated reference in the response (explicit dates like "April 21", "Friday's close", or session-relative phrasing) should fall within 4 days of the target date (the prompt's "past 48 hours" plus up to 2 days of indexing-lag headroom). FAIL if the response sources predominantly from events older than 4 days before the target. If the response contains no dated references at all, this rule is N/A — pass.
 
 Severity classes (apply per violation found):
-- **MAJOR** = inline citation markers present (rule 1), sentiment label contradicts the sector's own headline/summary tone (rule 4), or non-Latin-script tokens present (rule 5).
-- **MINOR** = any other violation: vague headline lacking a specific anchor (rule 2), category coverage below 3 sectors (rule 3), dated reference older than 4 days before the target (rule 6), one-sentence-per-headline overrun, or light fluff/background phrasing (rule 1).
+- **MAJOR** = sentiment label contradicts the sector's own headline/summary tone (rule 4), or non-Latin-script tokens present (rule 5).
+- **MINOR** = any other violation: vague headline lacking a specific anchor (rule 2), category coverage below 2 sectors (rule 3), or light fluff/background phrasing (rule 1).
 
 Score rubric (integer 1-5, higher is better):
 - **5** — zero violations.
@@ -122,6 +143,18 @@ Output Format (JSON only — no preamble, no markdown fences, no commentary):
 - **URLs in output** — the agent prompt forbids URLs, but enforcement of that is
   better handled by the structured-output schema (no `source` field exists).
   Re-add a rule here if the model starts leaking URLs into headlines.
+- **Inline citation markers** (`【6:2†source】`, `[1]`) — the agent prompt asks
+  the model not to emit these, but Foundry's Bing grounding tool occasionally
+  injects them anyway. Treat as a cosmetic tool-side artifact: the structured-
+  output pipeline parses fine through them, and they don't reflect content
+  quality. Re-add as a MINOR (not MAJOR) if cleanup becomes important for
+  downstream display.
+- **Freshness / dated references** — the agent's *"last 14 days"* search clause
+  in [step1-news-brief-agent.md](step1-news-brief-agent.md) constrains this
+  upstream. LLM judges are unreliable at parsing a target date out of the
+  query and doing date arithmetic against dated references in the response,
+  so duplicating the constraint here added noise without signal. Re-add only
+  if the agent itself starts surfacing stale events.
 - **`source` field validity** — the field doesn't exist in the schema anymore.
   See [AZURE-DEPLOYMENT.md § Citation handling](AZURE-DEPLOYMENT.md) for why
   citations come from the annotation channel instead.

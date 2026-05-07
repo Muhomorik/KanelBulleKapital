@@ -40,7 +40,7 @@ public sealed class NewsBriefAgent(
             var run = await ExecuteAsync(articles, ct);
 
             var response = req.CreateResponse(HttpStatusCode.OK);
-            await response.WriteAsJsonAsync(new { runId = run.RunId, status = run.Status });
+            await response.WriteAsJsonAsync(new { runId = run.RunId.Value, status = run.Status });
             return response;
         }
         catch (Exception ex)
@@ -70,7 +70,7 @@ public sealed class NewsBriefAgent(
         var run = new NewsBriefRun
         {
             RunDate = startTime.ToString("yyyy-MM-dd"),
-            RunId = Guid.NewGuid().ToString(),
+            RunId = NewsBriefRunId.NewId(),
             CreatedAt = startTime,
             ModelId = ModelId,
             DeploymentName = ModelId,

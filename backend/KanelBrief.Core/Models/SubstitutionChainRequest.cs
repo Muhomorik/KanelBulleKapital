@@ -7,5 +7,5 @@ public class SubstitutionChainRequest
     public string WeeklySummaryRunDate { get; set; } = string.Empty;
 
     /// <summary>RunId (RowKey) of the weekly summary to base the chain analysis on.</summary>
-    public string WeeklySummaryRunId { get; set; } = string.Empty;
+    public WeeklySummaryRunId WeeklySummaryRunId { get; set; }
 }

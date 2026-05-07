@@ -41,7 +41,7 @@ public class AgentRunRepositoryMapperTests
         var run = _sut.MapToNewsBriefRun(entity);
 
         Assert.That(run.RunDate, Is.EqualTo("2026-04-08"));
-        Assert.That(run.RunId, Is.EqualTo("run-123"));
+        Assert.That(run.RunId.Value, Is.EqualTo("run-123"));
         Assert.That(run.ModelId, Is.EqualTo("gpt-5.4-mini"));
         Assert.That(run.Status, Is.EqualTo(RunStatus.Success));
         Assert.That(run.DurationSeconds, Is.EqualTo(11.5));
@@ -443,7 +443,7 @@ public class AgentRunRepositoryMapperTests
 
         var run = _sut.MapToSubstitutionChainRun(entity);
 
-        Assert.That(run.WeeklySummaryRunId, Is.EqualTo("weekly-ref-123"));
+        Assert.That(run.WeeklySummaryRunId.Value, Is.EqualTo("weekly-ref-123"));
     }
 
     [Test]
@@ -520,7 +520,7 @@ public class AgentRunRepositoryMapperTests
 
         var run = _sut.MapToOpportunityScanRun(entity);
 
-        Assert.That(run.SubstitutionChainRunId, Is.EqualTo("chain-ref-456"));
+        Assert.That(run.SubstitutionChainRunId.Value, Is.EqualTo("chain-ref-456"));
     }
 
     [Test]

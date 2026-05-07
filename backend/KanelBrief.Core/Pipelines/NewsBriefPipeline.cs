@@ -44,7 +44,7 @@ public sealed class NewsBriefPipeline : INewsBriefPipeline
             var run = new NewsBriefRun
             {
                 RunDate = startTime.ToString("yyyy-MM-dd"),
-                RunId = Guid.NewGuid().ToString(),
+                RunId = NewsBriefRunId.NewId(),
                 CreatedAt = startTime,
                 ModelId = ModelId,
                 DeploymentName = ModelId,

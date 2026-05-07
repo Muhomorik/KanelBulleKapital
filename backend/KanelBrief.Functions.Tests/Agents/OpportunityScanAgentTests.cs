@@ -66,7 +66,7 @@ public class OpportunityScanAgentTests
         // Assert
         Assert.That(saved, Is.Not.Null);
         Assert.That(result, Is.SameAs(saved));
-        Assert.That(result.SubstitutionChainRunId, Is.EqualTo("chain-456"));
+        Assert.That(result.SubstitutionChainRunId.Value, Is.EqualTo("chain-456"));
         Assert.That(result.Targets, Has.Count.EqualTo(1));
         Assert.That(result.Targets[0].SignalStrength, Is.EqualTo(SignalStrength.Strong));
     }

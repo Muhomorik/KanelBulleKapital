@@ -7,5 +7,5 @@ public class OpportunityScanRequest
     public string SubstitutionChainRunDate { get; set; } = string.Empty;
 
     /// <summary>RunId (RowKey) of the substitution chain to base the opportunity analysis on.</summary>
-    public string SubstitutionChainRunId { get; set; } = string.Empty;
+    public SubstitutionChainRunId SubstitutionChainRunId { get; set; }
 }

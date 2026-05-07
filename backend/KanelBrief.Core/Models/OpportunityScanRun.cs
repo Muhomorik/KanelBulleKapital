@@ -1,12 +1,12 @@
 namespace KanelBrief.Core.Models;
 
 /// <summary>Result of an Opportunity Scan agent run. Stored in the <c>OpportunityScanRuns</c> Azure Table.</summary>
-public class OpportunityScanRun : AgentRunBase
+public class OpportunityScanRun : AgentRunBase<OpportunityScanRunId>
 {
     /// <summary>Discriminator constant — identifies this run shape on the wire and in YAML metadata.</summary>
     public string ReportType { get; set; } = "rotation-targets";
 
-    public string SubstitutionChainRunId { get; set; } = string.Empty;
+    public SubstitutionChainRunId SubstitutionChainRunId { get; set; }
 
     /// <summary>
     /// Period this opportunity scan covers. Not stored in Azure Tables — lazy-filled on read

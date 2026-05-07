@@ -1,4 +1,5 @@
 using System.Text.Json;
+using KanelBrief.Core.Models;
 
 namespace KanelBrief.Core.Serialization;
 
@@ -22,6 +23,13 @@ public static class KanelJsonOptions
     public static readonly JsonSerializerOptions CamelCase = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = false
+        WriteIndented = false,
+        Converters =
+        {
+            new StronglyTypedIdJsonConverter<NewsBriefRunId>(s => new(s), id => id.Value ?? string.Empty),
+            new StronglyTypedIdJsonConverter<WeeklySummaryRunId>(s => new(s), id => id.Value ?? string.Empty),
+            new StronglyTypedIdJsonConverter<SubstitutionChainRunId>(s => new(s), id => id.Value ?? string.Empty),
+            new StronglyTypedIdJsonConverter<OpportunityScanRunId>(s => new(s), id => id.Value ?? string.Empty),
+        }
     };
 }

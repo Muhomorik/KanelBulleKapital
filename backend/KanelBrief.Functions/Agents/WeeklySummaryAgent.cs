@@ -42,7 +42,7 @@ public sealed class WeeklySummaryAgent(
             var run = await ExecuteAsync(request, ct);
 
             var response = req.CreateResponse(HttpStatusCode.OK);
-            await response.WriteAsJsonAsync(new { runId = run.RunId, status = run.Status });
+            await response.WriteAsJsonAsync(new { runId = run.RunId.Value, status = run.Status });
             return response;
         }
         catch (Exception ex)
@@ -89,7 +89,7 @@ public sealed class WeeklySummaryAgent(
         var run = new WeeklySummaryRun
         {
             RunDate = startTime.ToString("yyyy-MM-dd"),
-            RunId = Guid.NewGuid().ToString(),
+            RunId = WeeklySummaryRunId.NewId(),
             CreatedAt = startTime,
             ModelId = ModelId,
             Status = RunStatus.Success,

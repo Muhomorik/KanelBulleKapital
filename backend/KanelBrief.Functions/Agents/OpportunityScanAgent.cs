@@ -40,7 +40,7 @@ public sealed class OpportunityScanAgent(
             var run = await ExecuteAsync(request, ct);
 
             var response = req.CreateResponse(HttpStatusCode.OK);
-            await response.WriteAsJsonAsync(new { runId = run.RunId, status = run.Status });
+            await response.WriteAsJsonAsync(new { runId = run.RunId.Value, status = run.Status });
             return response;
         }
         catch (Exception ex)
@@ -59,7 +59,7 @@ public sealed class OpportunityScanAgent(
     internal async Task<OpportunityScanRun> ExecuteAsync(OpportunityScanRequest request, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(request.SubstitutionChainRunDate)
-            || string.IsNullOrWhiteSpace(request.SubstitutionChainRunId))
+            || string.IsNullOrWhiteSpace(request.SubstitutionChainRunId.Value))
             throw new ArgumentException("SubstitutionChainRunDate and SubstitutionChainRunId are required", nameof(request));
 
         logger.LogInformation(
@@ -80,7 +80,7 @@ public sealed class OpportunityScanAgent(
         var run = new OpportunityScanRun
         {
             RunDate = startTime.ToString("yyyy-MM-dd"),
-            RunId = Guid.NewGuid().ToString(),
+            RunId = OpportunityScanRunId.NewId(),
             CreatedAt = startTime,
             ModelId = ModelId,
             Status = RunStatus.Success,
